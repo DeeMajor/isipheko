@@ -224,3 +224,13 @@ Rule 12 and Part H invariant 11. `collections` has no payout relation, no float,
 The test asserts this **structurally, against the live schema**, not against the Prisma models: no column on `collections` matching `payout|float|disburse|settle|escrow|balance|wallet`, no table named for a float or settlement account, nothing anywhere carrying both a collection and a payout reference. A pattern rather than a fixed list, so a column called `disbursement_id` fails on the day it is written.
 
 That is the point of it. The test is a tripwire for a task nobody has written yet, and it fires even if whoever writes it has never read rule 12.
+
+### 12. The archetype→group mapping is to be generated in M1-04, not duplicated
+
+Decided after M1-02 shipped, and it supersedes the closing note in 3 above.
+
+That entry left the mapping written by hand in two places — the SQL CHECK in `20260807235900_constraints_and_grants`, and the `ArchetypeConfig` still to be built — and proposed a test asserting the two agree.
+
+**M1-04 should generate the CHECK from `ArchetypeConfig` instead.** A test catches drift only once somebody has already written it and only if the test is run; generation makes the two incapable of disagreeing. The distinction matters here more than it usually would, because the thing that drifts is which archetypes count as bereavement, and the consequence of getting it wrong is a progress bar on a funeral.
+
+If generation turns out to fit badly with Prisma's migration workflow — a generated migration has to be a committed, reviewable file, not something produced at deploy time — then the agreement test is an acceptable fallback. **Try generation first.**
