@@ -1,0 +1,63 @@
+# Local Postgres for development.
+#
+# Podman, not Docker, on the machine this was built on:
+#
+#   podman compose up -d
+#
+# `docker compose up -d` works identically where Docker is installed — the file
+# is plain Compose and uses nothing vendor-specific.
+#
+# Two roles, deliberately. See docs/decisions.md M1-02.
+#
+#   isipheko_owner  owns the schema and runs migrations
+#   isipheko_app    what the application connects as, at runtime
+#
+# The split is what gives `REVOKE UPDATE, DELETE ON ledger_entries` any force.
+# Revoking a privilege from the role that owns the table is theatre: an owner
+# retains implicit rights over its own tables, so the ledger would be
+# append-only by convention and nothing else. CLAUDE.md rule 3 says the app
+# database role *lacks the grants*, and that is only true of a second role.
+
+name: isipheko
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: isipheko-postgres
+    restart: unless-stopped
+    environment:
+      # The superuser here is the owner role, so migrations can create
+      # extensions and alter default privileges without a second bootstrap step.
+      POSTGRES_USER: isipheko_owner
+      POSTGRES_PASSWORD: isipheko_local_dev
+      POSTGRES_DB: isipheko
+      # Deterministic collation. Slug and reference-code comparisons should not
+      # depend on the host's locale.
+      POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
+    ports:
+      # 5433, not 5432: a developer machine often already has a Postgres on the
+      # default port, and silently connecting to the wrong database is a bad
+      # first ten minutes.
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Runs once, on an empty data directory, as the owner role. Creates the
+      # application role; every grant it needs is issued by migration SQL, so
+      # this file stays small and the privileges live under version control
+      # alongside the schema they apply to.
+      #
+      # `z` relabels the file for SELinux. Without it, Fedora and RHEL hosts
+      # deny the container read access and Postgres exits during init with
+      # "Permission denied" — with the file plainly present and world-readable,
+      # which makes it a confusing ten minutes. Docker understands the flag too,
+      # so it costs nothing on hosts that do not need it.
+      - ./prisma/init/01-app-role.sql:/docker-entrypoint-initdb.d/01-app-role.sql:ro,z
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U isipheko_owner -d isipheko']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:

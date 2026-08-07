@@ -9,3 +9,13 @@ allowBuilds:
   esbuild: true
   # Playwright's browser download, driven by `pnpm exec playwright install`.
   '@playwright/test': true
+  # Prisma's query engine binary. Without it the CLI cannot run a migration and
+  # the client cannot open a connection.
+  '@prisma/engines': true
+  prisma: true
+  # Testcontainers' transitive dependencies. All three are optional native or
+  # codegen steps, and Testcontainers works without them — cpu-features and ssh2
+  # only matter for driving a container host over SSH, which we do not do.
+  cpu-features: false
+  protobufjs: false
+  ssh2: false

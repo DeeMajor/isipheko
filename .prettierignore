@@ -1,5 +1,6 @@
 node_modules/
 .next/
+src/db/generated/
 out/
 coverage/
 test-results/

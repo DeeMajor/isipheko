@@ -19,6 +19,11 @@ playwright-report/
 blob-report/
 .playwright/
 
+# generated Prisma client — rebuilt by `pnpm db:generate`, which postinstall
+# runs. Committing it would put a large machine-written tree in every diff and
+# let it drift from prisma/schema.prisma, which is the actual source of truth.
+src/db/generated/
+
 # build / tooling caches
 *.tsbuildinfo
 .eslintcache

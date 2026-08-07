@@ -8,6 +8,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -16,11 +17,22 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:all": "vitest run",
+    "test:e2e": "playwright test",
+    "db:up": "podman compose up -d",
+    "db:down": "podman compose down",
+    "db:reset": "podman compose down -v && podman compose up -d",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "next": "^16.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -28,6 +40,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -35,6 +48,8 @@
     "eslint-config-next": "^16.3.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.6",
+    "prisma": "^7.9.1",
+    "testcontainers": "^12.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"

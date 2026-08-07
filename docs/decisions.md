@@ -130,3 +130,97 @@ Kept the newer as `design/event.html`; deleted the superseded one. `support.js` 
 `CLAUDE.md` has a second reason: it cannot be kept Prettier-stable, because `next dev` appends its agent-rules block on every run (see 11).
 
 `docs/decisions.md` is not ignored. It is written in this loop and may as well stay formatted.
+
+---
+
+## M1-02 · Database and schema
+
+### 1. Two database roles, and the ledger guarantee depends on it
+
+`isipheko_owner` owns the schema and runs migrations. `isipheko_app` is what the application connects as.
+
+CLAUDE.md rule 3 says the application database role _lacks the grants_ to update or delete a ledger row. That is only true if there is a second role. Revoking a privilege from the role that owns the table is theatre — an owner keeps implicit rights over its own tables — so a single-role setup would leave the ledger append-only by convention, with every test still passing and nothing actually stopping a rewrite.
+
+Two roles means two connection strings: `DATABASE_URL` for the runtime, `MIGRATION_DATABASE_URL` for `prisma.config.ts`. They are separate variables reached by separate code paths, so collapsing them takes a deliberate edit rather than a stray copy-paste.
+
+**What would make this wrong:** pointing `DATABASE_URL` at the owner to unblock something locally. It would work, the suite would stay green, and the guarantee would be gone. The README says so in as many words.
+
+### 2. Default privileges grant SELECT and INSERT, not everything
+
+`ALTER DEFAULT PRIVILEGES` is set so a table created by a future migration arrives with `SELECT` and `INSERT` only. `UPDATE` and `DELETE` are granted per table, by name, in a list a reviewer can read.
+
+The obvious alternative — grant everything by default, then revoke from `ledger_entries` — inverts the failure mode. It leaves the guarantee depending on somebody remembering to revoke again every time a table is added, and the day they forget there is no error, no failing test and no diff that looks wrong. Here a new table is append-only until a migration says otherwise, and the thing you have to remember to write down is the _permissive_ case.
+
+An integration test creates a table and asserts the privileges it receives, so this cannot rot silently.
+
+### 3. `archetype_group` is denormalised, and cannot drift
+
+A CHECK constraint cannot perform a lookup, and rule 1 requires the bereavement guard to exist in the database. So `events` carries both `archetype` (the specific ceremony) and `archetype_group` (the six-way grouping), and the bereavement CHECK is written against the group.
+
+A denormalised column that is allowed to disagree with its source is worse than no column: an event could carry the wedding group while being a funeral, and be handed a progress bar. A second CHECK therefore maps every key to its group in SQL, so the pair cannot disagree in either direction, on insert or on update. Tests cover both directions and every key — a new archetype added later without a mapping fails there rather than defaulting to something.
+
+The same mapping exists in the archetype config (M1-04). These are the same fact in two places, which is a real cost; the alternative was rule 1 not being enforceable in the database at all.
+
+### 4. No `role` column on organisers
+
+Part D2.8 says adding a role is not sufficient, and it is right for a reason worth writing down: a person is a host on one umcimbi and a collection organiser on another. Storing the role on the person would be wrong the first time somebody does both, which is the ordinary case rather than the edge case.
+
+So the relationship carries the role. `events.organiser_id` makes you a host on that event; `collections.organiser_id` makes you a collection organiser on that collection. One `organisers` table, no role stored anywhere.
+
+Contributors have no table at all. They never authenticate (rule 4), so there is nothing to store.
+
+### 5. Column encryption with the key in the environment — a stopgap, recorded as one
+
+Bank account numbers are AES-256-GCM (`node:crypto`), keyed from `BANK_ACCOUNT_ENCRYPTION_KEY`. ID numbers are SHA-256 with `ID_NUMBER_PEPPER`. Both are 32 bytes of base64, validated after decoding rather than as a string, because base64 tolerates a truncated input and would otherwise yield a short key that still encrypts.
+
+**Architecture §10 and §7.3 put both in a KMS, held separately from the database credential. They belong there before anything real is stored.** They are environment variables today only because the KMS decision has not been taken.
+
+Two things make that survivable rather than a hole:
+
+- Everything goes through the `ColumnCipher` interface, declared in `src/domain/` and implemented in `src/db/` — the dependency inversion rule 6 describes. Domain and application code never touch the implementation, so the move costs one file.
+- Stored values are prefixed `v1.`, and the column name is bound into the GCM tag as additional authenticated data. A scheme change has something to branch on, and a ciphertext lifted from one column into another fails to authenticate rather than decrypting to a plausible wrong answer. An account number that silently decrypts to a _different_ account number is a payment sent to the wrong person.
+
+The development key and pepper are published in `.env.example` and in `src/lib/env.ts`, which is safe because they protect a throwaway local database — and production **refuses to start** if it finds either of them. That refusal is the only thing standing between a published key and a real deployment, so it is tested.
+
+### 6. Prisma 7 with `@prisma/adapter-pg` — a fifth dependency, agreed
+
+Prisma 7.9 no longer accepts connection URLs in `schema.prisma` (they move to `prisma.config.ts`) and `PrismaClient` now requires a driver adapter rather than a URL. Neither was true of the version this task was planned against.
+
+The alternative was pinning to Prisma 6.19, which keeps `url`/`directUrl` in the schema and needs no adapter, holding the agreed four dependencies exactly. Chosen against, deliberately: v7 is current, and the adapter turns out to suit the two-role split — the application client is _constructed_ with the application role's pool in `src/db/client.ts`, while migrations read the owner URL from `prisma.config.ts`. The separation is visible in code rather than resolved from whichever environment variable happened to be set.
+
+`@prisma/adapter-pg` brings `pg` and `postgres-array` as its own dependencies. One direct addition, first-party.
+
+`prisma.config.ts` imports `./src/lib/env` rather than reading `process.env`, so the migration tooling and the application agree on what a valid environment is — and a clean clone can `pnpm install` (which runs `prisma generate`) with no `.env` file.
+
+### 7. The generated Prisma client is not committed
+
+Output goes to `src/db/generated/`, gitignored, regenerated by `postinstall`. Committing it would put a large machine-written tree in every diff and let it drift from `prisma/schema.prisma`, which is the actual source of truth. It is excluded from ESLint and Prettier for the same reason.
+
+### 8. `pnpm test` stays unit-only
+
+The integration project needs a container and takes tens of seconds. Putting that in the gate that runs after every task is how people stop running the gate.
+
+The cost is real and worth naming: the checks most worth having are the ones `pnpm test` skips. `pnpm test:all` runs both, CI runs both, and the README says plainly that a green `pnpm test` is not a green build.
+
+### 9. Podman rather than Docker, with the sharp edges handled in code
+
+The machine this was built on has Podman 5 and no Docker. Two failures follow, both of which read as something else entirely:
+
+- **Testcontainers** looks for a Docker socket and reports an opaque "could not find a working container runtime". `tests/setup/postgres.ts` detects `/run/user/$UID/podman/podman.sock` and uses it, and disables Ryuk — Testcontainers' cleanup sidecar, which needs to mount the socket into a privileged container and cannot under rootless Podman. An explicit `DOCKER_HOST` always wins, so a Docker host is unaffected. The teardown stops the container regardless.
+- **SELinux** denies the container access to the bind-mounted init script, and Postgres exits during initialisation with `Permission denied` on a file that is present and world-readable. `compose.yaml` marks the mount `:ro,z`. Docker understands the flag, so it costs nothing elsewhere.
+
+The one thing that cannot be handled in code is `systemctl --user enable --now podman.socket`, which is in the README.
+
+### 10. Two deviations from architecture §4.2, both minor
+
+**No `bank_account_id` on `organisers`.** §4.2 lists it alongside `bank_accounts.organiser_id`, which is a circular foreign key for one guarantee: at most one account in play per organiser. A partial unique index on `bank_accounts (organiser_id) WHERE status = 'active'` gives the same guarantee without the cycle.
+
+**`ledger_entries.event_id` is nullable, with a `collection_id` beside it.** §4.2 assumes every chain belongs to an event, but Part D2.3 allows a standalone collection with no event page — and it still needs a tamper-evident record. A CHECK requires exactly one of the two, so `sequence_no` always means something within a single chain. Genesis uses `SHA256(event_id)` or `SHA256(collection_id)` accordingly.
+
+### 11. Collections have no money path, and a test enforces the absence
+
+Rule 12 and Part H invariant 11. `collections` has no payout relation, no float, no disbursement, no balance and no foreign key to `bank_accounts`. `organiser_bank_hint` is free text — _"Nomsa's Capitec, ending 4471"_ — so members know where to send money, and is deliberately not a `BankAccount`, because a `BankAccount` is something we can disburse to.
+
+The test asserts this **structurally, against the live schema**, not against the Prisma models: no column on `collections` matching `payout|float|disburse|settle|escrow|balance|wallet`, no table named for a float or settlement account, nothing anywhere carrying both a collection and a payout reference. A pattern rather than a fixed list, so a column called `disbursement_id` fails on the day it is written.
+
+That is the point of it. The test is a tripwire for a task nobody has written yet, and it fires even if whoever writes it has never read rule 12.

@@ -1,0 +1,650 @@
+// Isipheko schema — architecture §4.2, plus the collections tables from
+// implementation-plan Part D2.8.
+//
+// Three things in this schema are not expressible in Prisma and live in
+// hand-written migration SQL instead. They are not decoration; they are the
+// enforcement:
+//
+//   1. The bereavement CHECK — a funeral event cannot carry a target.
+//   2. The archetype/group agreement CHECK — the denormalised group column
+//      cannot drift from the key it was derived from.
+//   3. REVOKE UPDATE, DELETE ON ledger_entries from the application role.
+//
+// Money is BIGINT integer cents in ZAR throughout (CLAUDE.md rule 7). There is
+// no Decimal and no Float in this file, and there should never be one.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/db/generated"
+}
+
+// Prisma 7 no longer accepts connection URLs here. Migrations read theirs from
+// prisma.config.ts (the owner role); the client is constructed with a driver
+// adapter over the application role's pool, in src/db/client.ts. The two roles
+// are therefore separated by construction rather than by which environment
+// variable happened to be set — see docs/decisions.md M1-02.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Archetypes
+// ---------------------------------------------------------------------------
+
+/// The six groups from CLAUDE.md. Bereavement declares no accent and is the
+/// fallback rather than a special case.
+enum ArchetypeGroup {
+  union
+  bereavement
+  remembrance
+  arrival
+  achievement
+  gathering
+
+  @@map("archetype_group")
+}
+
+/// The specific ceremony. Mapped to a group by a CHECK constraint in the
+/// migration, so the two can never disagree.
+enum ArchetypeKey {
+  umshado // wedding — union
+  umembeso // gift-giving after lobola — union
+  umngcwabo // funeral — bereavement
+  umbuyiso // tombstone unveiling — remembrance
+  imbeleko // welcoming a child — arrival
+  graduation // achievement
+  itiye // a tea — gathering
+
+  @@map("archetype_key")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum IdVerificationStatus {
+  unverified
+  pending
+  verified
+  failed
+
+  @@map("id_verification_status")
+}
+
+enum BankAccountStatus {
+  pending
+  active
+  failed
+  retired
+
+  @@map("bank_account_status")
+}
+
+enum EventMode {
+  ledger_only
+  hosted
+
+  @@map("event_mode")
+}
+
+enum EventStatus {
+  draft
+  published
+  closed
+
+  @@map("event_status")
+}
+
+enum ContributionVisibility {
+  public
+  name_only
+  anonymous
+
+  @@map("contribution_visibility")
+}
+
+enum ContributionType {
+  cash
+  in_kind
+  cash_toward_item
+
+  @@map("contribution_type")
+}
+
+enum VerificationSource {
+  organiser_confirmed
+  psp_webhook
+
+  @@map("verification_source")
+}
+
+enum ContributionStatus {
+  claimed
+  pending
+  confirmed
+  disputed
+  void
+
+  @@map("contribution_status")
+}
+
+enum NeedClaimStatus {
+  claimed
+  delivered
+  expired
+  withdrawn
+
+  @@map("need_claim_status")
+}
+
+enum WitnessStatus {
+  invited
+  accepted
+  declined
+
+  @@map("witness_status")
+}
+
+/// `collection` is the Part D2.8 addition: one entry per collection, never one
+/// per member (CLAUDE.md rule 14).
+enum LedgerEntryType {
+  contribution
+  collection
+  payout
+  adjustment
+  reversal
+
+  @@map("ledger_entry_type")
+}
+
+enum LedgerDirection {
+  credit
+  debit
+
+  @@map("ledger_direction")
+}
+
+/// Mirrors Stitch's documented disbursement states (architecture §5.4).
+/// `completed` is not terminal — a completed disbursement can later be
+/// `reversed`, which is why the ledger has a `reversal` entry type.
+enum PayoutStatus {
+  pending
+  submitted
+  paused
+  completed
+  reversed
+  cancelled
+  error
+
+  @@map("payout_status")
+}
+
+enum CollectionStatus {
+  draft
+  open
+  closed
+  handed_over
+  abandoned
+
+  @@map("collection_status")
+}
+
+/// The host does nothing in the system during a handover (CLAUDE.md rule 15).
+/// Witness confirmation is the default; host acknowledgement exists but is
+/// never required.
+enum HandoverStatus {
+  not_started
+  witness_confirmed
+  organiser_evidenced
+  host_acknowledged
+
+  @@map("handover_status")
+}
+
+enum CollectionMemberStatus {
+  pending
+  confirmed
+  withdrawn
+
+  @@map("collection_member_status")
+}
+
+enum ActorType {
+  organiser
+  contributor
+  witness
+  system
+  admin
+
+  @@map("actor_type")
+}
+
+// ---------------------------------------------------------------------------
+// People
+// ---------------------------------------------------------------------------
+
+/// One table, and **no role column**. A person is a host on one umcimbi and a
+/// collection organiser on another; the relationship carries the role, not the
+/// person (Part D2.8). Storing it here would be wrong the first time somebody
+/// does both.
+///
+/// Contributors are absent by design. They never authenticate and never have a
+/// record here (CLAUDE.md rule 4).
+model Organiser {
+  id String @id @default(uuid(7))
+
+  phoneE164   String  @unique @map("phone_e164")
+  email       String?
+  displayName String  @map("display_name")
+
+  /// SHA-256 of the ID number with a pepper held outside the database
+  /// (architecture §7.3). The plaintext is never stored, here or anywhere.
+  idNumberHash         String?              @unique @map("id_number_hash")
+  idVerificationStatus IdVerificationStatus @default(unverified) @map("id_verification_status")
+  idVerifiedAt         DateTime?            @map("id_verified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bankAccounts BankAccount[]
+  events       Event[]
+  collections  Collection[]
+
+  @@map("organisers")
+}
+
+/// Architecture §4.2. The account number is encrypted at the column level with
+/// a key held outside the database; `bavResult` stores the full verification
+/// response immutably, because it is our evidence that we checked before paying.
+model BankAccount {
+  id          String @id @default(uuid(7))
+  organiserId String @map("organiser_id")
+
+  bankId String @map("bank_id")
+
+  /// AES-256-GCM, via src/db/encryption.ts. Never a plaintext account number.
+  accountNumberEncrypted String @map("account_number_encrypted")
+  accountType            String @map("account_type")
+
+  bavResult      Json?             @map("bav_result")
+  bavVerifiedAt  DateTime?         @map("bav_verified_at")
+  status         BankAccountStatus @default(pending)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  organiser Organiser @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  payouts   Payout[]
+
+  /// At most one active account per organiser, enforced by a partial unique
+  /// index in the migration. Architecture §4.2 puts a `bank_account_id` on
+  /// organisers; that would be a circular foreign key for the same guarantee.
+  @@index([organiserId])
+  @@map("bank_accounts")
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String @id @default(uuid(7))
+  organiserId String @map("organiser_id")
+
+  /// Cryptographically random, ≥16 base62 characters, never sequential
+  /// (architecture §10). A death in the family must not be guessable.
+  slug String @unique
+
+  archetype ArchetypeKey
+
+  /// Denormalised from `archetype`. A CHECK constraint cannot perform a lookup,
+  /// and CLAUDE.md rule 1 requires the bereavement guard to exist in the
+  /// database. A second CHECK keeps this column from drifting from the key.
+  archetypeGroup ArchetypeGroup @map("archetype_group")
+
+  title       String
+  description String?
+  eventDate   DateTime? @map("event_date")
+
+  /// **Must be NULL for bereavement**, enforced by a CHECK constraint in the
+  /// migration (CLAUDE.md rule 1). Integer cents, ZAR.
+  targetAmountCents BigInt? @map("target_amount_cents")
+
+  visibilityDefault ContributionVisibility @default(public) @map("visibility_default")
+  mode              EventMode              @default(ledger_only)
+  directPayDetails  Json?                  @map("direct_pay_details")
+  status            EventStatus            @default(draft)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  closedAt  DateTime? @map("closed_at")
+
+  organiser     Organiser      @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  contributions Contribution[]
+  needItems     NeedItem[]
+  witnesses     Witness[]
+  ledgerEntries LedgerEntry[]
+  payouts       Payout[]
+  collections   Collection[]
+
+  @@index([organiserId])
+  @@index([status])
+  @@map("events")
+}
+
+model NeedItem {
+  id      String @id @default(uuid(7))
+  eventId String @map("event_id")
+
+  label    String
+  category String?
+
+  quantityRequired Int @map("quantity_required")
+  quantityClaimed  Int @default(0) @map("quantity_claimed")
+  unit             String?
+
+  estimatedCostCents BigInt? @map("estimated_cost_cents")
+  allowsCashToward   Boolean @default(true) @map("allows_cash_toward")
+  sortOrder          Int     @default(0) @map("sort_order")
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  claims        NeedClaim[]
+  contributions Contribution[]
+  collections   Collection[]
+
+  @@index([eventId, sortOrder])
+  @@map("need_items")
+}
+
+/// Claiming is never optimistic (CLAUDE.md rule 5). The conditional update that
+/// makes two simultaneous claims resolve to one winner and one 409 is M2-04;
+/// this is the table it operates on.
+model NeedClaim {
+  id         String @id @default(uuid(7))
+  needItemId String @map("need_item_id")
+
+  contributionId String? @unique @map("contribution_id")
+
+  quantity           Int
+  claimantName       String  @map("claimant_name")
+  claimantPhoneE164  String? @map("claimant_phone_e164")
+
+  status                NeedClaimStatus @default(claimed)
+  expiresAt             DateTime?       @map("expires_at")
+  deliveredConfirmedAt  DateTime?       @map("delivered_confirmed_at")
+  createdAt             DateTime        @default(now()) @map("created_at")
+
+  needItem     NeedItem      @relation(fields: [needItemId], references: [id], onDelete: Cascade)
+  contribution Contribution? @relation(fields: [contributionId], references: [id], onDelete: SetNull)
+
+  @@index([needItemId, status])
+  @@map("need_claims")
+}
+
+model Witness {
+  id      String @id @default(uuid(7))
+  eventId String @map("event_id")
+
+  name      String
+  phoneE164 String @map("phone_e164")
+
+  status            WitnessStatus @default(invited)
+  canApprovePayouts Boolean       @default(false) @map("can_approve_payouts")
+  acceptedAt        DateTime?     @map("accepted_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, phoneE164])
+  @@map("witnesses")
+}
+
+// ---------------------------------------------------------------------------
+// Contributions
+// ---------------------------------------------------------------------------
+
+/// A contribution belongs to an event **or** to a collection, never both and
+/// never neither (Part D2.8), enforced by a CHECK in the migration. A
+/// standalone collection has no event, which is why `eventId` is nullable.
+model Contribution {
+  id           String  @id @default(uuid(7))
+  eventId      String? @map("event_id")
+  collectionId String? @map("collection_id")
+
+  contributorName      String  @map("contributor_name")
+  contributorPhoneE164 String? @map("contributor_phone_e164")
+
+  type ContributionType
+
+  /// Null for pure in-kind. Integer cents, ZAR.
+  amountCents BigInt? @map("amount_cents")
+
+  needItemId String? @map("need_item_id")
+  message    String?
+  photoKey   String? @map("photo_key")
+
+  visibility         ContributionVisibility @default(public)
+  verificationSource VerificationSource     @map("verification_source")
+  pspPaymentId       String?                @unique @map("psp_payment_id")
+  status             ContributionStatus     @default(pending)
+
+  /// Short, typeable, base32 Crockford with an event tag: `MTH-4K7B2X`
+  /// (architecture §5.2). Unique so reconciliation cannot go to two places.
+  referenceCode String? @unique @map("reference_code")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  confirmedAt DateTime? @map("confirmed_at")
+
+  event       Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  collection  Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  needItem    NeedItem?   @relation(fields: [needItemId], references: [id], onDelete: SetNull)
+  needClaim   NeedClaim?
+  ledgerEntry LedgerEntry?
+
+  @@index([eventId, status])
+  @@index([collectionId])
+  @@map("contributions")
+}
+
+// ---------------------------------------------------------------------------
+// Collections — Part D2
+// ---------------------------------------------------------------------------
+
+/// A group pooling into the **collection organiser's own account**, handed to
+/// the host as one act.
+///
+/// **There is no money path through us** (CLAUDE.md rule 12). This model has no
+/// payout relation, no float, no disbursement, no balance and no bank account
+/// we could pay. `organiserBankHint` is display text so members know where to
+/// send money — it is deliberately not a `BankAccount`, because a `BankAccount`
+/// is a thing we can disburse to and this must never be one. A test asserts the
+/// absence (Part H invariant 11); if a task appears to need any of it, stop and
+/// ask.
+model Collection {
+  id String @id @default(uuid(7))
+
+  /// A collection always names an occasion, which drives archetype, tone and
+  /// copy — but the occasion need not be a full event page (Part D2.3).
+  occasionArchetype      ArchetypeKey   @map("occasion_archetype")
+  occasionArchetypeGroup ArchetypeGroup @map("occasion_archetype_group")
+
+  title   String
+  purpose String?
+
+  /// Null for a standalone collection; set for one attached to a host event,
+  /// where it appears as a single group bead (CLAUDE.md rule 14).
+  eventId String? @map("event_id")
+
+  organiserId String @map("organiser_id")
+
+  /// **Null until the organiser's identity is verified.** On collections,
+  /// verification gates *sharing*, not payout — we never hold the money, so
+  /// there is no payout to withhold, and the absence of a shareable link is the
+  /// only leverage that exists (CLAUDE.md rule 13).
+  slug String? @unique
+
+  /// Display only. Free text such as "Nomsa's Capitec, ending 4471" so members
+  /// know where to send money. Never an account we hold, verify or pay into.
+  organiserBankHint String? @map("organiser_bank_hint")
+
+  handoverStatus      HandoverStatus @default(not_started) @map("handover_status")
+  handoverConfirmedBy String?        @map("handover_confirmed_by")
+  handoverEvidenceKey String?        @map("handover_evidence_key")
+  handoverAt          DateTime?      @map("handover_at")
+
+  /// Set when the group claims a need item as a unit (Part D2.5). Eight cousins
+  /// jointly bringing the tent is how families actually operate.
+  needItemId String? @map("need_item_id")
+
+  status    CollectionStatus @default(draft)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  event         Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  organiser     Organiser          @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  needItem      NeedItem?          @relation(fields: [needItemId], references: [id], onDelete: SetNull)
+  members       CollectionMember[]
+  contributions Contribution[]
+  ledgerEntries LedgerEntry[]
+
+  @@index([eventId])
+  @@index([organiserId])
+  @@map("collections")
+}
+
+/// Members have no account and never authenticate (CLAUDE.md rule 4).
+/// `amountCents` records what someone put in — a fact about what happened, not
+/// a balance we hold.
+model CollectionMember {
+  id           String @id @default(uuid(7))
+  collectionId String @map("collection_id")
+
+  name      String
+  phoneE164 String? @map("phone_e164")
+
+  /// Null for in-kind participation. Integer cents, ZAR.
+  amountCents BigInt? @map("amount_cents")
+
+  visibility ContributionVisibility @default(public)
+  status     CollectionMemberStatus @default(pending)
+  joinedAt   DateTime               @default(now()) @map("joined_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([collectionId])
+  @@map("collection_members")
+}
+
+// ---------------------------------------------------------------------------
+// The ledger — append-only, the trust artefact
+// ---------------------------------------------------------------------------
+
+/// Append-only. The application role holds INSERT and SELECT and nothing else;
+/// `REVOKE UPDATE, DELETE` is issued in the migration (CLAUDE.md rule 3).
+/// Corrections are new `reversal` entries, never edits.
+///
+/// Each row hashes the previous row for its chain (architecture §4.3). A chain
+/// belongs to an event **or** to a standalone collection — exactly one, enforced
+/// by a CHECK — because a standalone collection has no event to hang from and
+/// still needs a tamper-evident record.
+model LedgerEntry {
+  id String @id @default(uuid(7))
+
+  eventId      String? @map("event_id")
+  collectionId String? @map("collection_id")
+
+  /// Monotonic within its chain, starting at 1.
+  sequenceNo Int @map("sequence_no")
+
+  entryType LedgerEntryType @map("entry_type")
+  direction LedgerDirection
+
+  /// Integer cents, ZAR. Null for a pure in-kind entry.
+  amountCents       BigInt? @map("amount_cents")
+  inKindDescription String? @map("in_kind_description")
+
+  /// Polymorphic: the contribution, collection or payout this records.
+  referenceId String? @map("reference_id")
+
+  /// Genesis uses SHA256(event_id) or SHA256(collection_id) for its chain.
+  prevHash  String @map("prev_hash")
+  entryHash String @unique @map("entry_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contributionId String? @unique @map("contribution_id")
+
+  event        Event?        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  collection   Collection?   @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  contribution Contribution? @relation(fields: [contributionId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, sequenceNo])
+  @@unique([collectionId, sequenceNo])
+  @@index([eventId, createdAt])
+  @@map("ledger_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Payouts — events only. Never collections.
+// ---------------------------------------------------------------------------
+
+/// A payout belongs to an **event**. There is deliberately no relation from
+/// `Collection` (CLAUDE.md rule 12): the collection organiser holds the money in
+/// her own account and we never touch it, so there is nothing here to pay out.
+model Payout {
+  id      String @id @default(uuid(7))
+  eventId String @map("event_id")
+
+  /// Integer cents, ZAR.
+  amountCents   BigInt @map("amount_cents")
+  bankAccountId String @map("bank_account_id")
+
+  pspDisbursementId String? @unique @map("psp_disbursement_id")
+
+  /// Stitch rejects a duplicate nonce, so a retry with the same nonce is safe
+  /// and is the documented recommendation (architecture §5.5). Stored before
+  /// the API call, never after.
+  nonce String @unique
+
+  status PayoutStatus @default(pending)
+
+  requestedBy String @map("requested_by")
+  approvals   Json   @default("[]")
+
+  /// The window in which this can still be undone, before it is the organiser's
+  /// problem to fix.
+  holdExpiresAt DateTime? @map("hold_expires_at")
+
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  completedAt DateTime? @map("completed_at")
+
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+
+  @@index([eventId, status])
+  @@map("payouts")
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+/// Append-only, everything security-relevant. IP and user agent are hashed, not
+/// stored (CLAUDE.md rule 8).
+model AuditLog {
+  id String @id @default(uuid(7))
+
+  actorType ActorType @map("actor_type")
+  actorId   String?   @map("actor_id")
+
+  action     String
+  targetType String? @map("target_type")
+  targetId   String? @map("target_id")
+
+  ipHash        String? @map("ip_hash")
+  userAgentHash String? @map("user_agent_hash")
+
+  metadata Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([actorType, actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_log")
+}

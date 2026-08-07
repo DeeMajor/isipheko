@@ -39,6 +39,50 @@ const absoluteUrl = z
   })
 
 /**
+ * The mirror image of the check above: here an http URL is the mistake. Both
+ * directions of the paste happen, and neither should reach a running server.
+ */
+function isPostgresUrl(value: string): boolean {
+  if (!URL.canParse(value)) return false
+  const { protocol } = new URL(value)
+  return protocol === 'postgres:' || protocol === 'postgresql:'
+}
+
+const postgresUrl = z.string().refine(isPostgresUrl, {
+  message: 'must be a postgres:// or postgresql:// connection string',
+})
+
+/**
+ * A 32-byte key, base64 encoded — AES-256 and nothing shorter.
+ *
+ * Length is checked after decoding rather than on the string, because base64
+ * silently tolerates a truncated input and would otherwise yield a short key
+ * that still encrypts. Encrypting bank account numbers under a 9-byte key
+ * derived from a half-copied secret is the sort of failure that is discovered
+ * years later.
+ */
+const base64Key = (bytes: number) =>
+  z
+    .string()
+    .refine((value) => Buffer.from(value, 'base64').toString('base64') === value, {
+      message: 'must be valid base64',
+    })
+    .refine((value) => Buffer.from(value, 'base64').length === bytes, {
+      message: `must decode to exactly ${String(bytes)} bytes — generate one with: openssl rand -base64 ${String(bytes)}`,
+    })
+
+/**
+ * Development-only key material, published in .env.example and in this file.
+ *
+ * That is safe precisely because it is worthless: it protects a throwaway local
+ * database. It exists so a clean clone runs. Production has no defaults, so this
+ * value cannot leak into one by omission — a deployment that forgets to set the
+ * real key fails to start rather than quietly encrypting under a public key.
+ */
+const DEV_ENCRYPTION_KEY = 'ZGV2ZWxvcG1lbnQtb25seS1rZXktZG8tbm90LXVzZSE='
+const DEV_ID_PEPPER = 'ZGV2ZWxvcG1lbnQtb25seS1wZXBwZXItZG8tbm90ISE='
+
+/**
  * In development and test the documented defaults apply, so a clean clone runs
  * without a .env file. In production there are no defaults — every variable is
  * required, and a missing one is a hard failure.
@@ -55,6 +99,46 @@ function schemaFor(nodeEnv: string | undefined) {
     NEXT_PUBLIC_APP_URL: isProduction
       ? absoluteUrl
       : absoluteUrl.default('http://localhost:3000'),
+
+    // What the application connects as at runtime: isipheko_app, which holds
+    // INSERT and SELECT on ledger_entries and deliberately not UPDATE or DELETE
+    // (CLAUDE.md rule 3). Pointing this at the owner role would silently undo
+    // the append-only guarantee, so the two URLs are separate variables rather
+    // than one with a flag.
+    DATABASE_URL: isProduction
+      ? postgresUrl
+      : postgresUrl.default(
+          'postgresql://isipheko_app:isipheko_local_dev@localhost:5433/isipheko',
+        ),
+
+    // The owner role. Migrations and DDL only — never the request path.
+    MIGRATION_DATABASE_URL: isProduction
+      ? postgresUrl
+      : postgresUrl.default(
+          'postgresql://isipheko_owner:isipheko_local_dev@localhost:5433/isipheko',
+        ),
+
+    // Column encryption for bank account numbers (architecture §10). Held in
+    // the environment as a stopgap; it belongs in a KMS, separate from the
+    // database credential, before anything real is stored. See
+    // docs/decisions.md M1-02.
+    BANK_ACCOUNT_ENCRYPTION_KEY: isProduction
+      ? base64Key(32).refine((value) => value !== DEV_ENCRYPTION_KEY, {
+          message:
+            'is the development key published in .env.example — generate a real one and hold it outside the repository',
+        })
+      : base64Key(32).default(DEV_ENCRYPTION_KEY),
+
+    // Peppered SHA-256 of the ID number (architecture §7.3). The plaintext ID
+    // number is never stored. Same stopgap, same destination.
+    // Rotating this pepper invalidates every stored hash, so it is generated
+    // once and kept. It cannot be recovered from the hashes it produced.
+    ID_NUMBER_PEPPER: isProduction
+      ? base64Key(32).refine((value) => value !== DEV_ID_PEPPER, {
+          message:
+            'is the development pepper published in .env.example — generate a real one and hold it outside the repository',
+        })
+      : base64Key(32).default(DEV_ID_PEPPER),
   })
 }
 
