@@ -61,6 +61,20 @@ In production there are no defaults and every variable is required. The asymmetr
 
 Errors accumulate — every problem is reported at once, rather than one per restart — and never print a value, only the variable name (CLAUDE.md rule 8).
 
+### 7. The boot guard exits the process; it does not merely throw
+
+Discovered by testing rather than by reading, and it is the substance of the task.
+
+`src/instrumentation.ts` originally let the `EnvironmentError` propagate out of `register()`. Verified against Next 16.3.0: **that does not stop the server.** Next catches the throw, logs an `unhandledRejection`, prints `✓ Ready`, binds the port, and then answers every request with a 500. Measured directly: `GET /` returned HTTP 500 while the process stayed alive indefinitely.
+
+That is worse than no guard at all. A container in that state passes a TCP health check, stays in the load balancer, and serves 500s to contributors — precisely the "fails later at runtime" outcome the guard exists to prevent.
+
+`register()` now catches, reports, and calls `process.exit(1)`. Re-verified in isolation, with the `next.config.ts` import disabled so the instrumentation path was the only guard: the process exits 1, serves nothing, and logs no `unhandledRejection`.
+
+The `StartupHost` seam exists only so tests can assert the refusal without a real `process.exit` taking the test runner down. In the edge runtime, where `process.exit` is absent, it rethrows — worse than exiting, better than swallowing.
+
+The build path was tested the same way and was already correct: `pnpm build` exits 1 and produces no artefact for a missing value and for each malformed form.
+
 ### 8. `pnpm test` is Vitest only; Playwright lives behind `pnpm test:e2e`
 
 `pnpm typecheck && pnpm lint && pnpm test` runs after every task. It has to stay fast enough that nobody is tempted to skip it. Vitest alone is seconds; Playwright needs a browser download and a dev server.

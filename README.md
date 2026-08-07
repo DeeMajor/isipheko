@@ -29,6 +29,8 @@ Every variable is validated by [src/lib/env.ts](src/lib/env.ts) against a Zod sc
 | Build | [next.config.ts](next.config.ts) imports `./src/lib/env`      | `pnpm build` exits 1, no artefact is produced |
 | Boot  | [src/instrumentation.ts](src/instrumentation.ts) `register()` | process exits 1 before any request is served  |
 
+The boot half ends the process explicitly rather than throwing. Throwing is not enough: Next catches it, logs an `unhandledRejection`, and keeps listening — answering every request with a 500. A container in that state passes a TCP health check and stays in the load balancer.
+
 `NEXT_PUBLIC_APP_URL` must carry an `http`/`https` scheme and no trailing slash. `URL.canParse` alone accepts `localhost:3000` and `postgres://…`, so a mispasted database URL would otherwise validate and produce share links nobody can open.
 
 Errors name the offending variable and never print its value (CLAUDE.md rule 8).
