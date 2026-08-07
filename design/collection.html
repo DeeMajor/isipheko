@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#16233D">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#16233D"/>
+    <circle cx="600" cy="400" r="150" fill="none" stroke="#FFFFFF" stroke-width="18"/>
+    <circle cx="600" cy="400" r="92" fill="#FFFFFF"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+<style>
+  /* Public Sans variable, hardcoded: latin + latin-ext only. No Vietnamese, no italic. */
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-ext-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  html, body { margin: 0; padding: 0; background: #F2F1ED; }
+  body { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+  a { color: #16233D; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #4A5670; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent, #16233D); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</helmet>
+<div style="{{ theme }}">
+  <div style="max-width: 430px; margin: 0 auto; min-height: 100%; background: #F2F1ED;">
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px dashed #D8D6CE; flex-wrap: wrap;">
+      <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670; font-weight: 700;">Preview only</span>
+      <div style="display: flex; gap: 6px;">
+        <sc-for list="{{ screens }}" as="sc" hint-placeholder-count="3">
+          <button type="button" onClick="{{ sc.onPick }}" aria-pressed="{{ sc.active }}" style="{{ sc.style }}">{{ sc.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #D8D6CE;">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #16233D;">Isipheko</span>
+      <span style="font-size: 12px; color: #4A5670;">{{ topRight }}</span>
+    </div>
+
+    <sc-if value="{{ isStart }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <header style="padding: 26px 20px 22px; border-bottom: 1px solid #D8D6CE;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.1; font-weight: 800; letter-spacing: -0.033em; text-wrap: pretty;">Start a collection</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">For when a group of you want to give together and hand over one thing. Four questions, then one check.</p>
+        </header>
+
+        <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em;">What is the occasion?</h2>
+          <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">This sets the tone of your page — the colour and the words. A collection for a funeral should not look like one for a wedding.</p>
+          <div style="margin: 14px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6">
+              <button type="button" onClick="{{ k.onPick }}" aria-pressed="{{ k.active }}" style="{{ k.style }}">
+                <span style="{{ k.beadStyle }}"></span>
+                <span style="display: block; margin-top: 9px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: #16233D;">{{ k.title }}</span>
+                <span style="display: block; margin-top: 1px; font-size: 12px; color: #4A5670;">{{ k.zulu }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em;">Is there a family page already?</h2>
+          <div style="margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{ attachOptions }}" as="a" hint-placeholder-count="2">
+              <button type="button" onClick="{{ a.onPick }}" aria-pressed="{{ a.active }}" style="{{ a.style }}">
+                <span style="display: block; font-size: 15px; font-weight: 700; color: #16233D;">{{ a.title }}</span>
+                <span style="display: block; margin-top: 3px; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ a.blurb }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ showAttachField }}" hint-placeholder-val="{{ false }}">
+            <label style="display: block; margin: 12px 0 0;">
+              <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Their page code</span>
+              <input type="text" value="{{ attachCode }}" onInput="{{ onAttachCode }}" placeholder="e.g. MTH-4K7B2X" style="margin-top: 7px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 700; letter-spacing: 0.05em; color: #16233D; outline: none; font-variant-numeric: tabular-nums;" />
+              <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670;">It is on the family's page, under "Is this real?". Attaching only links the two — the family is not asked to do anything.</span>
+            </label>
+          </sc-if>
+        </section>
+
+        <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+          <label style="display: block;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Who is it for?</span>
+            <input type="text" value="{{ forWhom }}" onInput="{{ onForWhom }}" placeholder="{{ forWhomPlaceholder }}" style="margin-top: 8px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none;" />
+            <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ forWhomHelp }}</span>
+          </label>
+
+          <label style="display: block; margin: 18px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">What are you collecting toward?</span>
+            <textarea rows="2" value="{{ toward }}" onInput="{{ onToward }}" placeholder="{{ towardPlaceholder }}" style="margin-top: 8px; width: 100%; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 12px 14px; font-size: 16px; line-height: 1.5; color: #16233D; outline: none; resize: vertical; font-family: inherit;"></textarea>
+            <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670; text-wrap: pretty;">{{ towardHelp }}</span>
+          </label>
+        </section>
+
+        <section style="padding: 24px 20px 30px; background: #FFFFFF;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em;">One check before you get a link</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #16233D; text-wrap: pretty;">{{ verifyLead }}</p>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Your name and the date of this check go on the collection page. Your ID number never appears anywhere.</p>
+
+          <label style="display: block; margin: 18px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Your ID number</span>
+            <input type="text" inputMode="numeric" maxLength="13" value="{{ idNumber }}" onInput="{{ onIdNumber }}" placeholder="13 digits" style="{{ idInputStyle }}" />
+            <span style="display: block; margin-top: 6px; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ idHelp }}</span>
+          </label>
+
+          <sc-if value="{{ verified }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ verifiedCardStyle }}">
+              <p style="margin: 0; font-size: 15px; font-weight: 700;">Verified — {{ organiser }}</p>
+              <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; opacity: 0.92;">Your link is ready. Anyone can check this at isipheko.co.za/check.</p>
+            </div>
+          </sc-if>
+
+          <button type="button" onClick="{{ onVerify }}" disabled="{{ verifyDisabled }}" style="{{ verifyButtonStyle }}">{{ verifyButtonLabel }}</button>
+          <p style="margin: 11px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-align: center; text-wrap: pretty;">{{ verifyFoot }}</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPage }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <header style="padding: 26px 20px 22px; border-bottom: 1px solid #D8D6CE;">
+          <p style="margin: 0 0 9px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #4A5670; font-weight: 600;">Collection · {{ kicker }}</p>
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.1; font-weight: 800; letter-spacing: -0.033em; text-wrap: pretty;">{{ collectionName }}</h1>
+          <p style="margin: 11px 0 0; font-size: 15px; line-height: 1.5; color: #16233D; font-weight: 500;">{{ forLine }}</p>
+          <p style="margin: 5px 0 0; font-size: 15px; line-height: 1.5; color: #16233D; font-variant-numeric: tabular-nums;">{{ whenLine }}</p>
+          <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">Held by {{ organiser }} · ID verified {{ verifiedDate }}</p>
+        </header>
+
+        <section style="padding: 22px 20px 24px; border-bottom: 1px solid #D8D6CE;">
+          <div style="padding: 14px 15px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D; text-wrap: pretty;">{{ custodyTitle }}</p>
+            <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ custodyBody }}</p>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670;"><a href="#trust" style="color: #16233D; font-weight: 700;">What that means for you</a></p>
+          </div>
+        </section>
+
+        <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">What we're giving</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ givingIntro }}</p>
+
+          <div style="margin: 16px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+              <p style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: #16233D;">{{ claimTitle }}</p>
+              <span style="flex: none; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent, #16233D); border: 1px solid var(--accent, #16233D); border-radius: 4px; padding: 3px 7px;">Held by us</span>
+            </div>
+            <p style="margin: 7px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ claimBody }}</p>
+            <p style="margin: 9px 0 0; font-size: 14px; line-height: 1.55; color: #16233D; font-weight: 600; text-wrap: pretty;">{{ claimWhy }}</p>
+          </div>
+
+          <div style="margin: 12px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">{{ restTitle }}</p>
+            <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ restBody }}</p>
+          </div>
+
+          <div style="margin: 16px 0 0; padding: 15px 16px; border: 1px solid #D8D6CE; border-radius: 12px;">
+            <p style="margin: 0; font-size: 13px; color: #4A5670;">In so far</p>
+            <p style="margin: 5px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: #16233D; font-variant-numeric: tabular-nums;">{{ totalAmount }}</p>
+            <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ totalNote }}</p>
+          </div>
+        </section>
+
+        <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">{{ membersHeading }}</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ membersIntro }}</p>
+
+          <div style="margin: 16px 0 0; display: flex; flex-direction: column;">
+            <sc-for list="{{ members }}" as="m" hint-placeholder-count="8">
+              <div style="display: flex; align-items: baseline; gap: 11px; padding: 11px 0; border-bottom: 1px solid #D8D6CE;">
+                <span style="{{ m.beadStyle }}"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 600; color: #16233D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.name }}</span>
+                  <sc-if value="{{ m.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <span style="display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ m.note }}</span>
+                  </sc-if>
+                </span>
+                <span style="flex: none; font-size: 14px; font-weight: 700; color: #16233D; font-variant-numeric: tabular-nums;">{{ m.amount }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <button type="button" onClick="{{ onJoin }}" style="{{ joinStyle }}">{{ joinLabel }}</button>
+          <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ joinNote }}</p>
+        </section>
+
+        <section id="trust" style="padding: 26px 20px 40px; background: #FFFFFF;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">Is this real, and who holds the money?</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Two different questions. Here are both answers, plainly.</p>
+
+          <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 16px;">
+            <sc-for list="{{ trustBlocks }}" as="t" hint-placeholder-count="4">
+              <div style="padding-top: 16px; border-top: 1px solid #D8D6CE;">
+                <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 700;">{{ t.title }}</h3>
+                <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ t.body }}</p>
+                <sc-if value="{{ t.hasList }}" hint-placeholder-val="{{ false }}">
+                  <ul style="margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                    <sc-for list="{{ t.items }}" as="li" hint-placeholder-count="3">
+                      <li style="font-size: 15px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ li.text }}</li>
+                    </sc-for>
+                  </ul>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isHandover }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="{{ handoverHeroStyle }}">
+          <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.8;">{{ heroKicker }}</p>
+          <div style="margin: 22px 0 0; display: flex; align-items: center; justify-content: center;">
+            <span style="{{ heroBeadStyle }}"><span style="{{ heroBeadCoreStyle }}"></span></span>
+          </div>
+          <p style="margin: 22px 0 0; font-size: 30px; line-height: 1.12; font-weight: 800; letter-spacing: -0.035em; text-wrap: pretty;">{{ heroTitle }}</p>
+          <p style="margin: 10px 0 0; font-size: 16px; line-height: 1.5; opacity: 0.92; text-wrap: pretty;">{{ heroBody }}</p>
+          <p style="margin: 18px 0 0; font-size: 40px; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums;">{{ heroAmount }}</p>
+          <p style="margin: 4px 0 0; font-size: 14px; opacity: 0.85; font-variant-numeric: tabular-nums;">{{ heroAmountNote }}</p>
+        </div>
+
+        <sc-if value="{{ handedOver }}" hint-placeholder-val="{{ false }}">
+          <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">{{ sealTitle }}</h2>
+            <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ sealBody }}</p>
+            <div style="margin: 16px 0 0; padding: 15px 16px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+              <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #16233D; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ sealReceipt }}</p>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{ pending }}" hint-placeholder-val="{{ true }}">
+          <section style="padding: 24px 20px 26px; border-bottom: 1px solid #D8D6CE;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">Who confirms it</h2>
+            <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #16233D; text-wrap: pretty;">{{ confirmLead }}</p>
+            <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ confirmBody }}</p>
+
+            <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 10px;">
+              <sc-for list="{{ witnessChoices }}" as="w" hint-placeholder-count="3">
+                <button type="button" onClick="{{ w.onPick }}" aria-pressed="{{ w.active }}" style="{{ w.style }}">
+                  <span style="display: flex; align-items: center; gap: 11px;">
+                    <span style="{{ w.dotStyle }}"></span>
+                    <span style="flex: 1; min-width: 0;">
+                      <span style="display: block; font-size: 15px; font-weight: 700; color: #16233D;">{{ w.name }}</span>
+                      <span style="display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ w.note }}</span>
+                    </span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+
+            <button type="button" onClick="{{ onConfirm }}" disabled="{{ confirmDisabled }}" style="{{ confirmStyle }}">{{ confirmLabel }}</button>
+            <p style="margin: 11px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-align: center; text-wrap: pretty;">{{ confirmFoot }}</p>
+
+            <div style="margin: 20px 0 0; padding-top: 18px; border-top: 1px solid #D8D6CE;">
+              <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">If nobody can tap it there</p>
+              <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Phones die and signal fails at gravesides. Mark it yourself with a photo of the handover — the record will say it was your word rather than a witness's, and that difference stays on it.</p>
+              <button type="button" onClick="{{ onPhoto }}" style="margin-top: 12px; width: 100%; min-height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ photoLabel }}</button>
+            </div>
+          </section>
+        </sc-if>
+
+        <section style="padding: 24px 20px 30px; background: #FFFFFF;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">The record you hand over with it</h2>
+          <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ recordIntro }}</p>
+
+          <div style="margin: 18px 0 0; background: #FFFFFF; border: 1px solid #16233D; border-radius: 4px; padding: 20px 18px;">
+            <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #4A5670;">Isipheko · incwadi</p>
+            <p style="margin: 12px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.025em; color: #16233D; text-wrap: pretty;">{{ recordTitle }}</p>
+            <p style="margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ recordSub }}</p>
+            <div style="margin: 16px 0 0; padding-top: 14px; border-top: 1px solid #16233D; display: flex; flex-direction: column;">
+              <sc-for list="{{ recordRows }}" as="r" hint-placeholder-count="8">
+                <div style="display: flex; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px dotted #D8D6CE;">
+                  <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: #16233D;">{{ r.name }}</span>
+                  <span style="flex: none; font-size: 14px; color: #16233D; font-variant-numeric: tabular-nums;">{{ r.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin: 14px 0 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+              <span style="font-size: 15px; font-weight: 800; color: #16233D;">Together</span>
+              <span style="font-size: 17px; font-weight: 800; color: #16233D; font-variant-numeric: tabular-nums;">{{ recordTotal }}</span>
+            </div>
+            <p style="margin: 16px 0 0; padding-top: 14px; border-top: 1px solid #D8D6CE; font-size: 13px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ recordFoot }}</p>
+          </div>
+
+          <button type="button" onClick="{{ onPrint }}" style="margin-top: 14px; width: 100%; min-height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ printLabel }}</button>
+          <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ printNote }}</p>
+        </section>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;funeral&quot;,&quot;wedding&quot;],&quot;default&quot;:&quot;funeral&quot;,&quot;tsType&quot;:&quot;'funeral' | 'wedding'&quot;}}">
+const KINDS = [
+  { id: "wedding", title: "Wedding", zulu: "Umshado", accent: "#8C2F22" },
+  { id: "funeral", title: "Funeral", zulu: "Umngcwabo", accent: "#16233D" },
+  { id: "unveiling", title: "Unveiling", zulu: "Umbuyiso", accent: "#2F5D50" },
+  { id: "child", title: "New child", zulu: "Imbeleko", accent: "#8A6A12" },
+  { id: "celebration", title: "Celebration", zulu: "Umgidi", accent: "#8C2F5E" },
+  { id: "gathering", title: "Gathering", zulu: "Umhlangano", accent: "#2C4A6E" }
+];
+
+const CONFIG = {
+  funeral: {
+    accent: "#16233D", kicker: "Umngcwabo",
+    collectionName: "The cousins in Johannesburg",
+    forWhom: "The Mthembu family",
+    deceased: "Nokuthula Mthembu",
+    whenLine: "Saturday 15 August · KwaMashu",
+    organiser: "Nomsa Mthembu",
+    verifiedDate: "12 July",
+    solemn: true,
+    forWhomPlaceholder: "e.g. The Mthembu family",
+    forWhomHelp: "The family, or the person. Whoever the giving is for.",
+    towardPlaceholder: "e.g. The tent, and groceries with what is left",
+    towardHelp: "If the family has a page, you can take something straight off their list — that is usually worth more to them than money.",
+    verifyLead: "There is no money for us to hold back if something goes wrong here, because we never hold it. The only thing we can do is make sure your name is real before we give you a link to send round.",
+    claimTitle: "Tent", claimNoun: "tent", claimCost: 1200,
+    claimBody: "Taken off the family's list as one item, by all eight of us together.",
+    claimWhy: "Better than sending the money: the family does not have to go and hire one on the week they are burying their mother.",
+    restTitle: "Whatever is left over",
+    restGoesTo: "the family as groceries",
+    membersHeading: "The eight of us",
+    membersIntro: "Everyone here gave to Nomsa directly. On the family's page this shows as one bead, not eight — because it is one act.",
+    givingIntro: "One thing from the family's list, and money for the rest. Both handed over together on the day.",
+    heroKicker: "Ready to hand over",
+    heroTitle: "Eight of you, one act.",
+    heroBody: "You are about to put this in the family's hands. Take a minute over it — this is the part they will remember.",
+    recordIntro: "Print this and hand it over with the money. The family keeps it. Years later this page may be gone and the paper will not be.",
+    joinLabel: "Join this collection",
+    joinNote: "You pay Nomsa the same way you would pay anyone — no account, no sign-up. Your name goes on the paper record the family keeps."
+  },
+  wedding: {
+    accent: "#8C2F22", kicker: "Umshado",
+    collectionName: "The office collection",
+    forWhom: "Lindiwe & Sipho",
+    deceased: "Lindiwe & Sipho",
+    whenLine: "Saturday 12 September · Pietermaritzburg",
+    organiser: "Thandi Ngcobo",
+    verifiedDate: "3 August",
+    solemn: false,
+    forWhomPlaceholder: "e.g. Lindiwe & Sipho",
+    forWhomHelp: "The couple, or the family.",
+    towardPlaceholder: "e.g. The décor",
+    towardHelp: "If they have a page, you can take something straight off their list.",
+    verifyLead: "There is no money for us to hold back if something goes wrong here, because we never hold it. The only thing we can do is make sure your name is real before we give you a link to send round.",
+    claimTitle: "Décor", claimNoun: "décor", claimCost: 2500,
+    claimBody: "Taken off the couple's list as one item, by all eight of us together.",
+    claimWhy: "Better than sending the money: nobody has to chase a hire company the week of the wedding.",
+    restTitle: "Whatever is left over",
+    restGoesTo: "the couple",
+    membersHeading: "The eight of us",
+    membersIntro: "Everyone here gave to Thandi directly. On the couple's page this shows as one bead, not eight — because it is one act.",
+    givingIntro: "One thing from their list, and money for the rest. Both handed over together on the day.",
+    heroKicker: "Ready to hand over",
+    heroTitle: "Eight of you, one act.",
+    heroBody: "You are about to put this in their hands. Take a minute over it.",
+    recordIntro: "Print this and hand it over with the money. They keep it.",
+    joinLabel: "Join this collection",
+    joinNote: "You pay Thandi the same way you would pay anyone — no account, no sign-up. Your name goes on the paper record."
+  }
+};
+
+const MEMBERS = [
+  { name: "Nomsa Mthembu", amount: 800, note: "Started the collection" },
+  { name: "Sanele Mthembu", amount: 700, note: "" },
+  { name: "Zodwa Ngcobo", amount: 600, note: "" },
+  { name: "Xolani Cele", amount: 500, note: "" },
+  { name: "Precious Zondi", amount: 500, note: "" },
+  { name: "Bheki Radebe", amount: 450, note: "" },
+  { name: "Nolwazi Mkhize", amount: 400, note: "Gave quietly — name shown by choice" },
+  { name: "Andile Gumede", amount: 400, note: "" }
+];
+
+const zar = (n) => "R" + Number(n || 0).toLocaleString("en-ZA").replace(/,/g, " ");
+
+class Component extends DCLogic {
+  state = {
+    screen: "start",
+    kind: "funeral", attach: "existing", attachCode: "MTH-4K7B2X",
+    forWhom: "", toward: "", idNumber: "", verifying: false, verified: false,
+    witness: null, handedOver: false, byPhoto: false, printed: false, joined: false
+  };
+
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  get cfg() { return CONFIG[this.props.variant === "wedding" ? "wedding" : "funeral"]; }
+
+  verify() {
+    this.setState({ verifying: true });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ verifying: false, verified: true }), 1300);
+  }
+
+  renderVals() {
+    const s = this.state, cfg = this.cfg, accent = cfg.accent;
+    const kindAccent = (KINDS.find(k => k.id === s.kind) || {}).accent || accent;
+    const total = MEMBERS.reduce((a, m) => a + m.amount, 0);
+    const left = total - cfg.claimCost;
+    const covered = left >= 0;
+    const idValid = /^\d{13}$/.test(s.idNumber);
+
+    const btn = (bg, fg, border) => ({
+      minHeight: "52px", borderRadius: "4px", border: "1px solid " + border, background: bg, color: fg,
+      fontSize: "16px", fontWeight: 700, cursor: "pointer", padding: "13px 14px", transition: "opacity 120ms linear"
+    });
+    const card = (active, acc) => ({
+      display: "block", width: "100%", textAlign: "left", padding: "14px", borderRadius: "12px",
+      minHeight: "48px", cursor: "pointer", background: "#FFFFFF",
+      border: "1px solid " + (active ? (acc || accent) : "#D8D6CE"),
+      boxShadow: active ? "inset 0 0 0 1px " + (acc || accent) : "none"
+    });
+
+    const witnesses = [
+      { id: "w1", name: "Sanele Mthembu", note: "Gave R700 · travelling down on Friday" },
+      { id: "w2", name: "Zodwa Ngcobo", note: "Gave R600 · will be at the house" },
+      { id: "w3", name: "Xolani Cele", note: "Gave R500 · driving the tent up" }
+    ];
+    const witnessName = (witnesses.find(w => w.id === s.witness) || {}).name || "";
+
+    return {
+      theme: { "--accent": accent, background: "#F2F1ED", minHeight: "100%", fontFamily: "'Public Sans', -apple-system, Roboto, 'Helvetica Neue', sans-serif", color: "#16233D", WebkitFontSmoothing: "antialiased" },
+      screens: [["start", "Start"], ["page", "Collection page"], ["handover", "Handover"]].map(([id, label]) => ({
+        label, active: s.screen === id,
+        style: {
+          minHeight: "38px", padding: "8px 12px", borderRadius: "4px", cursor: "pointer",
+          fontSize: "13px", fontWeight: 700,
+          border: "1px solid " + (s.screen === id ? accent : "#D8D6CE"),
+          background: s.screen === id ? accent : "#FFFFFF",
+          color: s.screen === id ? "#FFFFFF" : "#16233D"
+        },
+        onPick: () => this.setState({ screen: id })
+      })),
+      isStart: s.screen === "start",
+      isPage: s.screen === "page",
+      isHandover: s.screen === "handover",
+      topRight: s.screen === "start" ? "Starting a collection" : (s.screen === "page" ? "A collection, not a family page" : "Handing over"),
+
+      kinds: KINDS.map(k => ({
+        title: k.title, zulu: k.zulu, active: s.kind === k.id,
+        style: { ...card(s.kind === k.id, k.accent), padding: "13px" },
+        beadStyle: { display: "block", width: s.kind === k.id ? "18px" : "13px", height: s.kind === k.id ? "18px" : "13px", borderRadius: "50%", background: k.accent, transition: "width 140ms ease-out, height 140ms ease-out" },
+        onPick: () => this.setState({ kind: k.id })
+      })),
+
+      attachOptions: [
+        { id: "existing", title: "Yes — attach to their page", blurb: "Your collection shows on their needs board and their strand as one bead. You can take an item off their list.", },
+        { id: "standalone", title: "No — this stands alone", blurb: "There is no family page. Your collection is the whole thing, and you hand over privately." }
+      ].map(o => ({
+        title: o.title, blurb: o.blurb, active: s.attach === o.id,
+        style: card(s.attach === o.id),
+        onPick: () => this.setState({ attach: o.id })
+      })),
+      showAttachField: s.attach === "existing",
+      attachCode: s.attachCode,
+      onAttachCode: (e) => this.setState({ attachCode: e.target.value.toUpperCase() }),
+
+      forWhom: s.forWhom,
+      onForWhom: (e) => this.setState({ forWhom: e.target.value }),
+      forWhomPlaceholder: cfg.forWhomPlaceholder,
+      forWhomHelp: cfg.forWhomHelp,
+      toward: s.toward,
+      onToward: (e) => this.setState({ toward: e.target.value }),
+      towardPlaceholder: cfg.towardPlaceholder,
+      towardHelp: cfg.towardHelp,
+
+      verifyLead: cfg.verifyLead,
+      idNumber: s.idNumber,
+      onIdNumber: (e) => this.setState({ idNumber: e.target.value.replace(/\D/g, "").slice(0, 13) }),
+      idInputStyle: { marginTop: "8px", width: "100%", minHeight: "56px", border: "1px solid " + (idValid ? accent : "#D8D6CE"), borderRadius: "4px", background: "#FFFFFF", padding: "0 14px", fontSize: "21px", fontWeight: 700, letterSpacing: "0.06em", color: "#16233D", outline: "none", fontVariantNumeric: "tabular-nums" },
+      idHelp: s.idNumber.length ? s.idNumber.length + " of 13" : "The same number as on your green book or smart card.",
+      verified: s.verified,
+      organiser: cfg.organiser,
+      verifiedCardStyle: { marginTop: "16px", background: accent, color: "#FFFFFF", borderRadius: "12px", padding: "15px 16px" },
+      verifyButtonLabel: s.verified ? "Get my link" : (s.verifying ? "Checking with Home Affairs…" : "Verify me"),
+      verifyDisabled: s.verifying || (!s.verified && !idValid),
+      verifyButtonStyle: { ...btn(accent, "#FFFFFF", accent), width: "100%", marginTop: "18px", minHeight: "56px", opacity: (s.verifying || (!s.verified && !idValid)) ? 0.42 : 1 },
+      verifyFoot: s.verified ? "" : "No link is created until this passes. Nothing you have typed is public yet.",
+
+      kicker: cfg.kicker,
+      collectionName: cfg.collectionName,
+      forLine: "For " + cfg.forWhom + " · " + cfg.deceased,
+      whenLine: cfg.whenLine,
+      verifiedDate: cfg.verifiedDate,
+
+      custodyTitle: cfg.organiser + " holds this money, not Isipheko.",
+      custodyBody: "It goes into her own account and she hands it over on the day. We check that she is who she says she is, and we keep the record of who gave. We do not hold the money and we cannot get it back for you. You are trusting her, the way you would if she collected it in an envelope.",
+
+      givingIntro: cfg.givingIntro,
+      claimTitle: cfg.claimTitle,
+      claimBody: cfg.claimBody + " " + zar(cfg.claimCost) + " to hire.",
+      claimWhy: cfg.claimWhy,
+      restTitle: covered ? cfg.restTitle : "Not covered yet",
+      restBody: covered
+        ? "Goes to " + cfg.restGoesTo + ". " + zar(left) + " so far, after the " + cfg.claimNoun + "."
+        : "The " + cfg.claimNoun + " costs " + zar(cfg.claimCost) + " and we have " + zar(total) + ". Still " + zar(-left) + " short — nothing is handed over until it is covered.",
+      totalAmount: zar(total),
+      totalNote: MEMBERS.length + " people · " + (covered ? "the " + cfg.claimNoun + " covered, " + zar(left) + " over" : zar(-left) + " short of the " + cfg.claimNoun),
+
+      membersHeading: cfg.membersHeading,
+      membersIntro: cfg.membersIntro,
+      members: MEMBERS.map(m => ({
+        name: m.name, amount: zar(m.amount), hasNote: !!m.note, note: m.note,
+        beadStyle: { flex: "none", display: "block", width: "12px", height: "12px", borderRadius: "50%", background: accent, marginTop: "4px" }
+      })),
+      joinLabel: s.joined ? "You're in ✓" : cfg.joinLabel,
+      joinStyle: { ...btn(s.joined ? "#FFFFFF" : accent, s.joined ? "#16233D" : "#FFFFFF", s.joined ? "#D8D6CE" : accent), width: "100%", marginTop: "18px", minHeight: "56px" },
+      onJoin: () => this.setState({ joined: true }),
+      joinNote: cfg.joinNote,
+
+      trustBlocks: [
+        { title: "Who Isipheko has checked", body: cfg.organiser + "'s South African ID was verified against the Home Affairs record on " + cfg.verifiedDate + ". That is the only thing we can promise you about her." },
+        { title: "Who holds the money", body: "She does. It sits in her personal account until the handover. Isipheko never receives it, never holds it, and cannot refund it. If she does not hand it over, that is a matter between her and you — the same as any collection at work or at church. We say this plainly because you are about to give money on the strength of a link." },
+        {
+          title: "What we do give you", body: "Three things that an envelope on a desk does not:", hasList: true,
+          items: [
+            { text: "A record of every name and amount, which she cannot quietly change." },
+            { text: "A handover confirmed by one of you who is actually there, not by her alone." },
+            { text: "A printed incwadi the family keeps, with all eight names on it." }
+          ]
+        },
+        { title: "How to check the occasion itself", body: "Do not use a number on this page. Ask someone in the family you already know, on a number you already had — or type isipheko.co.za/check into your browser yourself and enter " + s.attachCode + "." }
+      ],
+
+      handoverHeroStyle: { background: accent, color: "#FFFFFF", padding: "34px 22px 36px", textAlign: "center" },
+      heroKicker: s.handedOver ? "Handed over" : cfg.heroKicker,
+      heroBeadStyle: { display: "flex", alignItems: "center", justifyContent: "center", width: "76px", height: "76px", borderRadius: "50%", border: "3px solid #FFFFFF", background: "transparent" },
+      heroBeadCoreStyle: { display: "block", width: "46px", height: "46px", borderRadius: "50%", background: "#FFFFFF" },
+      heroTitle: s.handedOver ? "It is in their hands." : cfg.heroTitle,
+      heroBody: s.handedOver
+        ? "Eight names, one bead on the family's strand, and a paper record they keep."
+        : cfg.heroBody,
+      heroAmount: zar(total),
+      heroAmountNote: MEMBERS.length + " people · and the " + cfg.claimNoun,
+
+      pending: !s.handedOver,
+      handedOver: s.handedOver,
+      confirmLead: "One of you who is standing there confirms it. Not the family — they are burying their mother and have nothing to do in here.",
+      confirmBody: "Pick whoever will be present when you hand it over. They tap once, on their own phone, and the record closes with their name against it.",
+      witnessChoices: witnesses.map(w => ({
+        name: w.name, note: w.note, active: s.witness === w.id,
+        style: card(s.witness === w.id),
+        dotStyle: { flex: "none", width: "18px", height: "18px", borderRadius: "50%", border: "2px solid " + (s.witness === w.id ? accent : "#A8A69E"), background: s.witness === w.id ? accent : "#FFFFFF", boxShadow: s.witness === w.id ? "inset 0 0 0 3px #FFFFFF" : "none" },
+        onPick: () => this.setState({ witness: w.id })
+      })),
+      confirmLabel: s.witness ? "Ask " + witnessName.split(" ")[0] + " to confirm on the day" : "Choose who will be there",
+      confirmDisabled: !s.witness,
+      confirmStyle: { ...btn(accent, "#FFFFFF", accent), width: "100%", marginTop: "18px", minHeight: "56px", opacity: s.witness ? 1 : 0.42, cursor: s.witness ? "pointer" : "not-allowed" },
+      onConfirm: () => this.setState({ handedOver: true, byPhoto: false }),
+      confirmFoot: "Nothing moves because of this tap. It only closes the record.",
+      photoLabel: s.byPhoto ? "Photo added ✓" : "Mark it myself with a photo",
+      onPhoto: () => this.setState({ handedOver: true, byPhoto: true }),
+
+      sealTitle: s.byPhoto ? "Closed on your word" : "Confirmed by " + witnessName,
+      sealBody: s.byPhoto
+        ? "You marked this yourself with a photo, and the record says so. It is worth less than a witness's tap, and anyone reading it later will see the difference."
+        : witnessName + " was there and confirmed it on " + cfg.whenLine.split(" · ")[0] + ". The record is closed and cannot be edited by anyone, including you.",
+      sealReceipt: "Handed to " + cfg.forWhom + " · " + zar(total) + " and the " + cfg.claimNoun + " · " + (s.byPhoto ? "marked by " + cfg.organiser + " with a photo" : "witnessed by " + witnessName) + " · 15 August, 11:40",
+
+      recordIntro: cfg.recordIntro,
+      recordTitle: cfg.collectionName,
+      recordSub: "For " + cfg.forWhom + " · " + cfg.deceased + " · " + cfg.whenLine,
+      recordRows: MEMBERS.map(m => ({ name: m.name, amount: zar(m.amount) })),
+      recordTotal: zar(total),
+      recordFoot: "Collected by " + cfg.organiser + ", ID verified by Isipheko " + cfg.verifiedDate + ". The " + cfg.claimNoun + " was taken off the family's list by this group as one item. " + (s.handedOver ? (s.byPhoto ? "Marked handed over by " + cfg.organiser + " with a photo." : "Handed over and witnessed by " + witnessName + ".") : "Handover not yet confirmed."),
+      printLabel: s.printed ? "Sent to print ✓" : "Print the incwadi",
+      onPrint: () => this.setState({ printed: true }),
+      printNote: "One page. Print two if you want to keep one yourselves."
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+node_modules/
+.next/
+out/
+coverage/
+test-results/
+playwright-report/
+pnpm-lock.yaml
+next-env.d.ts
+
+# The reference screens are exported artefacts, not source. Reformatting them
+# would destroy the diff against future exports.
+design/
+
+# Authored prose, not source. Reflowing tables and list markers in these would
+# produce a large diff that says nothing, on the documents most often read by a
+# human. CLAUDE.md additionally cannot be kept stable — `next dev` appends its
+# agent-rules block on every run.
+CLAUDE.md
+docs/architecture.md
+docs/implementation-plan.md
+docs/isipheko-phase1-research.md
+docs/isipheko-phase1.5-solutions.md

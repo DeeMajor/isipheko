@@ -1,0 +1,17 @@
+/*
+ * Scaffold only (M1-01).
+ *
+ * The design system — tokens, the self-hosted Public Sans @font-face rules,
+ * radii, focus rings, prefers-reduced-motion — lands in src/ui/tokens.css at
+ * M1-05. Do not add design decisions here; they belong in one place.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

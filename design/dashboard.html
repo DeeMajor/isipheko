@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#F2F1ED">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F2F1ED"/>
+    <rect x="330" y="140" width="540" height="170" rx="20" fill="#FFFFFF" stroke="#16233D" stroke-width="6"/>
+    <rect x="370" y="230" width="270" height="48" rx="8" fill="#16233D"/>
+    <circle cx="370" cy="380" r="16" fill="#FFFFFF" stroke="#16233D" stroke-width="6"/>
+    <rect x="410" y="366" width="380" height="28" rx="8" fill="#D8D6CE"/>
+    <circle cx="370" cy="460" r="16" fill="#A8A69E"/>
+    <rect x="410" y="446" width="330" height="28" rx="8" fill="#D8D6CE"/>
+    <circle cx="370" cy="540" r="16" fill="#16233D"/>
+    <rect x="410" y="526" width="290" height="28" rx="8" fill="#D8D6CE"/>
+    <rect x="330" y="620" width="540" height="70" rx="12" fill="#16233D"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+<style>
+  /* Public Sans variable, hardcoded: latin + latin-ext only. No Vietnamese, no italic. */
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-ext-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  html, body { margin: 0; padding: 0; background: #F2F1ED; }
+  body { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+  a { color: #16233D; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #4A5670; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent, #16233D); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</helmet>
+<div style="{{ theme }}">
+  <div style="max-width: 430px; margin: 0 auto; min-height: 100%; background: #F2F1ED;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #D8D6CE;">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #16233D;">Isipheko</span>
+      <span style="font-size: 12px; color: #4A5670;">Your view as organiser</span>
+    </div>
+
+    <header style="padding: 24px 20px 22px; border-bottom: 1px solid #D8D6CE;">
+      <p style="margin: 0 0 9px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #4A5670; font-weight: 600;">{{ kicker }}</p>
+      <h1 style="margin: 0; font-size: 27px; line-height: 1.1; font-weight: 800; letter-spacing: -0.033em; color: #16233D; text-wrap: pretty;">{{ eventName }}</h1>
+      <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.5; color: #16233D; font-variant-numeric: tabular-nums;">{{ whenLine }}</p>
+      <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ standingLine }}</p>
+    </header>
+
+    <sc-if value="{{ hasQueue }}" hint-placeholder-val="{{ true }}">
+      <section style="padding: 24px 20px 26px; background: #FFFFFF; border-bottom: 1px solid #D8D6CE;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">{{ queueHeading }}</h2>
+        <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ queueIntro }}</p>
+
+        <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+            <div style="{{ q.cardStyle }}">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">{{ q.tag }}</p>
+                <p style="margin: 0; font-size: 12px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ q.ago }}</p>
+              </div>
+              <p style="margin: 8px 0 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: #16233D; text-wrap: pretty;">{{ q.headline }}</p>
+              <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ q.detail }}</p>
+
+              <sc-if value="{{ q.showCheck }}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 12px 0 0; padding: 11px 12px; background: #F2F1ED; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #16233D; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ q.checkAgainst }}</p>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ q.resolved }}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 13px 0 0; padding-top: 12px; border-top: 1px solid #D8D6CE; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                  <p style="margin: 0; font-size: 14px; font-weight: 700; color: #16233D;">{{ q.resolvedLine }}</p>
+                  <span style="flex: none; display: flex; gap: 7px;">
+                    <button type="button" onClick="{{ q.onUndo }}" style="min-height: 40px; padding: 0 12px; border-radius: 4px; border: 1px solid #D8D6CE; background: transparent; color: #16233D; font-size: 13px; font-weight: 600; cursor: pointer;">Undo</button>
+                    <button type="button" onClick="{{ q.onClear }}" style="min-height: 40px; padding: 0 12px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 13px; font-weight: 600; cursor: pointer;">Clear</button>
+                  </span>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ q.showActions }}" hint-placeholder-val="{{ true }}">
+                <div style="margin: 14px 0 0; display: flex; gap: 8px;">
+                  <button type="button" onClick="{{ q.onConfirm }}" disabled="{{ q.busy }}" style="{{ q.confirmStyle }}">{{ q.confirmLabel }}</button>
+                  <button type="button" onClick="{{ q.onQuery }}" style="flex: none; min-height: 52px; padding: 0 14px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ q.queryLabel }}</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ q.queried }}" hint-placeholder-val="{{ false }}">
+                <p style="margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #D8D6CE; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ q.queriedLine }}</p>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ queueClear }}" hint-placeholder-val="{{ false }}">
+      <section style="padding: 22px 20px; background: #FFFFFF; border-bottom: 1px solid #D8D6CE;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">Nothing is waiting for you</h2>
+        <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Everything people have told us about has been checked off. You can put the phone down.</p>
+      </section>
+    </sc-if>
+
+    <section style="padding: 26px 20px 28px; border-bottom: 1px solid #D8D6CE;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">Where things stand</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ standIntro }}</p>
+
+      <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 22px;">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <div>
+            <div style="display: flex; align-items: baseline; gap: 9px;">
+              <span style="{{ g.markStyle }}"></span>
+              <h3 style="margin: 0; flex: 1; min-width: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: #16233D;">{{ g.title }}</h3>
+              <span style="font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ g.count }}</span>
+            </div>
+            <p style="margin: 5px 0 0 20px; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ g.note }}</p>
+
+            <div style="margin: 12px 0 0; display: flex; flex-direction: column; gap: 10px;">
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+                <div style="{{ r.cardStyle }}">
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <p style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.015em; color: #16233D;">{{ r.name }}</p>
+                    <p style="margin: 0; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ r.right }}</p>
+                  </div>
+                  <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ r.detail }}</p>
+                  <sc-if value="{{ r.hasAction }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ r.onAction }}" disabled="{{ r.busy }}" style="{{ r.actionStyle }}">{{ r.actionLabel }}</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ g.hasMore }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ g.onToggle }}" style="margin-top: 10px; width: 100%; min-height: 46px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">{{ g.toggleLabel }}</button>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <button type="button" onClick="{{ onNudge }}" style="{{ nudgeStyle }}">{{ nudgeLabel }}</button>
+      <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ nudgeNote }}</p>
+    </section>
+
+    <section style="padding: 26px 20px 28px; border-bottom: 1px solid #D8D6CE;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">The record</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ recordIntro }}</p>
+
+      <div style="margin: 18px 0 0;">
+        <div role="img" aria-label="{{ strandLabel }}" style="{{ strandStyle }}">
+          <sc-for list="{{ cords }}" as="c" hint-placeholder-count="2">
+            <div style="{{ c.style }}"></div>
+          </sc-for>
+          <sc-for list="{{ beads }}" as="b" hint-placeholder-count="40">
+            <span title="{{ b.name }}" style="{{ b.style }}"><span style="{{ b.barStyle }}"></span></span>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin: 18px 0 0; display: flex; flex-direction: column;">
+        <sc-for list="{{ recent }}" as="r" hint-placeholder-count="6">
+          <div style="display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-bottom: 1px solid #D8D6CE;">
+            <span style="{{ r.beadStyle }}"><span style="{{ r.barStyle }}"></span></span>
+            <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: #16233D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.name }}</span>
+            <span style="flex: none; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ r.what }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <button type="button" onClick="{{ onToggleRecord }}" style="margin-top: 14px; width: 100%; min-height: 46px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">{{ recordToggleLabel }}</button>
+    </section>
+
+    <section style="padding: 26px 20px 40px; background: #FFFFFF;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em;">Taking the money out</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ payoutIntro }}</p>
+
+      <div style="margin: 18px 0 0; padding: 16px; border: 1px solid #D8D6CE; border-radius: 12px;">
+        <p style="margin: 0; font-size: 13px; color: #4A5670;">Ready to pay out now</p>
+        <p style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: #16233D; font-variant-numeric: tabular-nums;">{{ availableAmount }}</p>
+        <p style="margin: 7px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ availableNote }}</p>
+      </div>
+
+      <div style="margin: 16px 0 0; display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ conditions }}" as="c" hint-placeholder-count="4">
+          <div style="{{ c.cardStyle }}">
+            <div style="display: flex; align-items: flex-start; gap: 11px;">
+              <span style="{{ c.iconStyle }}">{{ c.icon }}</span>
+              <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: #16233D; text-wrap: pretty;">{{ c.title }}</p>
+                <p style="margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ c.protects }}</p>
+                <sc-if value="{{ c.hasRemedy }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #16233D; font-weight: 600; text-wrap: pretty;">{{ c.remedy }}</p>
+                </sc-if>
+                <sc-if value="{{ c.hasButton }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ c.onAction }}" style="{{ c.buttonStyle }}">{{ c.buttonLabel }}</button>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <button type="button" onClick="{{ onRequestPayout }}" disabled="{{ payoutDisabled }}" style="{{ payoutStyle }}">{{ payoutLabel }}</button>
+      <p style="margin: 11px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-align: center; text-wrap: pretty;">{{ payoutFoot }}</p>
+
+      <sc-if value="{{ payoutRequested }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ requestedCardStyle }}">
+          <p style="margin: 0; font-size: 15px; font-weight: 700;">{{ requestedTitle }}</p>
+          <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; opacity: 0.92; font-variant-numeric: tabular-nums;">{{ requestedBody }}</p>
+        </div>
+      </sc-if>
+    </section>
+
+    <footer style="padding: 22px 20px 40px; border-top: 1px solid #D8D6CE;">
+      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #4A5670; text-wrap: pretty;">Isipheko · from ukupheka, to cook. People have always arrived with something. This is only the door.</p>
+    </footer>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;funeral&quot;,&quot;wedding&quot;],&quot;default&quot;:&quot;funeral&quot;,&quot;tsType&quot;:&quot;'funeral' | 'wedding'&quot;}}">
+const CONFIG = {
+  funeral: {
+    accent: "#16233D", kicker: "Umngcwabo",
+    eventName: "Nokuthula Mthembu",
+    whenLine: "Saturday 15 August · KwaMashu · in 4 days",
+    organiser: "Nomsa Mthembu",
+    witnessName: "Sipho Mthembu",
+    amountsPublic: false, motion: false,
+    queueHeading: "Waiting for you",
+    queueTail: "Check each against your own bank message, then say yes. It is the only thing on this page that needs you today.",
+    recordIntro: "Every bead is one person. Filled beads are money, open beads are something brought. Amounts stay hidden from everyone but you.",
+    payoutIntro: "Money sits in a held Isipheko account until you ask for it. These four things have to be true first — not to slow you down, but so that if anything goes wrong there is still time to stop it.",
+    target: null
+  },
+  wedding: {
+    accent: "#8C2F22", kicker: "Umshado",
+    eventName: "Lindiwe & Sipho",
+    whenLine: "Saturday 12 September · Pietermaritzburg · in 5 weeks",
+    organiser: "Nomsa Dlamini",
+    witnessName: "Mandla Zulu",
+    amountsPublic: true, motion: true,
+    queueHeading: "Waiting for you",
+    queueTail: "Check each against your own bank message, then say yes.",
+    recordIntro: "Every bead is one person. Filled beads are money, open beads are something brought.",
+    payoutIntro: "Money sits in a held Isipheko account until you ask for it. These four things have to be true first — not to slow you down, but so that if anything goes wrong there is still time to stop it.",
+    target: 120000
+  }
+};
+
+const QUEUE = [
+  { id: "q1", kind: "payment", who: "Thandi Ngcobo", amount: 500, ref: "MTH-4K7B2X", ago: "18 minutes ago", bank: "Look for R500 from T NGCOBO with reference MTH-4K7B2X. It usually shows within ten minutes." },
+  { id: "q2", kind: "payment", who: "Bheki Radebe", amount: 1000, ref: "MTH-9P2LTV", ago: "2 hours ago", bank: "Look for R1 000 from B RADEBE with reference MTH-9P2LTV." },
+  { id: "q3", kind: "delivery", who: "Musa Khumalo", item: "Tent", ago: "yesterday", note: "He said he would drop it at the house on Thursday morning." }
+];
+
+const CLAIMED = [
+  { id: "chairs", name: "Chairs", who: "Zanele Mkhize", detail: "100 chairs · promised, arriving Friday", right: "Promised" },
+  { id: "meat", name: "Meat", who: "Four people", detail: "16kg of 20kg taken · 4kg still needed", right: "Part taken" }
+];
+const OPEN = [
+  { id: "transport", name: "Transport from Johannesburg", detail: "Nobody has taken this · one bakkie or a shared taxi", right: "Open" }
+];
+const ARRIVED = [
+  { id: "pots", name: "Catering pots", detail: "Brought by Thandi Ngcobo · arrived Tuesday", right: "Arrived" },
+  { id: "groceries", name: "Groceries", detail: "Brought by the church · arrived Tuesday", right: "Arrived" },
+  { id: "tent2", name: "Gazebo", detail: "Brought by Xolani Cele · arrived Monday", right: "Arrived" },
+  { id: "water", name: "Water", detail: "Six crates from the taxi association · arrived Tuesday", right: "Arrived" },
+  { id: "cooldrink", name: "Cooldrink", detail: "Brought by Nonhlanhla Zondi · arrived Wednesday", right: "Arrived" },
+  { id: "wood", name: "Paraffin and wood", detail: "Brought by Themba Gumede · arrived Monday", right: "Arrived" },
+  { id: "potatoes", name: "Potatoes", detail: "20kg from three neighbours · arrived Wednesday", right: "Arrived" },
+  { id: "rice", name: "Rice and mealie meal", detail: "Brought by the church · arrived Tuesday", right: "Arrived" },
+  { id: "programmes", name: "Printed programmes", detail: "Brought by Ayanda Nkosi · arrived this morning", right: "Arrived" }
+];
+
+const FIRST = ["Thandi","Sipho","Nomvula","Bongani","Zanele","Musa","Lindiwe","Sibusiso","Nokwanda","Themba","Ayanda","Mandla","Phumzile","Xolani","Nonhlanhla","Jabulani","Busisiwe","Andile","Zodwa","Sanele","Precious","Mxolisi","Hlengiwe","Vusi","Nolwazi","Siyabonga","Thulisile","Kagiso","Nobuhle","Mthokozisi"];
+const LAST = ["Mthembu","Ngcobo","Dlamini","Zulu","Khumalo","Mkhize","Ndlovu","Cele","Zondi","Buthelezi","Shabalala","Nkosi","Mahlangu","Sithole","Gumede","Radebe"];
+const ITEMS = ["a case of cooldrink","two bags of mealie meal","20 chairs","5kg of rice","cooking pots","10kg of potatoes","paraffin and wood","a crate of water"];
+
+function rng(seed) { let s = seed; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; }
+const zar = (n) => "R" + Number(n || 0).toLocaleString("en-ZA").replace(/,/g, " ");
+
+class Component extends DCLogic {
+  state = {
+    done: {}, busy: null, queried: {}, cleared: {},
+    delivered: {}, nudged: false, arrivedAll: false,
+    recordAll: false,
+    bankLinked: false, payoutRequested: false, witnessAsked: false
+  };
+
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  get cfg() { return CONFIG[this.props.variant === "wedding" ? "wedding" : "funeral"]; }
+
+  act(id) {
+    this.setState({ busy: id });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ busy: null, done: { ...this.state.done, [id]: Date.now() } }), 800);
+  }
+
+  contributions() {
+    const r = rng(20250815);
+    const out = [];
+    for (let i = 0; i < 41; i++) {
+      const cash = r() > 0.42;
+      out.push({
+        id: "c" + i,
+        name: FIRST[Math.floor(r() * FIRST.length)] + " " + LAST[Math.floor(r() * LAST.length)],
+        cash, band: Math.min(3, Math.floor(r() * 4)),
+        item: ITEMS[Math.floor(r() * ITEMS.length)],
+        amount: [100, 250, 500, 1000][Math.min(3, Math.floor(r() * 4))],
+        days: 1 + Math.floor(r() * 9)
+      });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const s = this.state, cfg = this.cfg, accent = cfg.accent;
+    const btn = (bg, fg, border) => ({
+      minHeight: "52px", borderRadius: "4px", border: "1px solid " + border, background: bg, color: fg,
+      fontSize: "15px", fontWeight: 700, cursor: "pointer", padding: "13px 14px", transition: "opacity 120ms linear"
+    });
+
+    const queue = QUEUE.filter(q => !s.cleared[q.id]).map(q => {
+      const done = !!s.done[q.id];
+      const busy = s.busy === q.id;
+      const isPay = q.kind === "payment";
+      return {
+        tag: isPay ? "Says they paid" : "Bringing something",
+        ago: q.ago,
+        headline: isPay ? q.who + " says they sent " + zar(q.amount) : q.who + " is bringing the " + q.item.toLowerCase(),
+        detail: isPay ? "Reference " + q.ref : q.note,
+        showCheck: isPay && !done,
+        checkAgainst: q.bank,
+        cardStyle: { background: done ? "#F2F1ED" : "#FFFFFF", border: "1px solid " + (done ? "#D8D6CE" : accent), borderRadius: "12px", padding: "15px 16px" },
+        resolved: done,
+        resolvedLine: isPay ? "Confirmed — it is on the record" : "Marked as arrived",
+        onUndo: () => { const d = { ...s.done }; delete d[q.id]; this.setState({ done: d }); },
+        onClear: () => this.setState({ cleared: { ...s.cleared, [q.id]: true } }),
+        showActions: !done && !s.queried[q.id],
+        busy,
+        confirmLabel: busy ? "Just a moment…" : (isPay ? "Yes, it's in my account" : "It has arrived"),
+        confirmStyle: { ...btn(accent, "#FFFFFF", accent), flex: 1, opacity: busy ? 0.6 : 1 },
+        onConfirm: () => this.act(q.id),
+        queryLabel: isPay ? "Not yet" : "Not yet",
+        onQuery: () => this.setState({ queried: { ...s.queried, [q.id]: true } }),
+        queried: !!s.queried[q.id] && !done,
+        queriedLine: isPay
+          ? "Left waiting. We will ask " + q.who.split(" ")[0] + " to check the reference, and it will come back here if it lands. Nothing is counted until you say so."
+          : "Left waiting. It stays held in " + q.who.split(" ")[0] + "'s name so nobody else brings a second one."
+      };
+    });
+
+    const rowCard = (r, extra) => ({
+      name: r.name, right: r.right, detail: r.detail,
+      cardStyle: { background: "#FFFFFF", border: "1px solid #D8D6CE", borderRadius: "12px", padding: "14px 15px" },
+      ...extra
+    });
+
+    const groups = [
+      {
+        title: "Nobody has taken this", count: OPEN.length + " thing",
+        note: "The only part of the list still completely open.",
+        markStyle: { flex: "none", width: "11px", height: "11px", borderRadius: "50%", border: "2px solid " + accent, background: "#FFFFFF", marginTop: "2px" },
+        rows: OPEN.map(r => rowCard(r, {
+          hasAction: true,
+          busy: s.busy === r.id,
+          actionLabel: s.done[r.id] ? "Asked ✓" : (s.busy === r.id ? "Sending…" : "Ask the group again"),
+          actionStyle: { ...btn(s.done[r.id] ? "#F2F1ED" : "#FFFFFF", "#16233D", "#D8D6CE"), width: "100%", marginTop: "12px", minHeight: "48px" },
+          onAction: () => this.act(r.id)
+        }))
+      },
+      {
+        title: "Promised, not yet here", count: CLAIMED.length + " things",
+        note: "Held in someone's name. Mark them off as they arrive.",
+        markStyle: { flex: "none", width: "11px", height: "11px", borderRadius: "50%", background: "#A8A69E", marginTop: "2px" },
+        rows: CLAIMED.map(r => rowCard(r, {
+          hasAction: true,
+          busy: s.busy === r.id,
+          actionLabel: s.done[r.id] ? "Arrived ✓" : (s.busy === r.id ? "Just a moment…" : "Mark as arrived"),
+          actionStyle: { ...btn(s.done[r.id] ? "#F2F1ED" : accent, s.done[r.id] ? "#16233D" : "#FFFFFF", s.done[r.id] ? "#D8D6CE" : accent), width: "100%", marginTop: "12px", minHeight: "48px" },
+          onAction: () => this.act(r.id)
+        }))
+      },
+      {
+        title: "Here already", count: ARRIVED.length + " things",
+        note: "Nothing more needed on these.",
+        markStyle: { flex: "none", width: "11px", height: "11px", borderRadius: "50%", background: accent, marginTop: "2px" },
+        rows: (s.arrivedAll ? ARRIVED : ARRIVED.slice(0, 3)).map(r => rowCard(r, { hasAction: false })),
+        hasMore: ARRIVED.length > 3,
+        toggleLabel: s.arrivedAll ? "Show fewer" : "Show all " + ARRIVED.length,
+        onToggle: () => this.setState({ arrivedAll: !s.arrivedAll })
+      }
+    ];
+
+    const list = this.contributions();
+    const cordPitch = 64, cords = 2, pitch = 40;
+    const cordX = (i) => "calc(50% + " + Math.round((i - (cords - 1) / 2) * cordPitch) + "px)";
+    const r2 = rng(99);
+    const BAND = [10, 14, 18, 24];
+    const beads = list.map((c, i) => {
+      const size = Math.round(BAND[c.band] * 0.92);
+      const row = Math.floor(i / cords);
+      const idx = row % 2 === 0 ? i % cords : cords - 1 - (i % cords);
+      return {
+        name: c.name,
+        style: {
+          position: "absolute", left: cordX(idx), top: Math.round(12 + row * pitch) + "px",
+          marginLeft: Math.round((r2() - 0.5) * 5) + "px", transform: "translate(-50%,-50%)",
+          display: "block", width: size + "px", height: size + "px", borderRadius: "50%",
+          background: c.cash ? accent : "#FFFFFF", border: c.cash ? "0" : "2px solid " + accent,
+          boxShadow: "0 0 0 3px #F2F1ED"
+        },
+        barStyle: c.cash ? { display: "none" } : { display: "block", position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: Math.max(4, size - 8) + "px", height: "2px", background: accent }
+      };
+    });
+
+    const recent = (s.recordAll ? list : list.slice(0, 6)).map(c => ({
+      name: c.name,
+      what: c.cash ? zar(c.amount) : c.item,
+      beadStyle: { flex: "none", position: "relative", display: "block", width: "13px", height: "13px", borderRadius: "50%", background: c.cash ? accent : "#FFFFFF", border: c.cash ? "0" : "2px solid " + accent },
+      barStyle: c.cash ? { display: "none" } : { display: "block", position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "6px", height: "2px", background: accent }
+    }));
+
+    const raised = 47800, settling = 3200, available = raised - settling;
+    const bigPayout = available > 5000;
+    const conditions = [
+      {
+        ok: true, title: "Your name is verified",
+        protects: "Checked against Home Affairs on 12 July. This is what stops someone else setting up a page in your family's name and taking what people meant for you."
+      },
+      {
+        ok: s.bankLinked, title: s.bankLinked ? "Your bank account is verified" : "Your bank account needs verifying",
+        protects: "We check the account belongs to the same verified name. It means money cannot be redirected to a stranger's account, even by someone who gets into this page.",
+        remedy: s.bankLinked ? "" : "Add your account and we send R1 to it. Tell us the reference on that R1 and it is done — usually the same day.",
+        buttonLabel: "Verify my bank account",
+        onAction: () => this.setState({ bankLinked: true })
+      },
+      {
+        ok: true, title: zar(settling) + " is still settling",
+        protects: "Anything given in the last 72 hours waits before it can leave. If a card is reversed, or someone gives by mistake, or a payment turns out to be fraud, this is the window in which it can still be undone — before it is your problem to fix.",
+        remedy: "This clears on Thursday at 09:14. The rest — " + zar(available) + " — you can take now."
+      },
+      {
+        ok: !bigPayout || s.witnessAsked, title: bigPayout ? (s.witnessAsked ? cfg.witnessName + " has been asked to agree" : cfg.witnessName + " needs to agree") : "No second signature needed",
+        protects: "Over " + zar(5000) + ", one of your abakhaphi agrees too. Two people, not one — so nobody can ever say afterwards that you moved the family's money alone.",
+        remedy: bigPayout && !s.witnessAsked ? "One tap sends him the amount and what it is for. He taps yes. Most agree within the hour." : (s.witnessAsked ? "Sent. He will get a message now, and you will see it here when he agrees." : ""),
+        buttonLabel: "Ask " + cfg.witnessName.split(" ")[0] + " now",
+        onAction: () => this.setState({ witnessAsked: true })
+      }
+    ].map(c => ({
+      title: c.title,
+      protects: c.protects,
+      hasRemedy: !!c.remedy,
+      remedy: c.remedy,
+      hasButton: !c.ok && !!c.buttonLabel,
+      buttonLabel: c.buttonLabel,
+      onAction: c.onAction,
+      buttonStyle: { ...btn("#FFFFFF", accent, accent), width: "100%", marginTop: "11px", minHeight: "48px" },
+      icon: c.ok ? "✓" : "·",
+      iconStyle: {
+        flex: "none", width: "22px", height: "22px", marginTop: "1px", borderRadius: "50%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: c.ok ? "13px" : "17px", fontWeight: 800,
+        background: c.ok ? accent : "#FFFFFF", color: c.ok ? "#FFFFFF" : "#A8A69E",
+        border: c.ok ? "0" : "2px solid #D8D6CE"
+      },
+      cardStyle: { background: "#FFFFFF", border: "1px solid " + (c.ok ? "#D8D6CE" : accent), borderRadius: "12px", padding: "15px 16px" }
+    }));
+
+    const allOk = s.bankLinked && (!bigPayout || s.witnessAsked);
+    const unsettled = OPEN.length + CLAIMED.length;
+    const total = unsettled + ARRIVED.length;
+    const waiting = queue.filter(q => !s.done[q.id]).length;
+
+    return {
+      theme: { "--accent": accent, background: "#F2F1ED", minHeight: "100%", fontFamily: "'Public Sans', -apple-system, Roboto, 'Helvetica Neue', sans-serif", color: "#16233D", WebkitFontSmoothing: "antialiased" },
+      kicker: cfg.kicker,
+      eventName: cfg.eventName,
+      whenLine: cfg.whenLine,
+      standingLine: "41 people have contributed · " + zar(raised) + " held · " + ARRIVED.length + " of " + total + " things settled",
+
+      hasQueue: queue.length > 0,
+      queueClear: queue.length === 0,
+      queueHeading: cfg.queueHeading,
+      queueIntro: (waiting === 0
+        ? "Everything people have told us about is checked off."
+        : (waiting === 1 ? "One person has told us something. " : waiting + " people have told us something. ") + cfg.queueTail),
+      queue,
+
+      standIntro: ARRIVED.length + " of the " + total + " things on your list are settled. These are the " + unsettled + " that are not.",
+      groups,
+      nudgeLabel: s.nudged ? "Sent to the group ✓" : "Send the list to the family group",
+      nudgeStyle: { ...btn(s.nudged ? "#FFFFFF" : accent, s.nudged ? "#16233D" : "#FFFFFF", s.nudged ? "#D8D6CE" : accent), width: "100%", marginTop: "22px" },
+      onNudge: () => this.setState({ nudged: true }),
+      nudgeNote: "Sends what is still open, nothing else. People who have already helped are not asked again.",
+
+      recordIntro: cfg.recordIntro,
+      strandStyle: { position: "relative", width: "100%", height: (Math.ceil(list.length / cords) * pitch + 24) + "px" },
+      strandLabel: list.length + " people have contributed",
+      cords: Array.from({ length: cords }, (_, i) => ({ style: { position: "absolute", left: cordX(i), marginLeft: "-1px", top: "6px", bottom: "6px", width: "2px", background: "#16233D", opacity: 0.9 } })),
+      beads,
+      recent,
+      recordToggleLabel: s.recordAll ? "Show fewer" : "Show all 41",
+      onToggleRecord: () => this.setState({ recordAll: !s.recordAll }),
+
+      payoutIntro: cfg.payoutIntro,
+      availableAmount: zar(available),
+      availableNote: zar(raised) + " has come in. " + zar(settling) + " of it is still inside the 72-hour hold and clears on Thursday.",
+      conditions,
+      payoutDisabled: !allOk,
+      payoutLabel: allOk ? "Request " + zar(available) : (s.bankLinked ? "Waiting on " + cfg.witnessName.split(" ")[0] : "Two things to do first"),
+      payoutStyle: { ...btn(accent, "#FFFFFF", accent), width: "100%", marginTop: "18px", minHeight: "56px", fontSize: "16px", opacity: allOk ? 1 : 0.42, cursor: allOk ? "pointer" : "not-allowed" },
+      onRequestPayout: () => this.setState({ payoutRequested: true }),
+      payoutFoot: allOk
+        ? "Into your verified account, usually within a day. You will see it here and so will " + cfg.witnessName.split(" ")[0] + "."
+        : "Nothing above is a judgement about you. Every organiser passes through the same four.",
+      payoutRequested: s.payoutRequested,
+      requestedCardStyle: { marginTop: "16px", background: accent, color: "#FFFFFF", borderRadius: "12px", padding: "15px 16px" },
+      requestedTitle: "Asked for — " + zar(available),
+      requestedBody: "Into your verified account. It usually lands within a day. If you need to stop it, you can until it leaves — there is a Cancel on this card until then."
+    };
+  }
+}
+
+</script>
+</body>
+</html>

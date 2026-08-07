@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#F2F1ED">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F2F1ED"/>
+    <rect x="380" y="170" width="200" height="150" rx="20" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <circle cx="440" cy="230" r="20" fill="#8C2F22"/>
+    <rect x="620" y="170" width="200" height="150" rx="20" fill="#FFFFFF" stroke="#16233D" stroke-width="6"/>
+    <circle cx="680" cy="230" r="26" fill="#16233D"/>
+    <rect x="380" y="350" width="200" height="150" rx="20" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <circle cx="440" cy="410" r="20" fill="#2F5D50"/>
+    <rect x="620" y="350" width="200" height="150" rx="20" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <circle cx="680" cy="410" r="20" fill="#8A6A12"/>
+    <rect x="380" y="560" width="440" height="80" rx="12" fill="#16233D"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+<style>
+  /* Public Sans variable, hardcoded: latin + latin-ext only. No Vietnamese, no italic. */
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-ext-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+</style>
+<style>
+  html, body { margin: 0; padding: 0; background: #F2F1ED; }
+  body { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+  a { color: #16233D; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #4A5670; }
+  button { font: inherit; }
+  input, textarea { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent, #16233D); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</helmet>
+<div style="{{ theme }}">
+  <div style="max-width: 430px; margin: 0 auto; min-height: 100%; background: #F2F1ED; display: flex; flex-direction: column;">
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #D8D6CE;">
+      <sc-if value="{{ canGoBack }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onBack }}" aria-label="Go back" style="flex: none; width: 44px; height: 44px; margin-left: -10px; border: 0; background: transparent; color: #16233D; font-size: 21px; font-weight: 700; cursor: pointer; line-height: 1;">←</button>
+      </sc-if>
+      <div style="flex: 1; min-width: 0;">
+        <p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #16233D;">Isipheko</p>
+        <p style="margin: 1px 0 0; font-size: 12px; color: #4A5670; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ crumb }}</p>
+      </div>
+      <span style="flex: none; font-size: 12px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ stepLabel }}</span>
+    </div>
+
+    <div style="height: 3px; background: #D8D6CE;"><div style="{{ progressStyle }}"></div></div>
+
+    <div style="flex: 1; padding: 24px 20px 32px;">
+
+      <sc-if value="{{ isKind }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">What kind of umcimbi?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">This sets the whole tone of the page — the colour, the words, and what people are shown. Choose one and you will see exactly what changes.</p>
+          <div style="margin: 20px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6">
+              <button type="button" onClick="{{ k.onPick }}" aria-pressed="{{ k.active }}" style="{{ k.style }}">
+                <span style="{{ k.beadStyle }}"></span>
+                <span style="display: block; margin-top: 11px; font-size: 16px; font-weight: 700; letter-spacing: -0.015em; color: #16233D;">{{ k.title }}</span>
+                <span style="display: block; margin-top: 2px; font-size: 13px; color: #4A5670;">{{ k.zulu }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ hasKind }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 18px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; overflow: hidden;">
+              <div style="{{ consequenceHeadStyle }}">
+                <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.85;">Your page will look like this</p>
+                <p style="margin: 7px 0 0; font-size: 21px; font-weight: 800; letter-spacing: -0.025em;">{{ consequenceTitle }}</p>
+                <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">{{ consequenceKicker }}</p>
+              </div>
+              <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 9px;">
+                <sc-for list="{{ consequences }}" as="c" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <span style="{{ c.markStyle }}"></span>
+                    <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; color: #4A5670; text-wrap: pretty;"><strong style="color: #16233D; font-weight: 700;">{{ c.label }}</strong> {{ c.detail }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDetails }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">{{ detailsTitle }}</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Three things, and you can change any of them later.</p>
+
+          <label style="display: block; margin: 20px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">{{ nameLabel }}</span>
+            <span style="display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ nameHelp }}</span>
+            <input type="text" placeholder="{{ namePlaceholder }}" value="{{ eventName }}" onInput="{{ onEventName }}" style="margin-top: 8px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none;" />
+          </label>
+
+          <sc-if value="{{ showSecondName }}" hint-placeholder-val="{{ false }}">
+            <label style="display: block; margin: 16px 0 0;">
+              <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 14px; font-weight: 700; color: #16233D;">{{ secondNameLabel }}</span>
+                <span style="font-size: 13px; color: #4A5670;">Optional</span>
+              </span>
+              <input type="text" placeholder="{{ secondNamePlaceholder }}" value="{{ secondName }}" onInput="{{ onSecondName }}" style="margin-top: 8px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none;" />
+            </label>
+          </sc-if>
+
+          <label style="display: block; margin: 16px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Which day</span>
+            <input type="date" value="{{ eventDate }}" onInput="{{ onEventDate }}" style="margin-top: 8px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none; font-variant-numeric: tabular-nums;" />
+            <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ dateHelp }}</span>
+          </label>
+
+          <label style="display: block; margin: 16px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Where</span>
+            <input type="text" placeholder="e.g. KwaMashu, KwaZulu-Natal" value="{{ place }}" onInput="{{ onPlace }}" style="margin-top: 8px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none;" />
+            <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670;">The area is enough. You do not have to put the street on a public page.</span>
+          </label>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isNeeds }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">What's needed</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ needsIntro }}</p>
+
+          <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ needs }}" as="n" hint-placeholder-count="6">
+              <div style="{{ n.cardStyle }}">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <input type="text" value="{{ n.name }}" onInput="{{ n.onName }}" aria-label="What is needed" style="{{ n.nameInputStyle }}" />
+                  <button type="button" onClick="{{ n.onRemove }}" aria-label="Remove" style="flex: none; width: 44px; height: 44px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #4A5670; font-size: 17px; font-weight: 700; cursor: pointer;">×</button>
+                </div>
+                <input type="text" value="{{ n.note }}" onInput="{{ n.onNote }}" placeholder="How much, or how many" aria-label="How much is needed" style="margin-top: 8px; width: 100%; min-height: 44px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 12px; font-size: 14px; color: #4A5670; outline: none;" />
+                <sc-if value="{{ n.fromTemplate }}" hint-placeholder-val="{{ true }}">
+                  <p style="margin: 8px 0 0; font-size: 12px; color: #4A5670;">{{ n.templateNote }}</p>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <button type="button" onClick="{{ onAddNeed }}" style="margin-top: 12px; width: 100%; min-height: 48px; border-radius: 4px; border: 1px dashed #A8A69E; background: transparent; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">Add something else</button>
+          <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ needsFoot }}</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWitnesses }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">Who stands with you?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #16233D; text-wrap: pretty;">{{ witnessLead }}</p>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ witnessBody }}</p>
+
+          <div style="margin: 20px 0 0; display: flex; flex-direction: column; gap: 12px;">
+            <sc-for list="{{ witnesses }}" as="w" hint-placeholder-count="2">
+              <div style="{{ w.cardStyle }}">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">{{ w.ordinal }}</p>
+                  <sc-if value="{{ w.removable }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ w.onRemove }}" style="flex: none; min-height: 40px; padding: 0 11px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #4A5670; font-size: 13px; font-weight: 600; cursor: pointer;">Remove</button>
+                  </sc-if>
+                </div>
+                <input type="text" value="{{ w.name }}" onInput="{{ w.onName }}" placeholder="Their name" aria-label="Name" style="margin-top: 10px; width: 100%; min-height: 48px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 13px; font-size: 16px; font-weight: 600; color: #16233D; outline: none;" />
+                <input type="tel" value="{{ w.phone }}" onInput="{{ w.onPhone }}" placeholder="Their number" aria-label="Phone number" style="margin-top: 8px; width: 100%; min-height: 48px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 13px; font-size: 16px; color: #16233D; outline: none; font-variant-numeric: tabular-nums;" />
+                <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ w.relationHint }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ canAddWitness }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ onAddWitness }}" style="margin-top: 12px; width: 100%; min-height: 48px; border-radius: 4px; border: 1px dashed #A8A69E; background: transparent; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ addWitnessLabel }}</button>
+          </sc-if>
+
+          <div style="margin: 18px 0 0; padding: 14px 15px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">What they will be asked</p>
+            <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">We send them one message: <em>{{ witnessAskQuote }}</em> If they say yes, their name goes on the page beside yours, and money only moves when one of them agrees with you. Nothing else is asked of them.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isVerify }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">One check, then you can share it</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #16233D; text-wrap: pretty;">Before we let a single person be asked for money, your name has to be confirmed. Not because we doubt you — because the people you are about to send this to have every reason to doubt a link.</p>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Scam pages look exactly like real ones. The one thing a scammer will not do is put a verified name against it. That badge is what lets your aunt give without phoning three people first.</p>
+
+          <div style="margin: 20px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">What we check</p>
+            <div style="margin: 11px 0 0; display: flex; flex-direction: column; gap: 9px;">
+              <sc-for list="{{ verifyPoints }}" as="v" hint-placeholder-count="3">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                  <span style="{{ v.markStyle }}"></span>
+                  <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ v.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <label style="display: block; margin: 16px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Your ID number</span>
+            <input type="text" inputMode="numeric" value="{{ idNumber }}" onInput="{{ onIdNumber }}" placeholder="13 digits" maxLength="13" style="{{ idInputStyle }}" />
+            <span style="display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ idHelp }}</span>
+          </label>
+
+          <sc-if value="{{ verified }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ verifiedCardStyle }}">
+              <p style="margin: 0; font-size: 15px; font-weight: 700;">{{ verifiedTitle }}</p>
+              <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; opacity: 0.9;">{{ verifiedBody }}</p>
+            </div>
+          </sc-if>
+
+          <p style="margin: 16px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Your ID number is used once, for this check, and is never shown on the page or given to anyone who contributes.</p>
+
+          <sc-if value="{{ showWhy }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 18px 0 0; padding: 15px 16px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+              <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">Why this one cannot be skipped</p>
+              <div style="margin: 10px 0 0; display: flex; flex-direction: column; gap: 10px;">
+                <sc-for list="{{ whyPoints }}" as="w" hint-placeholder-count="3">
+                  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ w.text }}</p>
+                </sc-for>
+              </div>
+              <p style="margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #D8D6CE; font-size: 14px; line-height: 1.55; color: #16233D; text-wrap: pretty;">{{ whyClose }}</p>
+              <button type="button" onClick="{{ onCloseWhy }}" style="margin-top: 13px; min-height: 44px; padding: 0 14px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">Close</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isShare }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">{{ shareTitle }}</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Send it to one group and it spreads on its own. Every person who opens it sees your verified name.</p>
+
+          <button type="button" onClick="{{ onWhatsApp }}" style="{{ waButtonStyle }}">{{ waButtonLabel }}</button>
+          <div style="margin: 10px 0 0; display: flex; gap: 10px;">
+            <button type="button" onClick="{{ onCopyLink }}" style="{{ copyLinkStyle }}">{{ copyLinkLabel }}</button>
+            <button type="button" onClick="{{ onSms }}" style="flex: 1; min-height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">Send by SMS</button>
+          </div>
+          <p style="margin: 10px 0 0; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums; word-break: break-all;">{{ shareUrl }}</p>
+
+          <div style="margin: 24px 0 0; padding-top: 20px; border-top: 1px solid #D8D6CE;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">How it will look in the chat</p>
+            <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">More people will see this card than will open the page. Your name and the badge have to read at this size.</p>
+
+            <div style="margin: 14px 0 0; padding: 14px 12px; background: #E4E9E2; border-radius: 12px;">
+              <div style="max-width: 300px; margin-left: auto; background: #E7FFDB; border-radius: 10px; padding: 5px 5px 7px; box-shadow: 0 1px 1px rgba(0,0,0,0.12);">
+                <div style="background: #D6F2CC; border-radius: 7px; overflow: hidden;">
+                  <div style="{{ previewBannerStyle }}">
+                    <span style="{{ previewBeadStyle }}"></span>
+                    <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;">Isipheko</span>
+                  </div>
+                  <div style="padding: 9px 11px 11px;">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; color: #16233D; text-wrap: pretty;">{{ previewTitle }}</p>
+                    <p style="margin: 4px 0 0; display: flex; align-items: center; gap: 5px; font-size: 12px; line-height: 1.3; color: #3F4A38;">
+                      <span style="{{ previewBadgeStyle }}">✓</span>
+                      <span style="flex: 1; min-width: 0;">{{ previewOrganiser }}</span>
+                    </p>
+                    <p style="margin: 5px 0 0; font-size: 11px; line-height: 1.35; color: #5A6455; font-variant-numeric: tabular-nums;">{{ previewMeta }}</p>
+                    <p style="margin: 6px 0 0; font-size: 10px; color: #7A8474; letter-spacing: 0.04em;">isipheko.co.za</p>
+                  </div>
+                </div>
+                <p style="margin: 6px 4px 0; font-size: 13px; line-height: 1.4; color: #16233D; text-wrap: pretty;">{{ previewMessage }}</p>
+                <p style="margin: 3px 4px 0; text-align: right; font-size: 10px; color: #6B7566; font-variant-numeric: tabular-nums;">14:32 ✓✓</p>
+              </div>
+            </div>
+
+            <div style="margin: 14px 0 0; display: flex; align-items: flex-start; gap: 14px;">
+              <div style="flex: none; width: 108px;">
+                <div style="background: #D6F2CC; border-radius: 4px; overflow: hidden;">
+                  <div style="{{ previewBannerSmallStyle }}"><span style="{{ previewBeadSmallStyle }}"></span></div>
+                  <div style="padding: 5px 6px 6px;">
+                    <p style="margin: 0; font-size: 8px; line-height: 1.2; font-weight: 800; color: #16233D;">{{ previewTitle }}</p>
+                    <p style="margin: 2px 0 0; display: flex; align-items: center; gap: 3px; font-size: 7px; color: #3F4A38;"><span style="{{ previewBadgeSmallStyle }}">✓</span><span>{{ previewOrganiserShort }}</span></p>
+                  </div>
+                </div>
+              </div>
+              <p style="flex: 1; min-width: 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">At thumbnail size the bead colour, the name and the tick are the only things left — which is why they carry the whole card.</p>
+            </div>
+          </div>
+
+          <div style="margin: 24px 0 0; padding-top: 20px; border-top: 1px solid #D8D6CE;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">For the printed invitation</p>
+            <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">Put this on the card that goes out by hand. Anyone can hold their phone to it — no app, no typing.</p>
+            <div style="margin: 14px 0 0; display: flex; align-items: center; gap: 16px;">
+              <div style="flex: none; padding: 10px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 8px;">
+                <div style="{{ qrGridStyle }}">
+                  <sc-for list="{{ qrCells }}" as="cell" hint-placeholder-count="80">
+                    <span style="{{ cell.style }}"></span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #16233D; font-weight: 600; font-variant-numeric: tabular-nums;">{{ qrCode }}</p>
+                <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">Printed under the code so it works even if the ink smudges.</p>
+                <button type="button" onClick="{{ onDownloadQr }}" style="margin-top: 11px; min-height: 44px; padding: 0 14px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">{{ qrButtonLabel }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <sc-if value="{{ hasFooter }}" hint-placeholder-val="{{ true }}">
+      <div style="position: sticky; bottom: 0; padding: 12px 20px 20px; background: #F2F1ED; border-top: 1px solid #D8D6CE;">
+        <button type="button" onClick="{{ onPrimary }}" disabled="{{ primaryDisabled }}" style="{{ primaryStyle }}">{{ primaryLabel }}</button>
+        <sc-if value="{{ hasSecondary }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ onSecondary }}" style="width: 100%; margin-top: 8px; min-height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: transparent; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ secondaryLabel }}</button>
+        </sc-if>
+        <p style="margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: #4A5670; text-align: center; text-wrap: pretty;">{{ footNote }}</p>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:880}}">
+const KINDS = {
+  wedding: {
+    title: "Wedding", zulu: "Umshado", accent: "#8C2F22",
+    kicker: "Umshado", sampleTitle: "Lindiwe & Sipho",
+    nameLabel: "Whose wedding", nameHelp: "Both names, as people say them.",
+    namePlaceholder: "e.g. Lindiwe", secondNameLabel: "And", secondNamePlaceholder: "e.g. Sipho",
+    detailsTitle: "The wedding",
+    dateHelp: "The day of the ceremony.",
+    amountsPublic: true, motion: true, target: true,
+    needs: [
+      ["Marquee", "Around R6 500 to hire"],
+      ["Catering", "For 200 people"],
+      ["Cattle", "2 head"],
+      ["Décor", "Fabric, flowers, table settings"],
+      ["Transport", "One bus from Durban"],
+      ["Photographer", "For the day"]
+    ]
+  },
+  funeral: {
+    title: "Funeral", zulu: "Umngcwabo", accent: "#16233D",
+    kicker: "Umngcwabo", sampleTitle: "Nokuthula Mthembu",
+    nameLabel: "Her name, or his name", nameHelp: "The person being buried. Being named is part of it.",
+    namePlaceholder: "e.g. Nokuthula Mthembu", secondNameLabel: "Clan name", secondNamePlaceholder: "e.g. uMaZondi",
+    detailsTitle: "About her, or him",
+    dateHelp: "If the day is not settled yet, put your best guess and change it later.",
+    amountsPublic: false, motion: false, target: false,
+    needs: [
+      ["Tent", "Around R1 200 to hire"],
+      ["Chairs", "100 chairs"],
+      ["Meat", "20kg"],
+      ["Groceries", "Mealie meal, rice, sugar, oil"],
+      ["Transport", "One bakkie or a shared taxi"],
+      ["Catering pots", "Big pots and serving dishes"]
+    ]
+  },
+  unveiling: {
+    title: "Unveiling", zulu: "Umbuyiso", accent: "#2F5D50",
+    kicker: "Umbuyiso", sampleTitle: "MaZondi's stone",
+    nameLabel: "Whose stone", nameHelp: "The person being remembered.",
+    namePlaceholder: "e.g. Nokuthula Mthembu", secondNameLabel: "Clan name", secondNamePlaceholder: "e.g. uMaZondi",
+    detailsTitle: "The unveiling",
+    dateHelp: "Usually a year or more after the funeral.",
+    amountsPublic: false, motion: false, target: true,
+    needs: [
+      ["Tombstone", "The balance still owing"],
+      ["Tent", "Around R1 200 to hire"],
+      ["Chairs", "60 chairs"],
+      ["Meat", "A goat"],
+      ["Groceries", "For the meal after"],
+      ["Transport", "For family travelling"]
+    ]
+  },
+  child: {
+    title: "Welcoming a child", zulu: "Imbeleko", accent: "#8A6A12",
+    kicker: "Imbeleko", sampleTitle: "Baby Ayanda",
+    nameLabel: "The child's name", nameHelp: "You can leave this until the day if the name is not given yet.",
+    namePlaceholder: "e.g. Ayanda", secondNameLabel: "Family name", secondNamePlaceholder: "e.g. Ngcobo",
+    detailsTitle: "The imbeleko",
+    dateHelp: "The day of the ceremony.",
+    amountsPublic: true, motion: true, target: false,
+    needs: [
+      ["A goat", "For the ceremony"],
+      ["Groceries", "For the meal"],
+      ["Chairs", "40 chairs"],
+      ["Blankets", "For the child"],
+      ["Nappies and clothes", "Newborn size"],
+      ["Transport", "For elders attending"]
+    ]
+  },
+  celebration: {
+    title: "Celebration", zulu: "Umgidi", accent: "#8C2F5E",
+    kicker: "Umgidi", sampleTitle: "Zanele's graduation",
+    nameLabel: "What are we celebrating", nameHelp: "In the words you would use to tell someone.",
+    namePlaceholder: "e.g. Zanele's graduation", secondNameLabel: "Whose", secondNamePlaceholder: "e.g. Zanele Dlamini",
+    detailsTitle: "The celebration",
+    dateHelp: "The day of the party.",
+    amountsPublic: true, motion: true, target: true,
+    needs: [
+      ["Venue or gazebo", "Around R2 000"],
+      ["Catering", "For 80 people"],
+      ["Cooldrink and water", "20 crates"],
+      ["Cake", "One large cake"],
+      ["Sound and music", "For the afternoon"],
+      ["Chairs and tables", "80 chairs"]
+    ]
+  },
+  gathering: {
+    title: "Gathering", zulu: "Umhlangano", accent: "#2C4A6E",
+    kicker: "Umhlangano", sampleTitle: "Mthembu family gathering",
+    nameLabel: "What to call it", nameHelp: "Whatever the family already calls it.",
+    namePlaceholder: "e.g. Mthembu family gathering", secondNameLabel: "Which family", secondNamePlaceholder: "e.g. Mthembu",
+    detailsTitle: "The gathering",
+    dateHelp: "The day everyone comes together.",
+    amountsPublic: true, motion: false, target: true,
+    needs: [
+      ["Venue or hall", "Around R1 500"],
+      ["Catering", "For 60 people"],
+      ["Cooldrink and water", "12 crates"],
+      ["Chairs and tables", "60 chairs"],
+      ["Transport", "For those travelling far"],
+      ["Firewood", "Enough for the day"]
+    ]
+  }
+};
+
+const ORDER = ["wedding", "funeral", "unveiling", "child", "celebration", "gathering"];
+const STEPS = ["kind", "details", "needs", "witnesses", "verify", "share"];
+const ORDINALS = ["First umkhaphi", "Second umkhaphi", "Third umkhaphi"];
+const REF = { wedding: "LND", funeral: "MTH", unveiling: "MZD", child: "AYA", celebration: "ZAN", gathering: "MTG" };
+
+class Component extends DCLogic {
+  state = {
+    step: "kind", kind: null,
+    eventName: "", secondName: "", date: "", place: "",
+    needs: [], removed: [], nextId: 100,
+    witnesses: [{ id: 1, name: "", phone: "" }],
+    idNumber: "", verifying: false, verified: false, why: false,
+    copied: null, qrSaved: false
+  };
+
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._c); }
+
+  get k() { return this.state.kind ? KINDS[this.state.kind] : null; }
+  get accent() { return this.k ? this.k.accent : "#16233D"; }
+
+  pickKind(id) {
+    const k = KINDS[id];
+    this.setState({
+      kind: id,
+      needs: k.needs.map((n, i) => ({ id: i, name: n[0], note: n[1], fromTemplate: true }))
+    });
+  }
+
+  go(step) { this.setState({ step }); }
+
+  verify() {
+    this.setState({ verifying: true });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ verifying: false, verified: true }), 1400);
+  }
+
+  copy(kind, text) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    this.setState({ copied: kind });
+    clearTimeout(this._c);
+    this._c = setTimeout(() => this.setState({ copied: null }), 2400);
+  }
+
+  displayName() {
+    const s = this.state, k = this.k;
+    if (s.eventName.trim()) return s.eventName.trim() + (s.secondName.trim() ? (this.state.kind === "wedding" ? " & " + s.secondName.trim() : "") : "");
+    return k ? k.sampleTitle : "Your umcimbi";
+  }
+
+  prettyDate() {
+    const d = this.state.date;
+    if (!d) return "Date to come";
+    const parts = d.split("-");
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const m = months[Number(parts[1]) - 1];
+    return m ? Number(parts[2]) + " " + m : d;
+  }
+
+  qr(seed) {
+    // Stand-in matrix for layout review; the real code is generated at publish.
+    const N = 21, cells = [];
+    let s = seed;
+    const rand = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+    const finder = (r, c) => {
+      const inBox = (r0, c0) => r >= r0 && r < r0 + 7 && c >= c0 && c < c0 + 7;
+      const ring = (r0, c0) => {
+        const dr = r - r0, dc = c - c0;
+        const edge = dr === 0 || dr === 6 || dc === 0 || dc === 6;
+        const core = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
+        return edge || core;
+      };
+      if (inBox(0, 0)) return ring(0, 0);
+      if (inBox(0, N - 7)) return ring(0, N - 7);
+      if (inBox(N - 7, 0)) return ring(N - 7, 0);
+      return null;
+    };
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const f = finder(r, c);
+      const on = f === null ? rand() > 0.52 : f;
+      cells.push({ style: { display: "block", width: "100%", height: "100%", background: on ? "#16233D" : "transparent" } });
+    }
+    return { cells, n: N };
+  }
+
+  renderVals() {
+    const s = this.state, k = this.k, accent = this.accent;
+    const idx = Math.max(0, STEPS.indexOf(s.step));
+    const idValid = /^\d{13}$/.test(s.idNumber);
+    const namedWitnesses = s.witnesses.filter(w => w.name.trim());
+
+    const btn = (bg, fg, border) => ({
+      width: "100%", minHeight: "52px", borderRadius: "4px", border: "1px solid " + border,
+      background: bg, color: fg, fontSize: "16px", fontWeight: 700, letterSpacing: "-0.005em",
+      cursor: "pointer", padding: "13px 14px", transition: "opacity 120ms linear"
+    });
+    const mark = { flex: "none", width: "7px", height: "7px", marginTop: "7px", borderRadius: "50%", background: accent };
+
+    let primaryLabel = "Continue", primaryDisabled = false, onPrimary = () => {}, hasFooter = true;
+    let hasSecondary = false, secondaryLabel = "", onSecondary = () => {}, footNote = "";
+
+    if (s.step === "kind") {
+      primaryLabel = k ? "Continue with " + k.title.toLowerCase() : "Choose one to continue";
+      primaryDisabled = !k;
+      onPrimary = () => this.go("details");
+      footNote = "You can change this later, but it will re-set the tone of the page.";
+    }
+    if (s.step === "details") {
+      primaryLabel = "Continue";
+      primaryDisabled = !s.eventName.trim();
+      onPrimary = () => this.go("needs");
+      footNote = s.eventName.trim() ? "Nothing is public yet." : "The name is the only thing needed to carry on.";
+    }
+    if (s.step === "needs") {
+      primaryLabel = "Continue";
+      primaryDisabled = s.needs.length === 0;
+      onPrimary = () => this.go("witnesses");
+      footNote = "Nothing is public yet. You can add to this list any time.";
+    }
+    if (s.step === "witnesses") {
+      primaryLabel = namedWitnesses.length ? "Ask " + (namedWitnesses.length === 1 ? "them" : "all " + namedWitnesses.length) : "Add someone to continue";
+      primaryDisabled = !namedWitnesses.length;
+      onPrimary = () => this.go("verify");
+      footNote = "They are asked, not added. Nothing goes out until they agree.";
+    }
+    if (s.step === "verify") {
+      primaryLabel = s.verified ? "Continue to sharing" : (s.verifying ? "Checking with Home Affairs…" : "Verify me");
+      primaryDisabled = s.verifying || (!s.verified && !idValid);
+      onPrimary = () => (s.verified ? this.go("share") : this.verify());
+      hasSecondary = !s.verified && !s.why;
+      secondaryLabel = "Why can't I skip this?";
+      onSecondary = () => this.setState({ why: true });
+      footNote = s.verified ? "" : "Takes a few seconds. Nothing is published by this.";
+    }
+    if (s.step === "share") { hasFooter = false; }
+
+    const consequences = k ? [
+      { label: k.amountsPublic ? "Amounts are shown." : "Amounts are hidden.", detail: k.amountsPublic ? "Each person's name and what they gave appears on the strand, unless they choose to give quietly." : "Only the family sees who gave what. Names are shown, amounts are not." },
+      { label: k.target ? "A target is shown." : "No target is shown.", detail: k.target ? "You can set a figure and people see how far along it is." : "There is no figure to fall short of. People give what they can." },
+      { label: k.motion ? "A little celebration." : "No animation.", detail: k.motion ? "A new bead settles onto the strand when someone contributes." : "Beads simply appear. Nothing on the page moves." },
+      { label: "The words change.", detail: k.amountsPublic ? "\u201CContribute\u201D, and \u201Cwho has contributed\u201D." : "\u201CStand with them\u201D, and \u201Cwho has stood with the family\u201D." }
+    ] : [];
+
+    const qr = this.qr(k ? 7717 + ORDER.indexOf(s.kind) * 131 : 7717);
+    const code = (REF[s.kind] || "UMC") + "-" + (k ? "4K7B2X" : "000000");
+    const title = this.displayName();
+    const organiser = "Nomsa Mthembu";
+
+    return {
+      theme: { "--accent": accent, background: "#F2F1ED", minHeight: "100%", fontFamily: "'Public Sans', -apple-system, Roboto, 'Helvetica Neue', sans-serif", color: "#16233D", WebkitFontSmoothing: "antialiased" },
+      crumb: k ? k.kicker + (s.eventName.trim() ? " · " + s.eventName.trim() : "") : "Setting up",
+      stepLabel: "Step " + (idx + 1) + " of 6",
+      progressStyle: { height: "100%", width: (((idx + 1) / 6) * 100) + "%", background: accent, transition: "width 200ms ease-out" },
+      canGoBack: idx > 0,
+      onBack: () => this.go(STEPS[Math.max(0, idx - 1)]),
+
+      isKind: s.step === "kind",
+      isDetails: s.step === "details",
+      isNeeds: s.step === "needs",
+      isWitnesses: s.step === "witnesses",
+      isVerify: s.step === "verify",
+      isShare: s.step === "share",
+      hasKind: !!k,
+
+      kinds: ORDER.map(id => {
+        const kk = KINDS[id], active = s.kind === id;
+        return {
+          title: kk.title, zulu: kk.zulu, active,
+          style: {
+            display: "block", textAlign: "left", width: "100%", minHeight: "48px", padding: "14px",
+            borderRadius: "12px", cursor: "pointer", background: "#FFFFFF",
+            border: "1px solid " + (active ? kk.accent : "#D8D6CE"),
+            boxShadow: active ? "inset 0 0 0 1px " + kk.accent : "none"
+          },
+          beadStyle: { display: "block", width: active ? "20px" : "14px", height: active ? "20px" : "14px", borderRadius: "50%", background: kk.accent, transition: "width 140ms ease-out, height 140ms ease-out" },
+          onPick: () => this.pickKind(id)
+        };
+      }),
+      consequenceHeadStyle: { background: accent, color: "#FFFFFF", padding: "15px 16px 16px" },
+      consequenceTitle: k ? k.sampleTitle : "",
+      consequenceKicker: k ? k.kicker + " · " + (k.amountsPublic ? "amounts shown" : "amounts hidden") : "",
+      consequences: consequences.map(c => ({ ...c, markStyle: mark })),
+
+      detailsTitle: k ? k.detailsTitle : "The details",
+      nameLabel: k ? k.nameLabel : "Name",
+      nameHelp: k ? k.nameHelp : "",
+      namePlaceholder: k ? k.namePlaceholder : "",
+      eventName: s.eventName,
+      onEventName: (e) => this.setState({ eventName: e.target.value }),
+      showSecondName: !!k,
+      secondNameLabel: k ? k.secondNameLabel : "",
+      secondNamePlaceholder: k ? k.secondNamePlaceholder : "",
+      secondName: s.secondName,
+      onSecondName: (e) => this.setState({ secondName: e.target.value }),
+      eventDate: s.date,
+      onEventDate: (e) => this.setState({ date: e.target.value }),
+      dateHelp: k ? k.dateHelp : "",
+      place: s.place,
+      onPlace: (e) => this.setState({ place: e.target.value }),
+
+      needsIntro: k && !k.amountsPublic
+        ? "We have started this from what families usually need. Change what is wrong, take out what you do not need, add what we have missed. You do not have to think of it all yourself."
+        : "We have started this from what is usually needed. Change anything, remove anything, add what we have missed.",
+      needs: s.needs.map(n => ({
+        name: n.name, note: n.note, fromTemplate: n.fromTemplate,
+        templateNote: "Suggested — edit or remove it",
+        cardStyle: { background: "#FFFFFF", border: "1px solid #D8D6CE", borderRadius: "12px", padding: "14px" },
+        nameInputStyle: { flex: 1, minWidth: 0, minHeight: "48px", border: "1px solid #D8D6CE", borderRadius: "4px", background: "#FFFFFF", padding: "0 12px", fontSize: "17px", fontWeight: 700, letterSpacing: "-0.015em", color: "#16233D", outline: "none" },
+        onName: (e) => this.setState({ needs: s.needs.map(x => x.id === n.id ? { ...x, name: e.target.value, fromTemplate: false } : x) }),
+        onNote: (e) => this.setState({ needs: s.needs.map(x => x.id === n.id ? { ...x, note: e.target.value, fromTemplate: false } : x) }),
+        onRemove: () => this.setState({ needs: s.needs.filter(x => x.id !== n.id) })
+      })),
+      onAddNeed: () => this.setState({ needs: [...s.needs, { id: s.nextId, name: "", note: "", fromTemplate: false }], nextId: s.nextId + 1 }),
+      needsFoot: "People can bring the thing itself or put money toward it. You do not choose that for them.",
+
+      witnessLead: "Ask one or two people to stand with you as abakhaphi. Their names go on the page beside yours.",
+      witnessBody: "Being asked to witness a family's umcimbi is not a small thing — it says you trust them with the family's business. Most people are honoured to be asked. Pick the ones the family would nod at.",
+      witnesses: s.witnesses.map((w, i) => ({
+        ordinal: ORDINALS[i],
+        name: w.name, phone: w.phone,
+        removable: s.witnesses.length > 1,
+        relationHint: i === 0 ? "Often an elder, an aunt, or the person the family already turns to." : "Someone in another household, so it is not all one roof.",
+        cardStyle: { background: "#FFFFFF", border: "1px solid " + (w.name.trim() ? accent : "#D8D6CE"), borderRadius: "12px", padding: "14px", boxShadow: w.name.trim() ? "inset 0 0 0 1px " + accent : "none" },
+        onName: (e) => this.setState({ witnesses: s.witnesses.map(x => x.id === w.id ? { ...x, name: e.target.value } : x) }),
+        onPhone: (e) => this.setState({ witnesses: s.witnesses.map(x => x.id === w.id ? { ...x, phone: e.target.value } : x) }),
+        onRemove: () => this.setState({ witnesses: s.witnesses.filter(x => x.id !== w.id) })
+      })),
+      canAddWitness: s.witnesses.length < 3,
+      addWitnessLabel: s.witnesses.length === 1 ? "Ask someone else too" : "Ask a third person",
+      onAddWitness: () => this.setState({ witnesses: [...s.witnesses, { id: Date.now(), name: "", phone: "" }] }),
+      witnessAskQuote: "\u201C" + organiser + " is arranging " + (k ? k.kicker.toLowerCase() : "an umcimbi") + " for " + title + ", and has asked you to stand with her as umkhaphi. Will you?\u201D",
+
+      verifyPoints: [
+        { text: "That the ID number you give belongs to you, against the Home Affairs record.", markStyle: mark },
+        { text: "Nothing about your money, your bank, or your credit record. We do not look and we cannot see it.", markStyle: mark },
+        { text: "Your name and the date of the check are what appears on the page. The number never does.", markStyle: mark }
+      ],
+      idNumber: s.idNumber,
+      onIdNumber: (e) => this.setState({ idNumber: e.target.value.replace(/\D/g, "").slice(0, 13) }),
+      idInputStyle: { marginTop: "8px", width: "100%", minHeight: "56px", border: "1px solid " + (idValid ? accent : "#D8D6CE"), borderRadius: "4px", background: "#FFFFFF", padding: "0 14px", fontSize: "21px", fontWeight: 700, letterSpacing: "0.06em", color: "#16233D", outline: "none", fontVariantNumeric: "tabular-nums" },
+      idHelp: s.idNumber.length ? s.idNumber.length + " of 13" : "The same number as on your green book or smart card.",
+      showWhy: s.why && !s.verified,
+      whyPoints: [
+        { text: "Anyone can make a page in ten minutes. If we let unverified pages ask for money, the fastest people to use Isipheko would be the ones taking it — and within a month nobody would trust a link with our name on it, including yours." },
+        { text: "The badge is not for us. It is the answer to the question your relatives will ask each other before they give: is this really Nomsa? Without it, every one of them has to phone someone to find out, and the ones who cannot reach anyone simply do not give." },
+        { text: "It is also your protection. If someone later copies this page to their own account, the verified name is what shows theirs is the fake one." }
+      ],
+      whyClose: "You can build the whole page without it — the list, the abakhaphi, the wording. This is only asked at the last step, before the first person is asked for anything.",
+      onCloseWhy: () => this.setState({ why: false }),
+      verified: s.verified,
+      verifiedCardStyle: { marginTop: "16px", background: accent, color: "#FFFFFF", borderRadius: "12px", padding: "15px 16px" },
+      verifiedTitle: "Verified — " + organiser,
+      verifiedBody: "Your page will carry this from the moment you publish it. Anyone can check it themselves at isipheko.co.za/check.",
+
+      shareTitle: "It's ready. Send it.",
+      shareUrl: "isipheko.co.za/" + (REF[s.kind] || "umc").toLowerCase() + "-4k7b2x",
+      waButtonStyle: { ...btn(accent, "#FFFFFF", accent), marginTop: "20px" },
+      waButtonLabel: "Send on WhatsApp",
+      onWhatsApp: () => {},
+      copyLinkLabel: s.copied === "link" ? "Copied ✓" : "Copy link",
+      copyLinkStyle: { flex: 1, minHeight: "48px", borderRadius: "4px", cursor: "pointer", fontSize: "15px", fontWeight: 700, border: "1px solid " + (s.copied === "link" ? accent : "#D8D6CE"), background: s.copied === "link" ? accent : "#FFFFFF", color: s.copied === "link" ? "#FFFFFF" : "#16233D" },
+      onCopyLink: () => this.copy("link", "isipheko.co.za/" + (REF[s.kind] || "umc").toLowerCase() + "-4k7b2x"),
+      onSms: () => {},
+
+      previewBannerStyle: { background: accent, color: "#FFFFFF", padding: "8px 11px", display: "flex", alignItems: "center", gap: "7px" },
+      previewBeadStyle: { flex: "none", width: "11px", height: "11px", borderRadius: "50%", background: "#FFFFFF" },
+      previewTitle: title,
+      previewBadgeStyle: { flex: "none", width: "13px", height: "13px", borderRadius: "50%", background: accent, color: "#FFFFFF", fontSize: "8px", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" },
+      previewOrganiser: "Organised by " + organiser + " · verified",
+      previewOrganiserShort: organiser.split(" ")[0] + " · verified",
+      previewMeta: (k ? k.kicker : "Umcimbi") + " · " + this.prettyDate() + (s.place.trim() ? " · " + s.place.trim() : ""),
+      previewMessage: "Sanibonani. Everything for " + (s.eventName.trim() || (k ? k.sampleTitle : "the day")) + " is on here — what is still needed, and who has helped already.",
+      previewBannerSmallStyle: { background: accent, padding: "4px 5px", display: "flex", alignItems: "center" },
+      previewBeadSmallStyle: { display: "block", width: "6px", height: "6px", borderRadius: "50%", background: "#FFFFFF" },
+      previewBadgeSmallStyle: { flex: "none", width: "8px", height: "8px", borderRadius: "50%", background: accent, color: "#FFFFFF", fontSize: "5px", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" },
+
+      qrGridStyle: { display: "grid", gridTemplateColumns: "repeat(" + qr.n + ", 4px)", gridAutoRows: "4px", width: (qr.n * 4) + "px" },
+      qrCells: qr.cells,
+      qrCode: code,
+      qrButtonLabel: s.qrSaved ? "Saved ✓" : "Save for printing",
+      onDownloadQr: () => this.setState({ qrSaved: true }),
+
+      hasFooter, primaryLabel, primaryDisabled, onPrimary,
+      primaryStyle: { ...btn(accent, "#FFFFFF", accent), opacity: primaryDisabled ? 0.42 : 1, cursor: primaryDisabled ? "not-allowed" : "pointer" },
+      hasSecondary, secondaryLabel, onSecondary, footNote
+    };
+  }
+}
+
+</script>
+</body>
+</html>

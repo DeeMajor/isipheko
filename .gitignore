@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# secrets — never commit a real env file
+.env
+.env.*
+!.env.example
+
+# test artefacts
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# build / tooling caches
+*.tsbuildinfo
+.eslintcache
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.swp

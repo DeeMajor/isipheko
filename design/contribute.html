@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#F2F1ED">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F2F1ED"/>
+    <rect x="430" y="150" width="340" height="90" rx="16" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <rect x="430" y="270" width="340" height="90" rx="16" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <rect x="430" y="390" width="340" height="90" rx="16" fill="#FFFFFF" stroke="#D8D6CE" stroke-width="4"/>
+    <rect x="430" y="530" width="340" height="80" rx="10" fill="#16233D"/>
+    <circle cx="600" cy="680" r="26" fill="#16233D"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+<style>
+  /* Public Sans variable, hardcoded: latin + latin-ext only. No Vietnamese, no italic. */
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-ext-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+</style>
+<style>
+  html, body { margin: 0; padding: 0; background: #F2F1ED; }
+  body { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+  a { color: #16233D; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #4A5670; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent, #16233D); outline-offset: 2px; }
+  @keyframes settle-bead { from { opacity: 0; transform: translate(-50%, -190%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</helmet>
+<div style="{{ theme }}">
+  <div style="max-width: 430px; margin: 0 auto; min-height: 100%; background: #F2F1ED; display: flex; flex-direction: column;">
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #D8D6CE; background: #F2F1ED;">
+      <sc-if value="{{ canGoBack }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onBack }}" aria-label="Go back" style="flex: none; width: 44px; height: 44px; margin-left: -10px; border: 0; background: transparent; color: #16233D; font-size: 21px; font-weight: 700; cursor: pointer; line-height: 1;">←</button>
+      </sc-if>
+      <div style="flex: 1; min-width: 0;">
+        <p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #16233D;">Isipheko</p>
+        <p style="margin: 1px 0 0; font-size: 12px; color: #4A5670; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ eventLine }}</p>
+      </div>
+      <span style="flex: none; font-size: 12px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ stepLabel }}</span>
+    </div>
+
+    <div style="height: 3px; background: #D8D6CE;"><div style="{{ progressStyle }}"></div></div>
+
+    <div style="flex: 1; padding: 24px 20px 32px;">
+
+      <sc-if value="{{ isChoose }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">How would you like to help?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ chooseIntro }}</p>
+          <div style="margin: 20px 0 0; display: flex; flex-direction: column; gap: 12px;">
+            <sc-for list="{{ routes }}" as="rt" hint-placeholder-count="3">
+              <button type="button" onClick="{{ rt.onPick }}" style="display: block; width: 100%; text-align: left; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px; cursor: pointer; min-height: 48px;" style-hover="border-color: var(--accent, #16233D);">
+                <span style="display: block; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: #16233D;">{{ rt.title }}</span>
+                <span style="display: block; margin-top: 5px; font-size: 14px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ rt.blurb }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <p style="margin: 20px 0 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 4px; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">No account, no sign-up, no app. Isipheko will never ask for your PIN, OTP or card details.</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAmount }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">{{ amountTitle }}</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ amountIntro }}</p>
+          <div style="margin: 20px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <sc-for list="{{ amounts }}" as="a" hint-placeholder-count="4">
+              <button type="button" onClick="{{ a.onPick }}" aria-pressed="{{ a.active }}" style="{{ a.style }}">{{ a.label }}</button>
+            </sc-for>
+          </div>
+          <label style="display: block; margin: 16px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Another amount</span>
+            <span style="display: flex; align-items: center; gap: 0; margin-top: 7px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; overflow: hidden;">
+              <span style="flex: none; padding: 0 12px; font-size: 19px; font-weight: 700; color: #4A5670;">R</span>
+              <input type="number" inputMode="numeric" min="10" placeholder="0" value="{{ customAmount }}" onInput="{{ onCustom }}" style="flex: 1; min-width: 0; min-height: 52px; border: 0; outline: none; background: transparent; font-size: 19px; font-weight: 700; color: #16233D; font-variant-numeric: tabular-nums; padding: 0 12px 0 0;" />
+            </span>
+          </label>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isItem }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">{{ itemTitle }}</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ itemIntro }}</p>
+          <div style="margin: 20px 0 0; display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ needList }}" as="n" hint-placeholder-count="5">
+              <div style="{{ n.cardStyle }}">
+                <button type="button" onClick="{{ n.onPick }}" aria-pressed="{{ n.active }}" style="display: block; width: 100%; text-align: left; background: transparent; border: 0; padding: 15px 16px; min-height: 48px; cursor: pointer;">
+                  <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: #16233D;">{{ n.name }}</span>
+                    <span style="{{ n.tickStyle }}">✓</span>
+                  </span>
+                  <span style="display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ n.status }}</span>
+                </button>
+                <sc-if value="{{ n.showSplit }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 0 16px 16px;">
+                    <p style="margin: 0 0 9px; font-size: 14px; line-height: 1.5; color: #4A5670;">{{ n.splitHelp }}</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <button type="button" onClick="{{ n.onMinus }}" aria-label="Less" style="flex: none; width: 48px; height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 21px; font-weight: 700; cursor: pointer;">−</button>
+                      <span style="flex: 1; text-align: center; font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; color: #16233D;">{{ n.qtyLabel }}</span>
+                      <button type="button" onClick="{{ n.onPlus }}" aria-label="More" style="flex: none; width: 48px; height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 21px; font-weight: 700; cursor: pointer;">+</button>
+                      <button type="button" onClick="{{ n.onAll }}" style="flex: none; min-height: 48px; padding: 0 14px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">All of it</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWho }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">Who shall we write down?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ whoIntro }}</p>
+
+          <label style="display: block; margin: 20px 0 0;">
+            <span style="display: block; font-size: 14px; font-weight: 700; color: #16233D;">Your name</span>
+            <input type="text" autoComplete="name" placeholder="e.g. Thandi Ngcobo" value="{{ name }}" onInput="{{ onName }}" style="margin-top: 7px; width: 100%; min-height: 52px; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 0 14px; font-size: 17px; font-weight: 600; color: #16233D; outline: none;" />
+          </label>
+
+          <label style="display: block; margin: 16px 0 0;">
+            <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: #16233D;">A message</span>
+              <span style="font-size: 13px; color: #4A5670;">Optional</span>
+            </span>
+            <textarea rows="3" placeholder="{{ messagePlaceholder }}" value="{{ message }}" onInput="{{ onMessage }}" style="margin-top: 7px; width: 100%; border: 1px solid #D8D6CE; border-radius: 4px; background: #FFFFFF; padding: 12px 14px; font-size: 16px; line-height: 1.5; color: #16233D; outline: none; resize: vertical; font-family: inherit;"></textarea>
+          </label>
+
+          <div style="margin: 16px 0 0; display: flex; align-items: center; gap: 12px;">
+            <div style="flex: none; width: 56px; height: 56px; border-radius: 50%; border: 1px dashed #D8D6CE; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #4A5670; font-weight: 700;">{{ photoInitials }}</div>
+            <div style="flex: 1; min-width: 0;">
+              <p style="margin: 0; font-size: 14px; font-weight: 700; color: #16233D;">A photo <span style="font-weight: 500; color: #4A5670;">· optional</span></p>
+              <p style="margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: #4A5670;">Only if you have one to hand.</p>
+            </div>
+            <button type="button" style="flex: none; min-height: 44px; padding: 0 14px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">Add</button>
+          </div>
+
+          <div style="margin: 22px 0 0; padding-top: 18px; border-top: 1px solid #D8D6CE;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">What others will see</p>
+            <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ visibilityIntro }}</p>
+            <div style="margin: 13px 0 0; display: flex; flex-direction: column; gap: 8px;">
+              <sc-for list="{{ visibilityOptions }}" as="v" hint-placeholder-count="3">
+                <button type="button" onClick="{{ v.onPick }}" aria-pressed="{{ v.active }}" style="{{ v.style }}">
+                  <span style="display: flex; align-items: center; gap: 11px;">
+                    <span style="{{ v.dotStyle }}"></span>
+                    <span style="flex: 1; min-width: 0;">
+                      <span style="display: block; font-size: 15px; font-weight: 700; color: #16233D;">{{ v.title }}</span>
+                      <span style="display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: #4A5670;">{{ v.blurb }}</span>
+                    </span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+            <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ visibilityFoot }}</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPay }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">Pay from your banking app</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Open your bank or PayShap, send the amount to this number with this reference, then come back and tell us.</p>
+
+          <div style="margin: 20px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">Step 1 · PayShap number</p>
+            <p style="margin: 8px 0 0; font-size: 26px; font-weight: 800; letter-spacing: 0.01em; color: #16233D; font-variant-numeric: tabular-nums;">{{ payshap }}</p>
+            <p style="margin: 5px 0 0; font-size: 14px; color: #4A5670;">{{ payshapName }}</p>
+            <button type="button" onClick="{{ onCopyNumber }}" style="{{ copyNumberStyle }}">{{ copyNumberLabel }}</button>
+          </div>
+
+          <div style="margin: 12px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">Step 2 · Reference</p>
+            <p style="margin: 10px 0 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 34px; line-height: 1.05; font-weight: 800; letter-spacing: 0.09em; color: #16233D; font-variant-numeric: tabular-nums;">
+              <span>{{ refA }}</span><span style="font-weight: 400; color: #A8A69E;">·</span><span>{{ refB }}</span>
+            </p>
+            <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">Capital letters or small, it does not matter. There is no letter O and no zero in this code.</p>
+            <button type="button" onClick="{{ onCopyRef }}" style="{{ copyRefStyle }}">{{ copyRefLabel }}</button>
+          </div>
+
+          <div style="margin: 12px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">Step 3 · Amount</p>
+            <p style="margin: 8px 0 0; font-size: 26px; font-weight: 800; color: #16233D; font-variant-numeric: tabular-nums;">{{ payAmount }}</p>
+            <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670;">{{ paySummary }}</p>
+          </div>
+
+          <p style="margin: 16px 0 0; font-size: 13px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Nothing is taken from you here. You send it yourself, from your own app. If you close this page the reference stays valid for seven days.</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isItemDone }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="{{ beadWrapStyle }}"><span style="{{ beadStyle }}"><span style="{{ beadBarStyle }}"></span></span></div>
+          <h1 style="margin: 18px 0 0; font-size: 26px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; text-wrap: pretty;">{{ doneTitle }}</h1>
+          <p style="margin: 12px 0 0; font-size: 16px; line-height: 1.55; color: #16233D; text-wrap: pretty;">{{ doneBody }}</p>
+          <div style="margin: 20px 0 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #16233D;">{{ doneCardTitle }}</p>
+            <p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">{{ doneCardBody }}</p>
+          </div>
+          <p style="margin: 16px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ doneFoot }}</p>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <sc-if value="{{ hasFooter }}" hint-placeholder-val="{{ true }}">
+      <div style="position: sticky; bottom: 0; padding: 12px 20px 20px; background: #F2F1ED; border-top: 1px solid #D8D6CE;">
+        <sc-if value="{{ showQuiet }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ onQuiet }}" style="{{ quietStyle }}">{{ quietLabel }}</button>
+        </sc-if>
+        <button type="button" onClick="{{ onPrimary }}" disabled="{{ primaryDisabled }}" style="{{ primaryStyle }}">{{ primaryLabel }}</button>
+        <sc-if value="{{ hasSecondary }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ onSecondary }}" style="width: 100%; margin-top: 8px; min-height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: transparent; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer;">{{ secondaryLabel }}</button>
+        </sc-if>
+        <p style="margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: #4A5670; text-align: center;">{{ footNote }}</p>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:880},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;funeral&quot;,&quot;wedding&quot;],&quot;default&quot;:&quot;funeral&quot;,&quot;tsType&quot;:&quot;'funeral' | 'wedding'&quot;}}">
+const CONFIG = {
+  funeral: {
+    accent: "#16233D",
+    eventLine: "Nokuthula Mthembu · 15 August",
+    verb: "Give",
+    animate: false,
+    defaultVisibility: "name",
+    ref: ["MTH", "4K7B2X"],
+    payshap: "072 448 1190",
+    payshapName: "S. Mthembu · verified organiser",
+    chooseIntro: "Three ways, all the same weight. Nothing here needs an account and nothing is downloaded.",
+    amountTitle: "How much would you like to give?",
+    amountIntro: "Any amount helps. The family sees the total, not who gave what.",
+    itemTitle: "What will you bring?",
+    itemIntro: "Pick one and it is held for you, so nobody arrives with a second one. You can take part of something too.",
+    whoIntro: "So the family knows who stood with them. Only your name is needed.",
+    messagePlaceholder: "e.g. Lala ngoxolo MaZondi.",
+    visibilityIntro: "On a funeral page, amounts are hidden from everyone but the family. Names are shown, because being counted is the point.",
+    visibilityFoot: "The family always sees the full record, whatever you choose here.",
+    doneTitleMoney: "Ngiyabonga.",
+    doneTitleItem: "It is written down.",
+    doneBodyMoney: "Your bead is on the strand. The family will see it when they open the page.",
+    doneFoot: "You can close this page. Nothing else is needed from you."
+  },
+  wedding: {
+    accent: "#8C2F22",
+    eventLine: "Lindiwe & Sipho · 12 September",
+    verb: "Contribute",
+    animate: true,
+    defaultVisibility: "public",
+    ref: ["LND", "7Q3M9F"],
+    payshap: "083 512 6604",
+    payshapName: "N. Dlamini · verified organiser",
+    chooseIntro: "Three ways, all the same weight. Nothing here needs an account and nothing is downloaded.",
+    amountTitle: "How much would you like to contribute?",
+    amountIntro: "Any amount helps. Your name and amount show on the strand unless you choose otherwise.",
+    itemTitle: "What will you bring?",
+    itemIntro: "Pick one and it is held for you, so nobody arrives with a second one. You can take part of something too.",
+    whoIntro: "So the couple knows who contributed. Only your name is needed.",
+    messagePlaceholder: "e.g. Halala! Wishing you both a long life.",
+    visibilityIntro: "On a wedding page, your name and amount are shown on the strand by default. You can give quietly instead.",
+    visibilityFoot: "The couple always sees the full record, whatever you choose here.",
+    doneTitleMoney: "Halala, and thank you.",
+    doneTitleItem: "It is written down.",
+    doneBodyMoney: "Your bead is on the strand. The couple will see it when they open the page.",
+    doneFoot: "You can close this page. Nothing else is needed from you."
+  }
+};
+
+const NEEDS = {
+  funeral: [
+    { id: "tent", name: "Tent", need: "Needed · around R1 200 to hire" },
+    { id: "chairs", name: "Chairs", needed: 100, claimed: 60, unit: "", step: 10, start: 20 },
+    { id: "meat", name: "Meat", needed: 20, claimed: 12, unit: "kg", step: 1, start: 4 },
+    { id: "transport", name: "Transport from Johannesburg", need: "Needed · one bakkie or a shared taxi" },
+    { id: "groceries", name: "Groceries", need: "Needed · mealie meal, rice, sugar, oil" }
+  ],
+  wedding: [
+    { id: "marquee", name: "Marquee", need: "Needed · around R6 500 to hire" },
+    { id: "catering", name: "Catering for 200", needed: 200, claimed: 120, unit: " plates", step: 10, start: 20 },
+    { id: "cattle", name: "Cattle", needed: 2, claimed: 0, unit: "", step: 1, start: 1 },
+    { id: "decor", name: "Décor", need: "Needed · fabric, flowers and table settings" },
+    { id: "transport", name: "Transport from Durban", need: "Needed · one bus or three bakkies" }
+  ]
+};
+
+const zar = (n) => "R" + Number(n || 0).toLocaleString("en-ZA").replace(/,/g, " ");
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const v = props.variant === "wedding" ? "wedding" : "funeral";
+    this.state = {
+      step: "choose", route: null, amount: 250, custom: "",
+      itemId: null, qty: {}, name: "", message: "",
+      visibility: CONFIG[v].defaultVisibility,
+      copied: null, paying: false
+    };
+  }
+
+  get v() { return this.props.variant === "wedding" ? "wedding" : "funeral"; }
+  get cfg() { return CONFIG[this.v]; }
+  get needs() { return NEEDS[this.v]; }
+  get item() { return this.needs.find(n => n.id === this.state.itemId) || null; }
+  get amountValue() { return this.state.custom ? Number(this.state.custom) : this.state.amount; }
+
+  componentWillUnmount() { clearTimeout(this._c); clearTimeout(this._p); }
+
+  copy(kind, text) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    this.setState({ copied: kind });
+    clearTimeout(this._c);
+    this._c = setTimeout(() => this.setState({ copied: null }), 2400);
+  }
+
+  go(step) { this.setState({ step }); }
+
+  confirmPaid() {
+    this.setState({ paying: true });
+    clearTimeout(this._p);
+    this._p = setTimeout(() => this.setState({ paying: false, step: "done" }), 900);
+  }
+
+  renderVals() {
+    const s = this.state, cfg = this.cfg, item = this.item;
+    const accent = cfg.accent;
+    const isMoneyRoute = s.route === "money" || s.route === "earmark";
+    const steps = s.route === "item" ? ["choose", "item", "who", "done"] : ["choose", s.route === "earmark" ? "item" : "amount", s.route === "earmark" ? "amount" : null, "who", "pay", "done"].filter(Boolean);
+    const idx = Math.max(0, steps.indexOf(s.step));
+
+    const btn = (bg, fg, border) => ({
+      width: "100%", minHeight: "52px", borderRadius: "4px", border: "1px solid " + border,
+      background: bg, color: fg, fontSize: "16px", fontWeight: 700, letterSpacing: "-0.005em",
+      cursor: "pointer", padding: "13px 14px", transition: "opacity 120ms linear"
+    });
+
+    const qtyFor = (n) => s.qty[n.id] != null ? s.qty[n.id] : n.start;
+    const remaining = (n) => n.needed != null ? n.needed - n.claimed : null;
+
+    const needList = this.needs.map(n => {
+      const active = s.itemId === n.id;
+      const rem = remaining(n);
+      const q = Math.min(qtyFor(n), rem || 999);
+      return {
+        id: n.id, name: n.name, active,
+        cardStyle: { background: "#FFFFFF", border: "1px solid " + (active ? accent : "#D8D6CE"), borderRadius: "12px", boxShadow: active ? "inset 0 0 0 1px " + accent : "none" },
+        status: rem != null ? n.claimed + n.unit + " of " + n.needed + n.unit + " covered · " + rem + n.unit + " still needed" : n.need,
+        tickStyle: { flex: "none", fontSize: "16px", fontWeight: 800, color: accent, opacity: active ? 1 : 0 },
+        showSplit: active && rem != null && rem > 1,
+        splitHelp: "Take part of it, or all of it. Whatever you can.",
+        qtyLabel: q + (n.unit || " of " + n.needed),
+        onPick: () => this.setState({ itemId: active ? null : n.id }),
+        onMinus: () => this.setState({ qty: { ...s.qty, [n.id]: Math.max(n.step, q - n.step) } }),
+        onPlus: () => this.setState({ qty: { ...s.qty, [n.id]: Math.min(rem, q + n.step) } }),
+        onAll: () => this.setState({ qty: { ...s.qty, [n.id]: rem } })
+      };
+    });
+
+    const kin = this.v === "wedding" ? "couple" : "family";
+    const isItemRoute = s.route === "item";
+    const visOptions = (isItemRoute ? [
+      { id: "public", title: "Name and what you're bringing", blurb: "Both shown on the strand." },
+      { id: "name", title: "Name only", blurb: "What you brought stays between you and the " + kin + "." },
+      { id: "private", title: "Neither", blurb: "An unnamed bead. The " + kin + " still sees you." }
+    ] : [
+      { id: "public", title: "Name and amount", blurb: "Both shown on the strand." },
+      { id: "name", title: "Name only", blurb: "Your amount stays between you and the " + kin + "." },
+      { id: "private", title: "Neither", blurb: "An unnamed bead. The " + kin + " still sees you." }
+    ]).map(o => ({
+      title: o.title, blurb: o.blurb, active: s.visibility === o.id,
+      style: { display: "block", width: "100%", textAlign: "left", minHeight: "48px", padding: "13px 14px", borderRadius: "4px", cursor: "pointer", background: "#FFFFFF", border: "1px solid " + (s.visibility === o.id ? accent : "#D8D6CE"), boxShadow: s.visibility === o.id ? "inset 0 0 0 1px " + accent : "none" },
+      dotStyle: { flex: "none", width: "18px", height: "18px", borderRadius: "50%", border: "2px solid " + (s.visibility === o.id ? accent : "#A8A69E"), background: s.visibility === o.id ? accent : "#FFFFFF", boxShadow: s.visibility === o.id ? "inset 0 0 0 3px #FFFFFF" : "none" },
+      onPick: () => this.setState({ visibility: o.id })
+    }));
+
+    let primaryLabel = "Continue", primaryDisabled = false, onPrimary = () => {}, hasFooter = true;
+    let hasSecondary = false, secondaryLabel = "", onSecondary = () => {}, footNote = "";
+    let showQuiet = false;
+
+    if (s.step === "choose") { hasFooter = false; }
+    if (s.step === "amount") {
+      primaryLabel = "Continue with " + zar(this.amountValue);
+      primaryDisabled = !this.amountValue || this.amountValue < 10;
+      onPrimary = () => this.go("who");
+      footNote = "You will not be asked for card details.";
+    }
+    if (s.step === "item") {
+      primaryLabel = item ? (s.route === "earmark" ? "Continue" : "Hold this for me") : "Choose something first";
+      primaryDisabled = !item;
+      onPrimary = () => this.go(s.route === "earmark" ? "amount" : "who");
+      footNote = "Held for twenty minutes while you finish.";
+    }
+    if (s.step === "who") {
+      primaryLabel = s.route === "item" ? "Confirm — I'll bring this" : "Continue to pay";
+      primaryDisabled = !s.name.trim();
+      onPrimary = () => (s.route === "item" ? this.go("done") : this.go("pay"));
+      showQuiet = s.visibility !== "private";
+      footNote = s.name.trim() ? "" : "Your name is the only thing we need.";
+    }
+    if (s.step === "pay") {
+      primaryLabel = s.paying ? "Checking…" : "I've paid";
+      primaryDisabled = s.paying;
+      onPrimary = () => this.confirmPaid();
+      hasSecondary = true;
+      secondaryLabel = "I'll pay later";
+      onSecondary = () => this.go("done");
+      footNote = "We check with the bank, not with you.";
+    }
+    if (s.step === "done") { hasFooter = false; }
+
+    const beadSize = 30;
+    const isCashDone = s.route !== "item";
+
+    return {
+      theme: { "--accent": accent, background: "#F2F1ED", minHeight: "100%", fontFamily: "'Public Sans', -apple-system, Roboto, 'Helvetica Neue', sans-serif", color: "#16233D", WebkitFontSmoothing: "antialiased" },
+      eventLine: cfg.eventLine,
+      stepLabel: s.step === "done" ? "Done" : "Step " + (idx + 1) + " of " + steps.length,
+      progressStyle: { height: "100%", width: (((idx + 1) / steps.length) * 100) + "%", background: accent, transition: "width 200ms ease-out" },
+      canGoBack: s.step !== "choose" && s.step !== "done",
+      onBack: () => {
+        const order = steps.slice(0, idx);
+        this.go(order.length ? order[order.length - 1] : "choose");
+      },
+
+      isChoose: s.step === "choose",
+      isAmount: s.step === "amount",
+      isItem: s.step === "item",
+      isWho: s.step === "who",
+      isPay: s.step === "pay",
+      isItemDone: s.step === "done",
+
+      chooseIntro: cfg.chooseIntro,
+      routes: [
+        { title: cfg.verb + " money", blurb: "Goes wherever the family needs it most.", onPick: () => this.setState({ route: "money", step: "amount" }) },
+        { title: "Bring something from the list", blurb: "Take one of the things still needed, or part of it.", onPick: () => this.setState({ route: "item", step: "item" }) },
+        { title: cfg.verb + " money toward one thing", blurb: "Put an amount against a specific need on the list.", onPick: () => this.setState({ route: "earmark", step: "item" }) }
+      ],
+
+      amountTitle: s.route === "earmark" && item ? "How much toward the " + item.name.toLowerCase() + "?" : cfg.amountTitle,
+      amountIntro: cfg.amountIntro,
+      amounts: [100, 250, 500, 1000].map(a => ({
+        label: zar(a),
+        active: !s.custom && s.amount === a,
+        style: { minHeight: "56px", borderRadius: "4px", cursor: "pointer", fontSize: "19px", fontWeight: 800, fontVariantNumeric: "tabular-nums", background: "#FFFFFF", border: "1px solid " + (!s.custom && s.amount === a ? accent : "#D8D6CE"), color: !s.custom && s.amount === a ? accent : "#16233D", boxShadow: !s.custom && s.amount === a ? "inset 0 0 0 1px " + accent : "none" },
+        onPick: () => this.setState({ amount: a, custom: "" })
+      })),
+      customAmount: s.custom,
+      onCustom: (e) => this.setState({ custom: e.target.value }),
+
+      itemTitle: s.route === "earmark" ? "Which need?" : cfg.itemTitle,
+      itemIntro: s.route === "earmark" ? "Your money goes against this one thing, and the page shows it moving." : cfg.itemIntro,
+      needList,
+
+      whoIntro: cfg.whoIntro,
+      name: s.name,
+      onName: (e) => this.setState({ name: e.target.value }),
+      message: s.message,
+      onMessage: (e) => this.setState({ message: e.target.value }),
+      messagePlaceholder: cfg.messagePlaceholder,
+      photoInitials: s.name.trim() ? s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join("") : "＋",
+      visibilityIntro: isItemRoute
+        ? "Names are shown on the strand, because being counted is the point. You choose whether what you brought is shown with it."
+        : cfg.visibilityIntro,
+      visibilityFoot: "The " + kin + " always sees the full record, whatever you choose here.",
+      visibilityOptions: visOptions,
+      showQuiet,
+      quietLabel: isItemRoute ? "Give quietly — no name" : "Give quietly — no name, no amount",
+      quietStyle: { width: "100%", minHeight: "48px", marginBottom: "8px", borderRadius: "4px", border: "1px solid #D8D6CE", background: "transparent", color: "#16233D", fontSize: "15px", fontWeight: 700, cursor: "pointer" },
+      onQuiet: () => this.setState({ visibility: "private" }),
+
+      payshap: cfg.payshap,
+      payshapName: cfg.payshapName,
+      refA: cfg.ref[0],
+      refB: cfg.ref[1],
+      copyNumberLabel: s.copied === "num" ? "Copied ✓" : "Copy number",
+      copyNumberStyle: { ...btn(s.copied === "num" ? accent : "#FFFFFF", s.copied === "num" ? "#FFFFFF" : accent, accent), marginTop: "13px", minHeight: "48px", fontSize: "15px" },
+      onCopyNumber: () => this.copy("num", cfg.payshap.replace(/\s/g, "")),
+      copyRefLabel: s.copied === "ref" ? "Copied ✓" : "Copy reference",
+      copyRefStyle: { ...btn(s.copied === "ref" ? accent : "#FFFFFF", s.copied === "ref" ? "#FFFFFF" : accent, accent), marginTop: "13px", minHeight: "48px", fontSize: "15px" },
+      onCopyRef: () => this.copy("ref", cfg.ref.join("-")),
+      payAmount: zar(this.amountValue),
+      paySummary: s.route === "earmark" && item ? "Toward the " + item.name.toLowerCase() + " · " + (s.visibility === "public" ? "shown with your name" : s.visibility === "name" ? "name shown, amount hidden" : "given quietly") : (s.visibility === "public" ? "Shown with your name" : s.visibility === "name" ? "Name shown, amount hidden" : "Given quietly"),
+
+      beadWrapStyle: { position: "relative", height: "56px", display: "flex", alignItems: "center", justifyContent: "flex-start", overflow: "hidden" },
+      beadStyle: {
+        position: "absolute", left: "15px", top: "50%", transform: "translate(-50%,-50%)",
+        display: "block", width: beadSize + "px", height: beadSize + "px", borderRadius: "50%",
+        background: isCashDone ? accent : "#FFFFFF", border: isCashDone ? "0" : "3px solid " + accent,
+        boxShadow: "0 0 0 4px #F2F1ED", animation: cfg.animate ? "settle-bead 300ms cubic-bezier(.2,.7,.3,1) 1" : "none"
+      },
+      beadBarStyle: isCashDone ? { display: "none" } : { display: "block", position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: (beadSize - 12) + "px", height: "3px", background: accent },
+      doneTitle: s.route === "item" ? cfg.doneTitleItem : cfg.doneTitleMoney,
+      doneBody: s.route === "item" && item
+        ? "You are bringing " + (remaining(item) != null ? Math.min(qtyFor(item), remaining(item)) + (item.unit || "") + " of the " : "the ") + item.name.toLowerCase() + ". It is held in your name and off the list."
+        : cfg.doneBodyMoney,
+      doneCardTitle: s.route === "item" ? "On the day" : "Your reference",
+      doneCardBody: s.route === "item"
+        ? "Bring it to " + (this.v === "wedding" ? "Pietermaritzburg" : "KwaMashu") + " on the morning. If something changes, open this page again and release it — no need to phone anyone."
+        : cfg.ref.join("-") + " · " + zar(this.amountValue) + ". Keep it if you like; we have matched it already.",
+      doneFoot: cfg.doneFoot,
+
+      hasFooter, primaryLabel, primaryDisabled, onPrimary,
+      primaryStyle: { ...btn(accent, "#FFFFFF", accent), opacity: primaryDisabled ? 0.42 : 1, cursor: primaryDisabled ? "not-allowed" : "pointer" },
+      hasSecondary, secondaryLabel, onSecondary, footNote
+    };
+  }
+}
+
+</script>
+</body>
+</html>

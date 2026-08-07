@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+<style>
+  /* Public Sans variable, hardcoded: latin + latin-ext only. No Vietnamese, no italic. */
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 800; font-display: swap; src: url(https://cdn.jsdelivr.net/fontsource/fonts/public-sans:vf@5.3.0/latin-ext-wght-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+</style>
+<style>
+  html, body { margin: 0; padding: 0; background: #F2F1ED; }
+  body { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+  a { color: #16233D; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #4A5670; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent, #16233D); outline-offset: 2px; }
+  @keyframes settle-bead { from { opacity: 0; transform: translate(-50%, -190%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+  @keyframes settle-row { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</helmet>
+<div style="{{ theme }}">
+  <div style="max-width: 430px; margin: 0 auto; background: #F2F1ED;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #D8D6CE;">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #16233D;">Isipheko</span>
+      <span style="font-size: 12px; color: #4A5670; letter-spacing: 0.02em;">{{ kicker }}</span>
+    </div>
+
+    <header style="padding: 28px 20px 24px; border-bottom: 1px solid #D8D6CE;">
+      <p style="margin: 0 0 10px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #4A5670; font-weight: 600;">{{ kicker }}</p>
+      <h1 style="margin: 0; font-size: 30px; line-height: 1.08; font-weight: 800; letter-spacing: -0.035em; color: #16233D; text-wrap: pretty;">{{ title }}</h1>
+      <sc-if value="{{ hasSubtitle }}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 6px 0 0; font-size: 19px; font-weight: 600; letter-spacing: -0.015em; color: #16233D;">{{ subtitle }}</p>
+      </sc-if>
+      <sc-if value="{{ hasRelation }}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.5; color: #16233D; font-weight: 500;">{{ relation }}</p>
+      </sc-if>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5; color: #16233D; font-variant-numeric: tabular-nums;">{{ when }}</p>
+      <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ organiserLine }}</p>
+    </header>
+
+    <section style="padding: 26px 20px 8px;">
+      <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.025em;">What's needed</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ needsIntro }}</p>
+
+      <div style="margin: 18px 0 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 4px; display: flex; flex-direction: column; gap: 6px;">
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #16233D; font-weight: 600; font-variant-numeric: tabular-nums;">{{ verifiedLine }}</p>
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A5670;">Isipheko will never ask for your PIN, OTP or card details. <a href="#trust" style="color: #16233D; font-weight: 600;">How to check this yourself</a></p>
+      </div>
+    </section>
+
+    <section style="padding: 4px 20px 30px; display: flex; flex-direction: column; gap: 12px;">
+      <sc-for list="{{ items }}" as="it" hint-placeholder-count="6">
+        <form method="post" action="/claim" onSubmit="{{ it.onSubmit }}" style="margin: 0; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px; padding: 16px;">
+          <input type="hidden" name="event" value="{{ it.eventCode }}" />
+          <input type="hidden" name="item" value="{{ it.id }}" />
+
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h3 style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.25;">{{ it.name }}</h3>
+            <sc-if value="{{ it.isClaimed }}" hint-placeholder-val="{{ false }}">
+              <span style="flex: none; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent, #16233D); border: 1px solid var(--accent, #16233D); border-radius: 4px; padding: 3px 7px;">Held</span>
+            </sc-if>
+          </div>
+
+          <p style="margin: 7px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ it.statusLine }}</p>
+
+          <sc-if value="{{ it.isClaimed }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 14px 0 0; padding-top: 13px; border-top: 1px solid #D8D6CE; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #16233D; font-weight: 600;">{{ it.claimedLine }}</p>
+              <sc-if value="{{ it.canUndo }}" hint-placeholder-val="{{ false }}">
+                <button type="submit" name="action" value="release" onClick="{{ it.onUndo }}" style="flex: none; background: transparent; border: 1px solid #D8D6CE; border-radius: 4px; color: #16233D; font-size: 13px; font-weight: 600; padding: 9px 12px; min-height: 40px; cursor: pointer;">Undo</button>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ it.isConflict }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 14px 0 0; padding: 12px 13px; border: 1px solid var(--accent, #16233D); border-radius: 4px; background: #F2F1ED;">
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #16233D; font-weight: 600;">Someone claimed this a moment ago</p>
+              <p style="margin: 5px 0 0; font-size: 14px; line-height: 1.5; color: #4A5670;">{{ it.conflictHelp }}</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ it.showActions }}" hint-placeholder-val="{{ true }}">
+            <div style="margin: 15px 0 0; display: flex; flex-direction: column; gap: 8px;">
+              <sc-if value="{{ it.showClaim }}" hint-placeholder-val="{{ true }}">
+                <button type="submit" name="action" value="claim" onClick="{{ it.onClaim }}" disabled="{{ it.busy }}" style="width: 100%; min-height: 48px; border-radius: 4px; border: 1px solid var(--accent, #16233D); background: var(--accent, #16233D); color: #FFFFFF; font-size: 15px; font-weight: 700; letter-spacing: -0.005em; cursor: pointer; padding: 12px; transition: opacity 120ms linear;">{{ it.claimLabel }}</button>
+              </sc-if>
+              <sc-if value="{{ it.splittable }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button type="button" onClick="{{ it.onMinus }}" style="flex: none; width: 48px; height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 19px; font-weight: 700; cursor: pointer;">−</button>
+                  <span style="flex: 1; text-align: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;">{{ it.partLabel }}</span>
+                  <button type="button" onClick="{{ it.onPlus }}" style="flex: none; width: 48px; height: 48px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 19px; font-weight: 700; cursor: pointer;">+</button>
+                  <button type="submit" name="action" value="claim-part" onClick="{{ it.onClaimPart }}" disabled="{{ it.busy }}" style="flex: 2; min-height: 48px; border-radius: 4px; border: 1px solid var(--accent, #16233D); background: #FFFFFF; color: var(--accent, #16233D); font-size: 15px; font-weight: 700; cursor: pointer; padding: 12px 8px;">{{ it.partClaimLabel }}</button>
+                </div>
+              </sc-if>
+              <button type="submit" name="action" value="money" onClick="{{ it.onMoney }}" style="width: 100%; min-height: 48px; border-radius: 4px; border: 1px solid #16233D; background: #FFFFFF; color: #16233D; font-size: 15px; font-weight: 700; cursor: pointer; padding: 12px;">{{ it.moneyLabel }}</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ it.moneyOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 14px 0 0; padding-top: 14px; border-top: 1px solid #D8D6CE;">
+              <p style="margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: #4A5670;">{{ it.moneyHelp }}</p>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <sc-for list="{{ it.amounts }}" as="amt" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ amt.onPick }}" aria-pressed="{{ amt.active }}" style="{{ amt.style }}">{{ amt.label }}</button>
+                </sc-for>
+              </div>
+              <button type="submit" name="action" value="pay" onClick="{{ it.onPay }}" style="margin-top: 10px; width: 100%; min-height: 48px; border-radius: 4px; border: 1px solid var(--accent, #16233D); background: var(--accent, #16233D); color: #FFFFFF; font-size: 15px; font-weight: 700; cursor: pointer;">{{ it.payLabel }}</button>
+              <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670;">You pay through Isipheko, not to a personal account. You will never be asked for your PIN or OTP.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ it.thanked }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 13px 0 0; padding-top: 13px; border-top: 1px solid #D8D6CE; font-size: 14px; line-height: 1.5; color: #16233D; font-weight: 600;">{{ it.thanksLine }}</p>
+          </sc-if>
+        </form>
+      </sc-for>
+    </section>
+
+    <section style="padding: 26px 20px 30px; border-top: 1px solid #D8D6CE;">
+      <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.025em;">{{ strandHeading }}</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ strandIntro }}</p>
+
+      <sc-if value="{{ hasTarget }}" hint-placeholder-val="{{ false }}">
+        <div style="margin: 18px 0 0; padding: 14px 15px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+          <p style="margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: #16233D; font-variant-numeric: tabular-nums;">{{ raisedLine }}</p>
+          <div style="margin: 11px 0 0; height: 6px; border-radius: 4px; background: #D8D6CE; overflow: hidden;">
+            <div style="{{ progressStyle }}"></div>
+          </div>
+          <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums;">{{ targetNote }}</p>
+        </div>
+      </sc-if>
+
+      <div style="margin: 16px 0 0; padding: 10px 12px; border: 1px dashed #D8D6CE; border-radius: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670; font-weight: 700;">Preview only</span>
+        <div style="display: flex; gap: 6px;">
+          <sc-for list="{{ densityOptions }}" as="opt" hint-placeholder-count="3">
+            <button type="button" onClick="{{ opt.onPick }}" aria-pressed="{{ opt.active }}" style="{{ opt.style }}">{{ opt.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ singleCord }}" hint-placeholder-val="{{ true }}">
+        <div style="margin: 20px 0 0; position: relative;">
+          <div style="position: absolute; left: 13px; top: 6px; bottom: 6px; width: 2px; background: #16233D;"></div>
+          <sc-for list="{{ beads }}" as="b" hint-placeholder-count="12">
+            <div style="{{ b.rowStyle }}">
+              <button type="button" onClick="{{ b.onTap }}" aria-expanded="{{ b.open }}" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 46px; padding: 4px 0 4px 2px; background: transparent; border: 0; text-align: left; cursor: pointer;">
+                <span style="flex: none; width: 24px; display: flex; align-items: center; justify-content: center;">
+                  <span style="{{ b.dotStyle }}"><span style="{{ b.barStyle }}"></span></span>
+                </span>
+                <span style="flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: #16233D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ b.name }}</span>
+                <span style="flex: none; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ b.kindLabel }}</span>
+              </button>
+              <sc-if value="{{ b.open }}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 0 0 10px 38px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #D8D6CE; border-radius: 12px;">
+                  <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #16233D; text-wrap: pretty;">{{ b.message }}</p>
+                  <sc-if value="{{ b.hasMembers }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin: 11px 0 0; padding-top: 11px; border-top: 1px solid #D8D6CE;">
+                      <p style="margin: 0 0 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5670;">{{ b.membersLabel }}</p>
+                      <div style="display: flex; flex-wrap: wrap; gap: 6px 14px;">
+                        <sc-for list="{{ b.members }}" as="mm" hint-placeholder-count="8">
+                          <span style="font-size: 14px; color: #16233D; font-weight: 600;">{{ mm.name }}</span>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <p style="margin: 8px 0 0; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ b.meta }}</p>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ multiCord }}" hint-placeholder-val="{{ false }}">
+        <div style="margin: 20px 0 0;">
+          <div role="img" aria-label="{{ strandLabel }}" style="{{ strandStyle }}">
+            <sc-for list="{{ cords }}" as="c" hint-placeholder-count="2">
+              <div style="{{ c.style }}"></div>
+            </sc-for>
+            <sc-for list="{{ beads }}" as="b" hint-placeholder-count="40">
+              <button type="button" onClick="{{ b.onTap }}" title="{{ b.name }}" style="{{ b.dotStyle }}"><span style="{{ b.barStyle }}"></span></button>
+            </sc-for>
+          </div>
+          <p style="margin: 14px 0 0; font-size: 14px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">{{ strandNote }}</p>
+        </div>
+      </sc-if>
+
+      <div style="margin: 20px 0 0; padding-top: 18px; border-top: 1px solid #D8D6CE;">
+        <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">Read the incwadi</h3>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #4A5670;">{{ ledgerHint }}</p>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ ledgerRows }}" as="r" hint-placeholder-count="8">
+            <div style="display: flex; align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid #D8D6CE;">
+              <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: #16233D;">{{ r.name }}</span>
+              <span style="flex: none; font-size: 13px; color: #4A5670; font-variant-numeric: tabular-nums;">{{ r.kindLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <button type="button" onClick="{{ onToggleLedger }}" style="margin-top: 14px; width: 100%; min-height: 46px; border-radius: 4px; border: 1px solid #D8D6CE; background: #FFFFFF; color: #16233D; font-size: 14px; font-weight: 700; cursor: pointer;">{{ ledgerToggleLabel }}</button>
+      </div>
+    </section>
+
+    <section id="trust" style="padding: 26px 20px 40px; border-top: 1px solid #D8D6CE; background: #FFFFFF;">
+      <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.025em;">Is this real?</h2>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">A fair question. A link asking for money looks the same whether it is honest or not. Here is what we can tell you, and how to check it without taking our word for it.</p>
+
+      <div style="margin: 18px 0 0; display: flex; flex-direction: column; gap: 16px;">
+        <div style="padding-top: 16px; border-top: 1px solid #D8D6CE;">
+          <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 700;">What Isipheko has checked</h3>
+          <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5670; font-variant-numeric: tabular-nums;">{{ trustChecked }}</p>
+        </div>
+        <div style="padding-top: 16px; border-top: 1px solid #D8D6CE;">
+          <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 700;">How to check this yourself</h3>
+          <p style="margin: 0 0 10px; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Do not use a number on this page. If the page were fake, the number would be too. Check by a route that does not come from this link:</p>
+          <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <li style="font-size: 15px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">{{ trustAsk }}</li>
+            <li style="font-size: 15px; line-height: 1.5; color: #4A5670; text-wrap: pretty;">Ask whoever sent you this where they got it, and who they spoke to.</li>
+            <li style="font-size: 15px; line-height: 1.5; color: #4A5670; font-variant-numeric: tabular-nums; text-wrap: pretty;">Type <strong style="color: #16233D; font-weight: 700;">isipheko.co.za/check</strong> into your browser yourself and enter the code <strong style="color: #16233D; font-weight: 700;">{{ code }}</strong>. Do not tap a link to get there.</li>
+          </ul>
+        </div>
+        <div style="padding-top: 16px; border-top: 1px solid #D8D6CE;">
+          <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 700;">What we will never ask you</h3>
+          <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Isipheko will never ask for your PIN, your OTP, your card number or your online banking password. Not by phone, not by WhatsApp, not on this page. Anyone who asks is not from Isipheko. Money you send goes to a held Isipheko account for this ceremony, never to a personal account.</p>
+        </div>
+        <div style="padding-top: 16px; border-top: 1px solid #D8D6CE;">
+          <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 700;">If something looks wrong</h3>
+          <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5670; text-wrap: pretty;">Report the page from isipheko.co.za and we will hold every payment on it until a person has looked. You can also stop at any point — nothing is owed by opening this.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer style="padding: 22px 20px 40px; border-top: 1px solid #D8D6CE;">
+      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #4A5670; text-wrap: pretty;">Isipheko · from ukupheka, to cook. People have always arrived with something. This is only the door.</p>
+    </footer>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;funeral&quot;,&quot;wedding&quot;],&quot;default&quot;:&quot;funeral&quot;,&quot;tsType&quot;:&quot;'funeral' | 'wedding'&quot;}}">
+const FIRST = ["Thandi","Sipho","Nomvula","Bongani","Zanele","Musa","Lindiwe","Sibusiso","Nokwanda","Themba","Ayanda","Mandla","Phumzile","Xolani","Nonhlanhla","Jabulani","Busisiwe","Andile","Zodwa","Sanele","Precious","Mxolisi","Hlengiwe","Vusi","Nolwazi","Siyabonga","Thulisile","Kagiso","Nobuhle","Mthokozisi","Dudu","Lucky","Refilwe","Senzo","Ntombi","Bheki","Palesa","Njabulo","Gugu","Sizwe"];
+const LAST = ["Mthembu","Ngcobo","Dlamini","Zulu","Khumalo","Mkhize","Ndlovu","Cele","Zondi","Buthelezi","Shabalala","Nkosi","Mahlangu","Sithole","Gumede","Radebe","Mabaso","Hadebe","Mnguni","Sokhela"];
+
+const POOLS = {
+  funeral: {
+    items: ["a case of cooldrink","two bags of mealie meal","a tent","20 chairs","a sheep","5kg of rice","transport from Durban","cooking pots","a gazebo","10kg of potatoes","paraffin and wood","a crate of water"],
+    msgs: ["Sithi akwehlanga lungehlile. She was a mother to many of us.","Lala ngoxolo MaZondi.","She fed my children when I had nothing. I will be there on Saturday.","From all of us at the church. We are praying with you.","Sorry for your loss Nomsa. Strength to the family.","She taught me at Ntuzuma Primary. I have never forgotten her.","We are with you.","Our deepest condolences to the whole family.","She was a good neighbour for thirty years.","Robala ka kgotso.","From the taxi association. We will help with transport too.","Ngiyabonga MaZondi, ulale kahle."]
+  },
+  wedding: {
+    items: ["a crate of cooldrink","two bags of mealie meal","20 chairs","a goat","décor fabric","5kg of rice","transport from Durban","serving dishes","a gazebo","10kg of potatoes","table linen","a crate of water"],
+    msgs: ["Makube njalo. Wishing you both a long life together.","So happy for you two. See you on the 12th.","From all of us at the office. Congratulations Lindiwe!","Halala! May your home be full.","We could not be prouder. Enjoy every minute.","From the church choir, with love.","Congratulations to both families.","Sanibonani, we will be there early to help.","May you grow old together.","Ngiyanibongela. All the best.","From the Zulu family in Durban.","Wishing you joy and many children."]
+  }
+};
+
+const CONFIG = {
+  funeral: {
+    accent: "#16233D",
+    kicker: "Umngcwabo",
+    title: "Nokuthula Mthembu",
+    subtitle: "uMaZondi",
+    relation: "Mother of Nomsa Mthembu",
+    when: "Saturday 15 August · KwaMashu, KwaZulu-Natal",
+    organiserLine: "Organised by S. Mthembu · ID verified 12 July",
+    verifiedLine: "Organiser's ID verified by Isipheko on 12 July",
+    needsIntro: "You can bring the thing itself, or put money toward it. Both count the same. Claim something and it is held for you, so nobody arrives with a second one.",
+    moneyVerb: "Put money toward the ",
+    moneyCeremony: "Put money toward the ceremony",
+    moneyHelp: "Any amount helps. Nobody sees what you give — only that you stood with the family.",
+    thanksLine: "Thank you. Your bead is on the strand.",
+    strandHeading: "Who has stood with the family",
+    strandIntro: "Filled beads are money. Open beads with a bar are something brought. A ringed bead is a group who gave together — one bead, however many people are inside it. Tap any of them.",
+    conflictHelp: "Nothing is needed here now. You can put money toward the ceremony instead, or take something else from this list.",
+    code: "UMN-4471",
+    trustChecked: "S. Mthembu's South African ID was verified against the Home Affairs record on 12 July. That confirms who the organiser is. It does not, on its own, confirm the ceremony.",
+    trustAsk: "Ask someone in the Mthembu family you already know, on a number you already had.",
+    animate: false,
+    target: null,
+    raised: null,
+    items: [
+      { id: "marquee_x", skip: true },
+      { id: "tent", name: "Tent", noun: "tent", status: "open", need: "Needed · around R1 200 to hire" },
+      { id: "chairs", name: "Chairs", noun: "chairs", status: "open", needed: 100, claimed: 60, unit: "" },
+      { id: "meat", name: "Meat", noun: "meat", status: "open", needed: 20, claimed: 12, unit: "kg", splittable: true },
+      { id: "transport", name: "Transport from Johannesburg", noun: "transport from Johannesburg", status: "open", need: "Needed · one bakkie or a shared taxi" },
+      { id: "groceries", name: "Groceries", noun: "groceries", status: "open", need: "Needed · mealie meal, rice, sugar, oil" },
+      { id: "pots", name: "Catering pots", noun: "catering pots", status: "claimed", by: "Thandi Ngcobo", server: true }
+    ]
+  },
+  wedding: {
+    accent: "#8C2F22",
+    kicker: "Umshado",
+    title: "Lindiwe & Sipho",
+    subtitle: "",
+    relation: "",
+    when: "Saturday 12 September · Pietermaritzburg",
+    organiserLine: "Organised by N. Dlamini · ID verified 3 August",
+    verifiedLine: "Organiser's ID verified by Isipheko on 3 August",
+    needsIntro: "You can bring the thing itself, or contribute money toward it. Both count the same. Claim something and it is held for you, so nobody arrives with a second one.",
+    moneyVerb: "Contribute toward the ",
+    moneyCeremony: "Contribute toward the wedding",
+    moneyHelp: "Any amount helps. Your name and amount will show on the strand — you can give quietly instead when you check out.",
+    thanksLine: "Thank you. Your bead is on the strand.",
+    strandHeading: "Who has contributed",
+    strandIntro: "Filled beads are money. Open beads with a bar are something brought. A ringed bead is a group who gave together — one bead, however many people are inside it. Tap any of them.",
+    conflictHelp: "Nothing is needed here now. You can contribute toward the wedding instead, or take something else from this list.",
+    code: "UMS-8820",
+    trustChecked: "N. Dlamini's South African ID was verified against the Home Affairs record on 3 August. That confirms who the organiser is. It does not, on its own, confirm the ceremony.",
+    trustAsk: "Ask someone in the Dlamini or Zulu family you already know, on a number you already had.",
+    animate: true,
+    target: 120000,
+    raised: 74500,
+    items: [
+      { id: "marquee", name: "Marquee", noun: "marquee", status: "open", need: "Needed · around R6 500 to hire" },
+      { id: "catering", name: "Catering for 200", noun: "catering", status: "open", needed: 200, claimed: 120, unit: " plates", splittable: true },
+      { id: "cattle", name: "Cattle", noun: "cattle", status: "open", needed: 2, claimed: 0, unit: "" },
+      { id: "decor", name: "Décor", noun: "décor", status: "open", need: "Needed · fabric, flowers and table settings" },
+      { id: "transport", name: "Transport from Durban", noun: "transport from Durban", status: "open", need: "Needed · one bus or three bakkies" },
+      { id: "photographer", name: "Photographer", noun: "photographer", status: "claimed", by: "Mandla Zulu", server: true }
+    ]
+  }
+};
+
+function rng(seed) { let s = seed; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; }
+
+const COLLECTIONS = {
+  funeral: [{
+    id: "grp1", kind: "group", band: 3, days: 3,
+    name: "The cousins in Johannesburg",
+    item: "the tent, and groceries",
+    message: "Eight of us in Johannesburg put in together. We are bringing the tent between us, and what is left goes to groceries. Held by Nomsa Mthembu, verified 12 July.",
+    members: ["Nomsa Mthembu", "Sanele Mthembu", "Zodwa Ngcobo", "Xolani Cele", "Precious Zondi", "Bheki Radebe", "Nolwazi Mkhize", "Andile Gumede"]
+  }],
+  wedding: [{
+    id: "grp1", kind: "group", band: 3, days: 6,
+    name: "The office collection",
+    item: "the marquee",
+    message: "Eight of us at the office put in together toward the marquee. Held by Thandi Ngcobo, verified 3 August.",
+    members: ["Thandi Ngcobo", "Sanele Mthembu", "Zodwa Ngcobo", "Xolani Cele", "Precious Zondi", "Bheki Radebe", "Nolwazi Mkhize", "Andile Gumede"]
+  }]
+};
+
+function buildContributions(n, variant) {
+  const pool = POOLS[variant];
+  const r = rng(variant === "wedding" ? 20250912 : 20250815);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const name = FIRST[Math.floor(r() * FIRST.length)] + " " + LAST[Math.floor(r() * LAST.length)];
+    const isItem = r() < 0.42;
+    out.push({
+      id: "c" + i,
+      name,
+      kind: isItem ? "item" : "cash",
+      band: Math.min(3, Math.floor(r() * 4)),
+      item: pool.items[Math.floor(r() * pool.items.length)],
+      message: pool.msgs[Math.floor(r() * pool.msgs.length)],
+      days: 1 + Math.floor(r() * 11)
+    });
+  }
+  return out;
+}
+
+const DENSITY = [
+  { max: 30, cords: 1, pitch: 46, scale: 1 },
+  { max: 80, cords: 2, pitch: 40, scale: 0.92 },
+  { max: 200, cords: 3, pitch: 30, scale: 0.78 },
+  { max: Infinity, cords: 5, pitch: 18, scale: 0.58 }
+];
+const BAND_SIZE = [10, 14, 18, 24];
+const zar = (n) => "R" + n.toLocaleString("en-ZA").replace(/,/g, " ");
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const cfg = CONFIG[props.variant === "wedding" ? "wedding" : "funeral"];
+    const items = {};
+    cfg.items.filter(i => !i.skip).forEach(i => { items[i.id] = { ...i }; });
+    this.state = {
+      count: 40, openBead: null, ledgerAll: false,
+      parts: {}, money: null, picked: {}, attempts: {}, thanked: {}, added: [],
+      items
+    };
+  }
+
+  get cfg() { return CONFIG[this.props.variant === "wedding" ? "wedding" : "funeral"]; }
+
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._u); }
+
+  // Simulated atomic server reservation. Real implementation: POST /claim, the
+  // server reserves with a conditional update; 409 -> conflict branch.
+  reserve(id, qty) {
+    const attempts = { ...this.state.attempts, [id]: (this.state.attempts[id] || 0) + 1 };
+    this.setState({ attempts, items: { ...this.state.items, [id]: { ...this.state.items[id], status: "pending" } } });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      const taken = id === "transport" && attempts[id] === 1;
+      const it = this.state.items[id];
+      const next = taken
+        ? { ...it, status: "conflict" }
+        : (qty ? { ...it, status: "open", claimed: Math.min(it.needed, it.claimed + qty), justTook: qty } : { ...it, status: "claimed", by: "you", claimedAt: Date.now() });
+      this.setState({ items: { ...this.state.items, [id]: next } });
+      if (!taken && !qty) { clearTimeout(this._u); this._u = setTimeout(() => this.forceUpdate(), 15200); }
+    }, 850);
+  }
+
+  pay(id) {
+    const s = this.state;
+    const amt = s.picked[id] || 250;
+    this.setState({
+      money: null,
+      thanked: { ...s.thanked, [id]: true },
+      added: [...s.added, { id: "you" + s.added.length, name: "You", kind: "cash", band: amt >= 1000 ? 3 : amt >= 500 ? 2 : amt >= 250 ? 1 : 0, item: "", message: "Thank you for standing with them.", days: 0, fresh: true }]
+    });
+  }
+
+  itemVals(it) {
+    const s = this.state, cfg = this.cfg;
+    const busy = it.status === "pending";
+    const isClaimed = it.status === "claimed";
+    const remaining = it.needed != null ? it.needed - it.claimed : null;
+    let statusLine;
+    if (it.needed != null) {
+      statusLine = it.claimed >= it.needed
+        ? "All " + it.needed + it.unit + " covered"
+        : it.claimed + it.unit + " of " + it.needed + it.unit + " covered · " + remaining + it.unit + " still needed";
+      if (it.justTook) statusLine += " · you took " + it.justTook + it.unit;
+    } else if (isClaimed) {
+      statusLine = it.group ? "Held by a group of " + it.group + " — nothing more needed here" : (it.server ? "Held — nothing more needed here" : "Held for you — nothing more needed here");
+    } else {
+      statusLine = it.need;
+    }
+    const part = s.parts[it.id] || (it.unit === " plates" ? 20 : 4);
+    const picked = s.picked[it.id] || 250;
+    return {
+      id: it.id,
+      eventCode: cfg.code.toLowerCase(),
+      name: it.name,
+      statusLine,
+      busy,
+      isClaimed,
+      isConflict: it.status === "conflict",
+      conflictHelp: cfg.conflictHelp,
+      canUndo: isClaimed && !it.server && it.claimedAt && Date.now() - it.claimedAt < 15000,
+      claimedLine: it.group ? "Taken by " + it.by + " — " + it.group + " people, as one item" : (it.server ? "Brought by " + it.by : "You are bringing this"),
+      showActions: !isClaimed,
+      showClaim: !isClaimed && it.status !== "conflict",
+      splittable: !!it.splittable && remaining > 0 && it.status !== "conflict",
+      claimLabel: busy ? "Holding it for you…" : (it.needed != null ? "I'll bring all " + remaining + it.unit : "I'll bring the " + it.noun),
+      partLabel: part + it.unit,
+      partClaimLabel: "I'll bring " + part + it.unit,
+      moneyLabel: it.status === "conflict" ? cfg.moneyCeremony : cfg.moneyVerb + it.noun,
+      moneyOpen: s.money === it.id,
+      moneyHelp: cfg.moneyHelp,
+      payLabel: "Continue to pay " + zar(picked),
+      thanked: !!s.thanked[it.id],
+      thanksLine: cfg.thanksLine,
+      amounts: [100, 250, 500, 1000].map(a => ({
+        label: zar(a),
+        active: picked === a,
+        style: {
+          minHeight: "48px", borderRadius: "4px", cursor: "pointer", fontSize: "15px", fontWeight: 700,
+          fontVariantNumeric: "tabular-nums", background: "#FFFFFF",
+          border: "1px solid " + (picked === a ? cfg.accent : "#D8D6CE"),
+          color: picked === a ? cfg.accent : "#16233D",
+          boxShadow: picked === a ? "inset 0 0 0 1px " + cfg.accent : "none"
+        },
+        onPick: () => this.setState({ picked: { ...s.picked, [it.id]: a } })
+      })),
+      onSubmit: (e) => e.preventDefault(),
+      onClaim: (e) => { e.preventDefault(); this.reserve(it.id); },
+      onClaimPart: (e) => { e.preventDefault(); this.reserve(it.id, part); },
+      onMinus: () => this.setState({ parts: { ...s.parts, [it.id]: Math.max(1, part - (it.unit === " plates" ? 10 : 1)) } }),
+      onPlus: () => this.setState({ parts: { ...s.parts, [it.id]: Math.min(remaining, part + (it.unit === " plates" ? 10 : 1)) } }),
+      onUndo: (e) => { e.preventDefault(); this.setState({ items: { ...s.items, [it.id]: { ...it, status: "open", by: null, claimedAt: null } } }); },
+      onMoney: (e) => { e.preventDefault(); this.setState({ money: s.money === it.id ? null : it.id }); },
+      onPay: (e) => { e.preventDefault(); this.pay(it.id); }
+    };
+  }
+
+  renderVals() {
+    const s = this.state, cfg = this.cfg;
+    const variant = this.props.variant === "wedding" ? "wedding" : "funeral";
+    const base = buildContributions(s.count, variant);
+    // The collection sits third in the strand, in the order it came.
+    const list = base.slice(0, 2).concat(COLLECTIONS[variant], base.slice(2)).concat(s.added);
+    const total = list.length;
+    const d = DENSITY.find(x => total <= x.max);
+    const single = d.cords === 1;
+    const cordPitch = 64;
+    const cordX = (i) => "calc(50% + " + Math.round((i - (d.cords - 1) / 2) * cordPitch) + "px)";
+    const rows = Math.ceil(total / d.cords);
+    const r = rng(99);
+    const anim = cfg.animate;
+
+    const beads = list.map((c, i) => {
+      const group = c.kind === "group";
+      // One bead per collection, never one per member: eight beads would read as
+      // eight small gifts instead of one act by one group.
+      const size = group
+        ? Math.round(Math.min(34, BAND_SIZE[3] + c.members.length) * d.scale)
+        : Math.round(BAND_SIZE[c.band] * d.scale);
+      const cash = c.kind === "cash";
+      const base = {
+        display: "block", borderRadius: "50%", width: size + "px", height: size + "px",
+        background: cash ? cfg.accent : "#FFFFFF",
+        border: cash ? "0" : "2px solid " + cfg.accent,
+        position: single ? "relative" : "absolute", padding: 0, cursor: "pointer"
+      };
+      if (!single) {
+        const row = Math.floor(i / d.cords);
+        const idx = row % 2 === 0 ? i % d.cords : d.cords - 1 - (i % d.cords);
+        base.left = cordX(idx);
+        base.top = Math.round(12 + row * d.pitch) + "px";
+        base.marginLeft = Math.round((r() - 0.5) * 5) + "px";
+        base.transform = "translate(-50%,-50%)";
+        base.boxShadow = "0 0 0 3px #F2F1ED";
+        if (c.fresh && anim) base.animation = "settle-bead 300ms cubic-bezier(.2,.7,.3,1) 1";
+      }
+      if (group) {
+        base.border = "2px solid " + cfg.accent;
+        base.background = "#FFFFFF";
+      }
+      return {
+        id: c.id, name: c.name,
+        kindLabel: group ? c.members.length + " together" : (cash ? "money" : c.item),
+        message: c.message,
+        hasMembers: group,
+        membersLabel: c.members ? c.members.length + " people, one bead" : "",
+        members: group ? c.members.map(n => ({ name: n })) : [],
+        meta: (group ? "One collection · " + c.item : (cash ? "Money" : "Bringing " + c.item)) + " · " + (c.days === 0 ? "just now" : c.days + (c.days === 1 ? " day ago" : " days ago")),
+        open: s.openBead === c.id,
+        rowStyle: { position: "relative", animation: c.fresh && anim ? "settle-row 300ms cubic-bezier(.2,.7,.3,1) 1" : "none" },
+        dotStyle: base,
+        barStyle: group
+          ? { display: "block", position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: Math.max(6, size - 10) + "px", height: Math.max(6, size - 10) + "px", borderRadius: "50%", background: cfg.accent }
+          : (cash ? { display: "none" } : { display: "block", position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: Math.max(4, size - 8) + "px", height: "2px", background: cfg.accent }),
+        onTap: () => this.setState({ openBead: s.openBead === c.id ? null : c.id, ledgerAll: single ? s.ledgerAll : true })
+      };
+    });
+
+    const cords = Array.from({ length: d.cords }, (_, i) => ({
+      style: { position: "absolute", left: cordX(i), marginLeft: "-1px", top: "6px", bottom: "6px", width: "2px", background: "#16233D", opacity: 0.9 }
+    }));
+
+    const raised = cfg.raised ? cfg.raised + s.added.reduce((a, b) => a + [100, 250, 500, 1000][b.band], 0) : 0;
+
+    return {
+      theme: { "--accent": cfg.accent, background: "#F2F1ED", minHeight: "100%", fontFamily: "'Public Sans', -apple-system, Roboto, 'Helvetica Neue', sans-serif", color: "#16233D", WebkitFontSmoothing: "antialiased" },
+      kicker: cfg.kicker,
+      title: cfg.title,
+      subtitle: cfg.subtitle,
+      hasSubtitle: !!cfg.subtitle,
+      relation: cfg.relation,
+      hasRelation: !!cfg.relation,
+      when: cfg.when,
+      organiserLine: cfg.organiserLine,
+      verifiedLine: cfg.verifiedLine,
+      needsIntro: cfg.needsIntro,
+      code: cfg.code,
+      trustChecked: cfg.trustChecked,
+      trustAsk: cfg.trustAsk,
+      items: Object.values(s.items).map(it => this.itemVals(it)),
+      hasTarget: !!cfg.target,
+      raisedLine: cfg.target ? zar(raised) + " of " + zar(cfg.target) + " contributed" : "",
+      progressStyle: { height: "100%", width: Math.min(100, (raised / (cfg.target || 1)) * 100) + "%", background: cfg.accent, borderRadius: "4px", transition: "width 300ms ease-out" },
+      targetNote: cfg.target ? "The families set this figure themselves. Anything over it goes to the couple." : "",
+      strandHeading: cfg.strandHeading,
+      strandIntro: cfg.strandIntro,
+      singleCord: single,
+      multiCord: !single,
+      beads,
+      cords,
+      strandStyle: { position: "relative", width: "100%", height: (rows * d.pitch + 24) + "px" },
+      strandLabel: total + " people have contributed to this ceremony",
+      strandNote: d.cords === 2
+        ? "The strand doubles once it passes thirty, so it thickens rather than runs on down the page. Tap a bead to find that person below."
+        : "Beyond two hundred the strand braids across five cords and the beads draw closer — the weight is the point, not the individual bead. Names are all kept below.",
+      ledgerHint: single ? "Every name, in the order they came." : "Tap a bead to bring that person up. Every name is here in the order they came.",
+      ledgerRows: s.ledgerAll ? beads : beads.slice(0, 8),
+      ledgerToggleLabel: s.ledgerAll ? "Show fewer names" : "Show all " + total + " names",
+      onToggleLedger: () => this.setState({ ledgerAll: !s.ledgerAll }),
+      densityOptions: [12, 40, 400].map(n => ({
+        label: n + " people",
+        active: s.count === n,
+        style: {
+          minHeight: "38px", padding: "8px 12px", borderRadius: "4px", cursor: "pointer",
+          fontSize: "13px", fontWeight: 700, fontVariantNumeric: "tabular-nums",
+          border: "1px solid " + (s.count === n ? cfg.accent : "#D8D6CE"),
+          background: s.count === n ? cfg.accent : "#FFFFFF",
+          color: s.count === n ? "#FFFFFF" : "#16233D"
+        },
+        onPick: () => this.setState({ count: n, openBead: null, ledgerAll: false, added: [] })
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

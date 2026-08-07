@@ -1,0 +1,11 @@
+# pnpm blocks dependency install scripts unless they are listed here.
+# Keep this list minimal and deliberate — every `true` is a package we let run
+# arbitrary code at install time, which is a supply-chain decision, not a
+# convenience one.
+allowBuilds:
+  # Native resolver used by the ESLint import plugin.
+  unrs-resolver: true
+  # Vitest's bundler.
+  esbuild: true
+  # Playwright's browser download, driven by `pnpm exec playwright install`.
+  '@playwright/test': true
