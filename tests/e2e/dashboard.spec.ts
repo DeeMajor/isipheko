@@ -1,0 +1,388 @@
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type Page } from '@playwright/test'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+import { PrismaClient } from '@/db/generated/client'
+import {
+  generateSessionToken,
+  hashSessionToken,
+  sessionCookieName,
+  sessionExpiresAt,
+} from '@/domain/auth'
+
+/**
+ * The organiser's dashboard end to end (M3-08).
+ *
+ * Three things it has to prove:
+ *
+ * 1. **Confirm and mark-delivered are the two easiest actions on the page** —
+ *    one queue at the top, both actions in it, and both working with
+ *    JavaScript switched off.
+ * 2. **Every unmet condition shows a concrete next step**, on the real screen
+ *    rather than in a render test.
+ * 3. **Nothing offers a payout**, because there is none to offer.
+ *
+ * The session is written directly rather than driven through the OTP screens,
+ * for the reason `review.spec.ts` gives: `sign-in.spec.ts` is what proves
+ * signing in works, and spending a one-time code here would make this file fail
+ * on a rate limit rather than on anything it is about.
+ */
+
+function prismaClient(): PrismaClient {
+  return new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString:
+        process.env.DATABASE_URL ??
+        'postgresql://isipheko_app:isipheko_local_dev@localhost:5433/isipheko',
+    }),
+  })
+}
+
+const slugFor = (tag: string) =>
+  `${tag}${Math.random().toString(36).slice(2)}`.padEnd(16, '0').slice(0, 16)
+
+function refCode(): string {
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+  return Array.from(
+    { length: 6 },
+    () => alphabet[Math.floor(Math.random() * alphabet.length)] ?? '0',
+  ).join('')
+}
+
+const uniquePhone = () =>
+  `+2784${String(Math.floor(Math.random() * 10_000_000)).padStart(7, '0')}`
+
+async function asFreshClient(page: Page): Promise<void> {
+  const octet = () => Math.floor(Math.random() * 254) + 1
+  await page.setExtraHTTPHeaders({
+    'cf-connecting-ip': `198.51.${String(octet())}.${String(octet())}`,
+  })
+}
+
+interface Seeded {
+  readonly eventId: string
+  readonly organiserId: string
+  readonly token: string
+}
+
+/**
+ * A published umcimbi with everything the dashboard reads: a payment somebody
+ * has reported, a claimed-not-delivered item, an untaken item, a suggestion,
+ * and a confirmed contribution old enough to be past the hold.
+ */
+async function seedEvent({
+  archetype = 'umngcwabo',
+  archetypeGroup = 'bereavement',
+  verified = true,
+}: {
+  archetype?: string
+  archetypeGroup?: string
+  verified?: boolean
+} = {}): Promise<Seeded> {
+  const prisma = prismaClient()
+  const token = generateSessionToken()
+  const now = new Date()
+
+  try {
+    const organiser = await prisma.organiser.create({
+      data: {
+        phoneE164: uniquePhone(),
+        displayName: 'Nomsa Mthembu',
+        idVerificationStatus: verified ? 'verified' : 'unverified',
+        idVerifiedAt: verified ? new Date('2026-07-12T00:00:00.000Z') : null,
+      },
+    })
+
+    await prisma.session.create({
+      data: {
+        organiserId: organiser.id,
+        tokenHash: hashSessionToken(token),
+        expiresAt: sessionExpiresAt(now),
+        authenticatedAt: now,
+        lastSeenAt: now,
+        createdIpHash: null,
+        userAgentHash: null,
+      },
+    })
+
+    const event = await prisma.event.create({
+      data: {
+        organiserId: organiser.id,
+        slug: slugFor('dsh'),
+        archetype: archetype as never,
+        archetypeGroup: archetypeGroup as never,
+        refPrefix: 'MTH',
+        refCode: refCode(),
+        title: 'Nokuthula Mthembu',
+        place: 'KwaMashu',
+        eventDate: new Date('2026-08-15T00:00:00.000Z'),
+        status: 'published',
+        directPayDetails: { phone: '0821234567', name: 'N Mthembu' },
+      },
+    })
+
+    await prisma.witness.create({
+      data: { eventId: event.id, name: 'Sipho Mthembu', phoneE164: uniquePhone() },
+    })
+
+    // Somebody has said they paid, and is waiting to be believed.
+    await prisma.contribution.create({
+      data: {
+        eventId: event.id,
+        contributorName: 'Thandi Ngcobo',
+        type: 'cash',
+        amountCents: 500_00n,
+        refPrefix: 'MTH',
+        refCode: refCode(),
+        status: 'pending',
+        selfReportedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+        verificationSource: 'organiser_confirmed',
+      },
+    })
+
+    const [tent, transport] = await prisma.$transaction([
+      prisma.needItem.create({
+        data: { eventId: event.id, label: 'Tent', quantityRequired: 1, sortOrder: 1 },
+      }),
+      prisma.needItem.create({
+        data: {
+          eventId: event.id,
+          label: 'Transport from Johannesburg',
+          quantityRequired: 1,
+          sortOrder: 2,
+        },
+      }),
+    ])
+
+    // Claimed and not here yet — invisible on the public board, and exactly the
+    // thing that does not arrive.
+    await prisma.needItem.update({
+      where: { id: tent.id },
+      data: { quantityClaimed: 1 },
+    })
+    await prisma.needClaim.create({
+      data: {
+        needItemId: tent.id,
+        quantity: 1,
+        claimantName: 'Musa Khumalo',
+        status: 'claimed',
+      },
+    })
+
+    // Something the family forgot, which nothing could show until this screen.
+    await prisma.needItem.create({
+      data: {
+        eventId: event.id,
+        label: 'Ice',
+        note: 'For the drinks',
+        quantityRequired: 1,
+        sortOrder: 999,
+        status: 'suggested',
+        suggestedByName: 'MaDlamini',
+      },
+    })
+
+    expect(transport.label).toContain('Transport')
+
+    return { eventId: event.id, organiserId: organiser.id, token }
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+async function signIn(page: Page, token: string): Promise<void> {
+  await page.context().addCookies([
+    {
+      name: sessionCookieName(false),
+      value: token,
+      url: 'http://localhost:3000',
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ])
+}
+
+test('the queue leads the page and both actions are one tap', async ({ page }) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  await expect(page.getByRole('heading', { name: 'Waiting for you' })).toBeVisible()
+
+  // Leading the page: the queue's heading comes before every other section's.
+  const headings = await page.getByRole('heading', { level: 2 }).allTextContents()
+  expect(headings[0]).toBe('Waiting for you')
+
+  // Both kinds in one list.
+  await expect(page.getByText('Thandi Ngcobo says they sent R500,00')).toBeVisible()
+  await expect(page.getByText('Musa Khumalo is bringing the tent')).toBeVisible()
+
+  // And what to check it against in her own banking app.
+  await expect(page.getByText('T NGCOBO')).toBeVisible()
+
+  await expect(
+    page.getByRole('button', { name: "Yes, it's in my account" }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'It has arrived' })).toBeVisible()
+})
+
+test('confirming and marking delivered both work with JavaScript disabled', async ({
+  browser,
+}) => {
+  // Rule 5's posture on the organiser side. These are the two actions of her
+  // day, and a phone with a failed script bundle must not lose them.
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+
+  try {
+    await asFreshClient(page)
+    const seeded = await seedEvent()
+    await signIn(page, seeded.token)
+
+    await page.goto(`/manage/${seeded.eventId}`)
+
+    await page.getByRole('button', { name: "Yes, it's in my account" }).click()
+    await expect(page.getByText('Recorded on the ledger.')).toBeVisible()
+
+    await page.getByRole('button', { name: 'It has arrived' }).first().click()
+    await expect(page.getByText('Recorded on the ledger.')).toBeVisible()
+
+    // Both are off the queue, and the record now has two beads on it.
+    await expect(
+      page.getByRole('heading', { name: 'Nothing is waiting for you' }),
+    ).toBeVisible()
+    await expect(page.getByText('put the phone down')).toBeVisible()
+  } finally {
+    await context.close()
+  }
+})
+
+test('the board separates what is promised from what nobody has taken', async ({
+  page,
+}) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  await expect(page.getByText('Nobody has taken this', { exact: true })).toBeVisible()
+  await expect(page.getByText('Promised, not yet here')).toBeVisible()
+  await expect(page.getByText('Promised by Musa Khumalo')).toBeVisible()
+  await expect(page.getByText('Transport from Johannesburg')).toBeVisible()
+})
+
+test('a suggestion is visible, and answering it works with no script', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+
+  try {
+    await asFreshClient(page)
+    const seeded = await seedEvent()
+    await signIn(page, seeded.token)
+
+    await page.goto(`/manage/${seeded.eventId}`)
+
+    await expect(page.getByText('Someone suggested this')).toBeVisible()
+    await expect(page.getByText('Suggested by MaDlamini')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Add it to the list' }).click()
+    await expect(page.getByText('Your list has been updated.')).toBeVisible()
+
+    // It is on her list now, and no longer a suggestion.
+    await expect(page.getByText('Someone suggested this')).toHaveCount(0)
+    await expect(page.getByText('Ice')).toBeVisible()
+  } finally {
+    await context.close()
+  }
+})
+
+test('the money is never presented as a balance we hold', async ({ page }) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  await expect(page.getByText('already in your own account')).toBeVisible()
+
+  const body = (await page.textContent('body')) ?? ''
+  expect(body).not.toContain('Ready to pay out')
+  expect(body.toLowerCase()).not.toContain('request r')
+
+  // Nothing on the page requests a payout, at any state.
+  await expect(page.getByRole('button', { name: /request/i })).toHaveCount(0)
+})
+
+test('every unmet condition shows a concrete next step', async ({ page }) => {
+  await asFreshClient(page)
+  // Unverified, so the one condition with a real action is the one unmet.
+  const seeded = await seedEvent({ verified: false })
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  await expect(page.getByText('Your name needs verifying')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Verify my name' })).toBeVisible()
+
+  // Bank: Part F's wording, and the honest half — she cannot do it yet.
+  await expect(page.getByText('Your bank account needs verifying')).toBeVisible()
+  await expect(
+    page.getByText('check it against your verified name with your bank'),
+  ).toBeVisible()
+  await expect(page.getByText('the check is not connected')).toBeVisible()
+
+  // The R1 test deposit from the design file is nowhere on the page.
+  const body = (await page.textContent('body')) ?? ''
+  expect(body).not.toMatch(/\bR1\b/)
+})
+
+test('a funeral dashboard carries no countdown and no accent', async ({ page }) => {
+  /*
+   * `design/dashboard.html` sets *"in 4 days"* on its bereavement variant, which
+   * rule 1 forbids. And rule 2: bereavement declares no accent, so the theme
+   * wrapper sets nothing and every `var(--accent, #16233D)` resolves to indigo
+   * on its own.
+   */
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  const body = (await page.textContent('body')) ?? ''
+  expect(body).not.toMatch(/\bin \d+ (days?|weeks?)\b/)
+  expect(body).toContain('Saturday, 15 August')
+  expect(body).toContain('KwaMashu')
+
+  const themed = page.locator('[data-archetype="umngcwabo"]')
+  await expect(themed).toHaveAttribute('data-archetype', 'umngcwabo')
+  expect(await themed.evaluate((node) => node.getAttribute('style'))).toBeNull()
+})
+
+test('a wedding dashboard takes its accent from the config', async ({ page }) => {
+  // The control. Without it, "no accent on bereavement" would also pass on a
+  // page where the theme wrapper was never rendered at all.
+  await asFreshClient(page)
+  const seeded = await seedEvent({ archetype: 'umshado', archetypeGroup: 'union' })
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  const themed = page.locator('[data-archetype="umshado"]')
+  expect(await themed.evaluate((node) => node.getAttribute('style'))).toContain('#8C2F22')
+})
+
+test('the dashboard has no accessibility violations', async ({ page }) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})

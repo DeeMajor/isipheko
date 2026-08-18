@@ -655,3 +655,126 @@ export async function warnExpiringClaims(
 
   return warned
 }
+
+// ---------------------------------------------------------------------------
+// The organiser's side of the board (M3-08)
+// ---------------------------------------------------------------------------
+
+export interface OrganiserBoardRow {
+  readonly id: string
+  readonly label: string
+  readonly note: string | null
+  /** Who has it, when somebody does. Null on an item nobody has taken. */
+  readonly claimantName: string | null
+  /** The claim id, which is what "mark as arrived" acts on. */
+  readonly claimId: string | null
+  readonly quantityRequired: number
+  readonly quantityClaimed: number
+  readonly remaining: number
+  /** Set on a row that has arrived. */
+  readonly deliveredAt: Date | null
+}
+
+export interface OrganiserBoard {
+  /** Nobody has taken this. The only part of the list still fully open. */
+  readonly open: readonly OrganiserBoardRow[]
+  /** Held in somebody's name and not here yet — the mark-as-arrived queue. */
+  readonly promised: readonly OrganiserBoardRow[]
+  /** Arrived, on the ledger, on the strand. Nothing more needed. */
+  readonly arrived: readonly OrganiserBoardRow[]
+  /** Somebody suggested something the family forgot (M2-04). */
+  readonly suggested: readonly OrganiserBoardRow[]
+}
+
+/**
+ * The board as the organiser sees it: **claimed-not-delivered against
+ * unclaimed**, which is the distinction the public board does not make and the
+ * only one she can act on.
+ *
+ * `boardForEvent` answers *what can still be taken*, which is the contributor's
+ * question. This answers *what do I still have to chase*, which is a different
+ * list — an item fully claimed and undelivered is invisible on the public board
+ * and is precisely the thing that does not arrive.
+ *
+ * **Partly-claimed items appear in both `open` and `promised`**, deliberately.
+ * Sixteen of twenty kilograms of meat is simultaneously somebody's promise and
+ * a gap the family still has to fill, and putting it in one list would hide the
+ * other half of it. Design's *"16kg of 20kg taken · 4kg still needed"* is one
+ * row saying both things; here it is one row in each list, because the actions
+ * differ — chase a person, or ask the group.
+ *
+ * Scoped to the organiser who owns the event. An id is not a permission.
+ */
+export async function organiserBoard(
+  db: PrismaClient,
+  { eventId, organiserId }: { eventId: string; organiserId: string },
+): Promise<OrganiserBoard> {
+  const items = await db.needItem.findMany({
+    where: { eventId, event: { organiserId }, status: { in: ['active', 'suggested'] } },
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      id: true,
+      label: true,
+      note: true,
+      status: true,
+      quantityRequired: true,
+      quantityClaimed: true,
+      suggestedByName: true,
+      claims: {
+        where: { status: { in: ['claimed', 'delivered'] } },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          status: true,
+          quantity: true,
+          claimantName: true,
+          deliveredConfirmedAt: true,
+        },
+      },
+    },
+  })
+
+  const open: OrganiserBoardRow[] = []
+  const promised: OrganiserBoardRow[] = []
+  const arrived: OrganiserBoardRow[] = []
+  const suggested: OrganiserBoardRow[] = []
+
+  for (const item of items) {
+    const base = {
+      id: item.id,
+      label: item.label,
+      note: item.note,
+      quantityRequired: item.quantityRequired,
+      quantityClaimed: item.quantityClaimed,
+      remaining: item.quantityRequired - item.quantityClaimed,
+    }
+
+    if (item.status === 'suggested') {
+      suggested.push({
+        ...base,
+        claimantName: item.suggestedByName,
+        claimId: null,
+        deliveredAt: null,
+      })
+      continue
+    }
+
+    if (base.remaining > 0) {
+      open.push({ ...base, claimantName: null, claimId: null, deliveredAt: null })
+    }
+
+    for (const claim of item.claims) {
+      const row = {
+        ...base,
+        claimantName: claim.claimantName,
+        claimId: claim.id,
+        deliveredAt: claim.deliveredConfirmedAt,
+      }
+
+      if (claim.status === 'delivered') arrived.push(row)
+      else promised.push(row)
+    }
+  }
+
+  return { open, promised, arrived, suggested }
+}

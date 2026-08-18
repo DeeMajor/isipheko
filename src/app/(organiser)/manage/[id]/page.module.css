@@ -1,21 +1,71 @@
+/*
+ * The organiser's dashboard (M3-08).
+ *
+ * Every accent usage is `var(--accent, #16233D)` (rule 2). `ArchetypeTheme`
+ * wraps the page and bereavement declares no accent, so a funeral renders
+ * indigo with nothing here asking which archetype it is.
+ *
+ * No progress bar, no target, no countdown, and nothing that moves. Two of
+ * those are forbidden on bereavement and the other two the product does not
+ * have; a rule enforced by absence is one nobody can breach by editing this
+ * file.
+ */
+
 .page {
-  max-width: 480px;
+  max-width: 430px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.title {
+/* Says whose view this is, so a shared screenshot is not read as the public page. */
+.viewNote {
   margin: 0;
-  font-size: var(--text-header);
-  font-weight: var(--weight-heavy);
-  letter-spacing: -0.03em;
+  font-size: var(--text-metadata);
+  color: var(--ink-soft);
 }
 
-.card {
+.kicker {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.title {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-header);
+  line-height: 1.1;
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.033em;
+  text-wrap: pretty;
+}
+
+.when {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.card,
+.leadCard {
   width: 100%;
+}
+
+/*
+ * The queue leads the page, and its border says so.
+ *
+ * The only accented edge on the screen. Everything else is the product's one
+ * elevation — a 1px rule — because if three things are emphasised none of them
+ * is, and this is the card that needs her today.
+ */
+.leadCard {
+  border-color: var(--accent, #16233d);
 }
 
 .body {
@@ -23,6 +73,15 @@
   font-size: var(--text-body);
   line-height: 1.55;
   color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-metadata);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: pretty;
 }
 
 .form {
@@ -31,7 +90,17 @@
   gap: var(--space-4);
 }
 
-.reports {
+.link {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ---- the confirmation queue ------------------------------------------- */
+
+.queue,
+.boardRows {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -40,19 +109,212 @@
   gap: var(--space-3);
 }
 
-.report {
+.queueItem,
+.boardRow {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* The primary action is the widest thing in its row, on both kinds. */
+.queueItem form,
+.boardRow form {
+  margin-top: var(--space-2);
+}
+
+.tag {
+  margin: 0;
+  font-size: var(--text-metadata);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.headline,
+.rowName {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/*
+ * What to look for in her own banking app. Set apart because it is the thing
+ * she reads while holding a second phone.
+ */
+.check {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  background: var(--paper);
+  border-radius: var(--radius-control);
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* ---- the needs board -------------------------------------------------- */
+
+.group {
+  margin-top: var(--space-4);
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.rowNote {
+  margin: 0;
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* Approve or leave off, side by side — neither is the obvious answer. */
+.decide {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.decide form {
+  margin-top: 0;
+  flex: 1;
+}
+
+.details {
+  margin-top: var(--space-4);
   border-top: 1px solid var(--rule);
   padding-top: var(--space-3);
 }
 
-.reportName {
-  margin: 0;
-  font-size: var(--text-title);
+.summary {
+  font-size: var(--text-body);
   font-weight: var(--weight-bold);
+  color: var(--ink);
+  cursor: pointer;
+  /* A summary is the hit area, so it stands at the floor like every control. */
+  min-height: var(--hit-area-min);
+  display: flex;
+  align-items: center;
 }
 
-.reportMeta {
-  margin: var(--space-1) 0 var(--space-3);
+.summary:focus-visible {
+  outline: 2px solid var(--accent, #16233d);
+  outline-offset: 2px;
+}
+
+/* ---- the money ------------------------------------------------------- */
+
+.figures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.figure {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+}
+
+.figureLabel {
+  margin: 0;
   font-size: var(--text-metadata);
   color: var(--ink-soft);
+}
+
+/*
+ * Large, tabular, and never larger than the page title.
+ *
+ * The design sets the payout figure at 30px, above its own heading, because it
+ * is the number the screen is about. Here it is one of three and none of them
+ * is a balance we hold, so it does not outrank the name of the umcimbi.
+ */
+.figureAmount {
+  margin: var(--space-1) 0 var(--space-1);
+  font-size: 24px;
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.conditions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.condition,
+.conditionMet {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/*
+ * Unmet carries an accented edge; met carries nothing.
+ *
+ * Colour is not the signal — the title says which it is in words. This is the
+ * list somebody reads while working out whether they have a problem, and a
+ * status that exists only as a colour is a status half the readers do not get.
+ */
+.condition {
+  border-left: 2px solid var(--accent, #16233d);
+  padding-left: var(--space-3);
+}
+
+.conditionTitle {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* The next step, in ink rather than soft — it is the actionable half. */
+.conditionNext {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata);
+  line-height: 1.55;
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.conditionAction {
+  display: block;
+  margin-top: var(--space-2);
+  text-decoration: none;
 }

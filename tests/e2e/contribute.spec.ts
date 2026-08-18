@@ -146,10 +146,16 @@ test('a stranger contributes and the organiser confirms it onto the ledger', asy
   await signInOrganiser(organiserPage, fixture.organiserPhone)
 
   await organiserPage.goto(`/manage/${fixture.eventId}`)
-  await expect(organiserPage.getByText('Thandi Ngcobo')).toBeVisible()
-  await expect(organiserPage.getByText(reference)).toBeVisible()
+  await expect(organiserPage.getByText('Thandi Ngcobo').first()).toBeVisible()
+  // The reference appears twice on the dashboard M3-08 built: once on the row,
+  // and again in the line telling her what to look for in her own banking app.
+  // `exact` because getByText is otherwise a case-insensitive substring match,
+  // and "Reference X" is inside "…with reference X".
+  await expect(
+    organiserPage.getByText(`Reference ${reference}`, { exact: true }),
+  ).toBeVisible()
 
-  await organiserPage.getByRole('button', { name: 'Yes, this arrived' }).click()
+  await organiserPage.getByRole('button', { name: "Yes, it's in my account" }).click()
   await expect(organiserPage.getByText('Recorded on the ledger.')).toBeVisible()
 
   // And it is on the ledger, hashed into the chain.

@@ -4,7 +4,11 @@ import { redirect } from 'next/navigation'
 
 import { prisma } from '@/db/client'
 import { confirmContribution } from '@/db/repositories/contribution'
-import { confirmDelivery } from '@/db/repositories/needs'
+import {
+  approveSuggestion,
+  confirmDelivery,
+  declineSuggestion,
+} from '@/db/repositories/needs'
 import { issueWitnessInvite } from '@/db/repositories/witness'
 import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
@@ -131,4 +135,33 @@ export async function askWitnessHere(formData: FormData): Promise<void> {
     `/manage/${id}?invited=${encodeURIComponent(outcome.issued.token)}` +
       `&witness=${encodeURIComponent(witnessId)}`,
   )
+}
+
+/**
+ * The organiser answering a suggestion (M2-04).
+ *
+ * A contributor who sees the list can say the family forgot something. Until
+ * this screen existed the suggestion landed in `need_items` with status
+ * `suggested` and **nobody could ever see it** — built, tested and unreachable.
+ *
+ * It is her list, so nothing appears on it until she says so, and a decline is
+ * recorded rather than deleted: somebody took the trouble to say it, and the
+ * row is the evidence of what was offered.
+ */
+export async function decideSuggestion(formData: FormData): Promise<void> {
+  const organiserId = await requireOrganiser()
+  const id = text(formData, 'id')
+  const needItemId = text(formData, 'item')
+  const answer = text(formData, 'answer')
+
+  if (answer !== 'approve' && answer !== 'decline') {
+    redirect(`/manage/${id}?error=suggestion`)
+  }
+
+  const decided =
+    answer === 'approve'
+      ? await approveSuggestion(prisma, { needItemId, organiserId })
+      : await declineSuggestion(prisma, { needItemId, organiserId })
+
+  redirect(`/manage/${id}?${decided ? 'listed=1' : 'error=suggestion'}`)
 }
