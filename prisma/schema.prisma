@@ -759,6 +759,22 @@ model Contribution {
   message    String?
   photoKey   String? @map("photo_key")
 
+  /// The full derivative's dimensions, stored so a lazy-loaded album can
+  /// reserve the space before the bytes arrive (M4-02).
+  ///
+  /// Without them, four hundred images each shift the layout as they land,
+  /// which on a slow connection is the whole page moving for a minute. The
+  /// alternative — a fixed aspect box — crops somebody's photo of a gravestone
+  /// to fit, which is not a trade this product makes.
+  ///
+  /// **Two columns rather than a `photos` table, deliberately.** M4-01b's
+  /// handover evidence will want the same pair on `collections`, and at that
+  /// point a photos table is the right shape. Building it now for one caller
+  /// would be a table with one row type and one owner. See docs/decisions.md
+  /// M4-02 §1.
+  photoWidth  Int? @map("photo_width")
+  photoHeight Int? @map("photo_height")
+
   visibility         ContributionVisibility @default(public)
   verificationSource VerificationSource     @map("verification_source")
   pspPaymentId       String?                @unique @map("psp_payment_id")

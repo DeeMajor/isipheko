@@ -157,11 +157,12 @@ describe('what a stored photo is called', () => {
 describe('the ticket that carries a photo to the pay step', () => {
   const PEPPER = 'test-pepper'
   const DIGEST = photoDigest(bytes('a photo'))
+  const CLAIM = { digest: DIGEST, width: 2400, height: 1600 }
 
   it('verifies what it signed', () => {
-    const token = photoToken('event-1', DIGEST, PEPPER)
+    const token = photoToken('event-1', CLAIM, PEPPER)
 
-    expect(photoTokenMatches('event-1', DIGEST, PEPPER, token)).toBe(true)
+    expect(photoTokenMatches('event-1', CLAIM, PEPPER, token)).toBe(true)
   })
 
   /**
@@ -170,30 +171,57 @@ describe('the ticket that carries a photo to the pay step', () => {
    * another umcimbi's URL onto their own contribution.
    */
   it('does not verify across events', () => {
-    const token = photoToken('event-1', DIGEST, PEPPER)
+    const token = photoToken('event-1', CLAIM, PEPPER)
 
-    expect(photoTokenMatches('event-2', DIGEST, PEPPER, token)).toBe(false)
+    expect(photoTokenMatches('event-2', CLAIM, PEPPER, token)).toBe(false)
   })
 
   it('does not verify a swapped digest, a wrong pepper or a truncated token', () => {
-    const token = photoToken('event-1', DIGEST, PEPPER)
-    const other = photoDigest(bytes('another photo'))
+    const token = photoToken('event-1', CLAIM, PEPPER)
+    const other = { ...CLAIM, digest: photoDigest(bytes('another photo')) }
 
     expect(photoTokenMatches('event-1', other, PEPPER, token)).toBe(false)
-    expect(photoTokenMatches('event-1', DIGEST, 'other-pepper', token)).toBe(false)
-    expect(photoTokenMatches('event-1', DIGEST, PEPPER, token.slice(0, -1))).toBe(false)
-    expect(photoTokenMatches('event-1', DIGEST, PEPPER, '')).toBe(false)
+    expect(photoTokenMatches('event-1', CLAIM, 'other-pepper', token)).toBe(false)
+    expect(photoTokenMatches('event-1', CLAIM, PEPPER, token.slice(0, -1))).toBe(false)
+    expect(photoTokenMatches('event-1', CLAIM, PEPPER, '')).toBe(false)
+  })
+
+  /**
+   * The dimensions are inside the signature, not beside it. They become the
+   * space an image reserves in the album before it loads, so an editable pair
+   * would be an editable layout — one photo pushing everything else off the
+   * page. Not a hole worth leaving open for nothing.
+   */
+  it('does not verify edited dimensions', () => {
+    const token = photoToken('event-1', CLAIM, PEPPER)
+
+    expect(
+      photoTokenMatches('event-1', { ...CLAIM, height: 9999 }, PEPPER, token),
+    ).toBe(false)
+    expect(photoTokenMatches('event-1', { ...CLAIM, width: 1 }, PEPPER, token)).toBe(
+      false,
+    )
   })
 
   it('travels as one field', () => {
-    const ticket = formatPhotoTicket(DIGEST, photoToken('event-1', DIGEST, PEPPER))
+    const ticket = formatPhotoTicket(CLAIM, photoToken('event-1', CLAIM, PEPPER))
     const parsed = parsePhotoTicket(ticket)
 
-    expect(parsed?.digest).toBe(DIGEST)
-    expect(photoTokenMatches('event-1', DIGEST, PEPPER, parsed?.token ?? '')).toBe(true)
+    expect(parsed?.claim).toEqual(CLAIM)
+    expect(photoTokenMatches('event-1', CLAIM, PEPPER, parsed?.token ?? '')).toBe(true)
   })
 
-  it.each(['', '.', 'nodot', '.onlytoken'])('refuses %s as a ticket', (ticket) => {
+  it.each([
+    '',
+    '.',
+    'nodot',
+    '.onlytoken',
+    `${'a'.repeat(32)}.token`,
+    `${'a'.repeat(32)}.0x600.token`,
+    `${'a'.repeat(32)}.800x0.token`,
+    `${'a'.repeat(32)}.800x600.`,
+    `${'z'.repeat(32)}.800x600.token`,
+  ])('refuses %s as a ticket', (ticket) => {
     expect(parsePhotoTicket(ticket)).toBeNull()
   })
 })

@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { eventCopy } from '@/copy/event'
 import type { ArchetypeConfig } from '@/domain/archetype'
 import { isAnimated } from '@/domain/archetype'
+import type { BeadForm } from '@/domain/strand'
 import {
   CORD_PITCH,
   bandFor,
@@ -52,6 +53,36 @@ export interface StrandProps {
   readonly openId?: string | undefined
   /** Injected so "3 days ago" is testable and the render stays pure. */
   readonly now?: Date | undefined
+  /**
+   * **Link mode**, for the album's cover (M4-02).
+   *
+   * On the event page a bead is a submit button: opening one is a server
+   * round-trip that works with no script, and the panel it opens is the only
+   * place that bead's words appear. On the album every entry is already on the
+   * page below the strand, so a round-trip to render a panel would fetch
+   * content the reader can reach by scrolling — and land them back at the top.
+   *
+   * Given this, each bead becomes an anchor to its entry. Same geometry, same
+   * `<ul>`, same accessible names; no form, and no panels, because the panel's
+   * content is the entry it points at.
+   */
+  readonly hrefFor?: ((beadId: string) => string) | undefined
+}
+
+/**
+ * The least a thing has to be for the strand to describe it in words.
+ *
+ * `StrandBead` satisfies it, and so does M4-02's `AlbumEntry` — which carries
+ * no amount at all. The album is the strand's record written out at length, and
+ * two sets of phrasings for one event is how the cover and the entries start
+ * disagreeing about what somebody did.
+ */
+export interface BeadSubject {
+  readonly form: BeadForm
+  readonly name: string | null
+  readonly description: string | null
+  readonly members?: readonly string[]
+  readonly memberCount?: number
 }
 
 /**
@@ -61,12 +92,12 @@ export interface StrandProps {
  * the group and not in the list of names (M2-09), and a bead that said "5
  * together" while naming six would be wrong in the direction that matters.
  */
-function groupSize(bead: StrandBead): number {
+export function groupSize(bead: BeadSubject): number {
   return bead.memberCount ?? bead.members?.length ?? 0
 }
 
 /** What this bead is, in words: the label a screen reader hears. */
-function whatOf(bead: StrandBead): string {
+export function whatOf(bead: BeadSubject): string {
   if (bead.form === 'group') return eventCopy.strand.together(groupSize(bead))
   if (bead.form === 'in_kind') {
     return eventCopy.strand.bringing(bead.description ?? '')
@@ -75,7 +106,7 @@ function whatOf(bead: StrandBead): string {
   return eventCopy.strand.money
 }
 
-function nameOf(bead: StrandBead): string {
+export function nameOf(bead: BeadSubject): string {
   return bead.name ?? eventCopy.strand.quietly
 }
 
@@ -85,13 +116,50 @@ const FORM_CLASS: Record<StrandBead['form'], string> = {
   group: 'beadGroup',
 }
 
-export function LedgerStrand({ slug, archetype, beads, openId, now }: StrandProps) {
+export function LedgerStrand({
+  slug,
+  archetype,
+  beads,
+  openId,
+  now,
+  hrefFor,
+}: StrandProps) {
   if (beads.length === 0) {
     return <p className="intro">{eventCopy.strand.empty}</p>
   }
 
   const density = densityFor(beads.length)
   const braided = density.cords > 1
+
+  const strand = braided ? (
+    <BraidedStrand
+      beads={beads}
+      density={density}
+      archetype={archetype}
+      openId={openId}
+      hrefFor={hrefFor}
+    />
+  ) : (
+    <SingleCord
+      beads={beads}
+      density={density}
+      archetype={archetype}
+      openId={openId}
+      now={now}
+      hrefFor={hrefFor}
+    />
+  )
+
+  // Link mode has nothing to submit and nothing to open: the entries are the
+  // panels, further down the same page.
+  if (hrefFor !== undefined) {
+    return (
+      <>
+        <p className="intro">{eventCopy.strand.intro}</p>
+        <div className="strandForm">{strand}</div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -101,22 +169,7 @@ export function LedgerStrand({ slug, archetype, beads, openId, now }: StrandProp
           action returns the reader to the strand rather than to the top of a
           page they have already read. */}
       <form method="get" action={`/e/${slug}#strand`} className="strandForm">
-        {braided ? (
-          <BraidedStrand
-            beads={beads}
-            density={density}
-            archetype={archetype}
-            openId={openId}
-          />
-        ) : (
-          <SingleCord
-            beads={beads}
-            density={density}
-            archetype={archetype}
-            openId={openId}
-            now={now}
-          />
-        )}
+        {strand}
 
         {braided ? <OpenPanel beads={beads} openId={openId} now={now} /> : null}
       </form>
@@ -134,31 +187,34 @@ function SingleCord({
   archetype,
   openId,
   now,
+  hrefFor,
 }: {
   beads: readonly StrandBead[]
   density: DensityBand
   archetype: ArchetypeConfig
   openId: string | undefined
   now: Date | undefined
+  hrefFor: ((beadId: string) => string) | undefined
 }) {
   return (
     <ul className="strand strandCord">
       {beads.map((bead, index) => {
-        const open = bead.id === openId
+        const open = hrefFor === undefined && bead.id === openId
 
         return (
           <li key={bead.id} className="beadRow">
-            <BeadButton
+            <BeadControl
               bead={bead}
               index={index}
               total={beads.length}
               density={density}
               archetype={archetype}
               open={open}
+              hrefFor={hrefFor}
             >
               <span className="beadName">{nameOf(bead)}</span>
               <span className="beadWhat">{whatOf(bead)}</span>
-            </BeadButton>
+            </BeadControl>
 
             {open ? <BeadPanel bead={bead} now={now} /> : null}
           </li>
@@ -177,11 +233,13 @@ function BraidedStrand({
   density,
   archetype,
   openId,
+  hrefFor,
 }: {
   beads: readonly StrandBead[]
   density: DensityBand
   archetype: ArchetypeConfig
   openId: string | undefined
+  hrefFor: ((beadId: string) => string) | undefined
 }) {
   // The same arithmetic the beads use, from the same constant: a cord drawn
   // anywhere but under its beads is a strand with the string in the wrong place.
@@ -221,18 +279,19 @@ function BraidedStrand({
                 { '--x': `${String(x)}px`, '--y': `${String(y)}px` } as CSSProperties
               }
             >
-              <BeadButton
+              <BeadControl
                 bead={bead}
                 index={index}
                 total={beads.length}
                 density={density}
                 archetype={archetype}
-                open={bead.id === openId}
+                open={hrefFor === undefined && bead.id === openId}
+                hrefFor={hrefFor}
               >
                 <span className="beadHidden">
                   {eventCopy.strand.beadLabel(nameOf(bead), whatOf(bead))}
                 </span>
-              </BeadButton>
+              </BeadControl>
             </li>
           )
         })}
@@ -242,16 +301,18 @@ function BraidedStrand({
 }
 
 /**
- * The bead itself: a submit button carrying its own id, with the visible disc
- * inside it. The button holds the 44px hit area; the disc stays 10–24px.
+ * The bead itself: a submit button carrying its own id — or, on the album's
+ * cover, an anchor to the entry it stands for. Either way it holds the 44px hit
+ * area and the visible disc inside it stays 6–24px.
  */
-function BeadButton({
+function BeadControl({
   bead,
   index,
   total,
   density,
   archetype,
   open,
+  hrefFor,
   children,
 }: {
   bead: StrandBead
@@ -260,6 +321,7 @@ function BeadButton({
   density: DensityBand
   archetype: ArchetypeConfig
   open: boolean
+  hrefFor: ((beadId: string) => string) | undefined
   children: ReactNode
 }) {
   const band = bandFor({
@@ -279,19 +341,13 @@ function BeadButton({
    * checks of one condition is one check with a spare, and the removal of
    * either goes unnoticed (docs/decisions.md M2-05 §7).
    */
-  const settles = isAnimated(archetype) && index === total - 1
+  // **Never in link mode.** The strand's motion is one bead settling as it
+  // arrives; on an album nothing has just arrived, and motion on a record is
+  // decoration. `isAnimated` still guards the rest (architecture §6).
+  const settles = hrefFor === undefined && isAnimated(archetype) && index === total - 1
 
-  return (
-    <button
-      type="submit"
-      name="bead"
-      value={open ? '' : bead.id}
-      className={`beadButton ${FORM_CLASS[bead.form]}${settles ? ' beadNew' : ''}`}
-      aria-expanded={open}
-      // Only while the panel exists: aria-controls pointing at an id that is
-      // not in the document is a broken reference, not a promise.
-      {...(open ? { 'aria-controls': `bead-${bead.id}` } : {})}
-    >
+  const mark = (
+    <>
       <span className="beadMark">
         <span
           className="beadDot"
@@ -301,6 +357,31 @@ function BeadButton({
         </span>
       </span>
       {children}
+    </>
+  )
+
+  const className = `beadButton ${FORM_CLASS[bead.form]}${settles ? ' beadNew' : ''}`
+
+  if (hrefFor !== undefined) {
+    return (
+      <a href={hrefFor(bead.id)} className={`${className} beadLink`}>
+        {mark}
+      </a>
+    )
+  }
+
+  return (
+    <button
+      type="submit"
+      name="bead"
+      value={open ? '' : bead.id}
+      className={className}
+      aria-expanded={open}
+      // Only while the panel exists: aria-controls pointing at an id that is
+      // not in the document is a broken reference, not a promise.
+      {...(open ? { 'aria-controls': `bead-${bead.id}` } : {})}
+    >
+      {mark}
     </button>
   )
 }

@@ -43,6 +43,10 @@ export const STRAND_CSS = String.raw`
   position: relative;
 }
 
+.beadLink {
+  text-decoration: none;
+}
+
 .strandCord .beadButton {
   display: flex;
   align-items: center;

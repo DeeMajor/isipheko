@@ -35,4 +35,10 @@ export {
   type ProcessedPhoto,
 } from './image-processor.ts'
 
-export { photoToken, photoTokenMatches, formatPhotoTicket, parsePhotoTicket } from './photo-token.ts'
+export {
+  formatPhotoTicket,
+  parsePhotoTicket,
+  photoToken,
+  photoTokenMatches,
+  type PhotoClaim,
+} from './photo-token.ts'

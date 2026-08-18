@@ -6,6 +6,7 @@
  */
 
 import type { ArchetypeConfig } from '@/domain/archetype'
+import { albumCopy } from '@/copy/album'
 import { archetypeEventCopy, eventCopy } from '@/copy/event'
 import { reportCopy } from '@/copy/report'
 import { nameList, witnessCopy } from '@/copy/witness'
@@ -259,6 +260,23 @@ export function PublicEventPage({
                 openId={openBeadId}
                 now={now}
               />
+
+              {/*
+                The album (M4-02). Offered only once there is something in it —
+                an empty state here would be a second empty state under the one
+                the strand already shows.
+
+                *"The whole record"* rather than *"View album"*: album is a word
+                the product invented for a thing that already has a name, and
+                this link appears on a funeral page.
+              */}
+              {beads.length === 0 ? null : (
+                <p className="claimHelp">
+                  <a className="checkLink" href={`/e/${event.slug}/album`}>
+                    {albumCopy.link}
+                  </a>
+                </p>
+              )}
             </section>
 
             <div className="safety">

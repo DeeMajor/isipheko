@@ -21,3 +21,26 @@ export function formatDayMonth(date: Date | null): string | null {
     timeZone: 'UTC',
   }).format(date)
 }
+
+/**
+ * `12 August 2026` — the same day, written to last.
+ *
+ * The year is the difference. `formatDayMonth` drops it because a verification
+ * date is read now, against a page somebody is deciding about today. A record
+ * is read later: the incwadi is the sheet a family keeps, and the album (M4-02)
+ * is what the record looks like in five years. A date without a year is fine
+ * until it is the only date on the paper.
+ *
+ * The incwadi held a private copy of this until the album needed the same
+ * thing. Two formatters for one idea across two artefacts is how they drift.
+ */
+export function formatDayMonthYear(date: Date | null): string | null {
+  if (date === null) return null
+
+  return new Intl.DateTimeFormat('en-ZA', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date)
+}

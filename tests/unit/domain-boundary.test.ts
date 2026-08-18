@@ -19,9 +19,20 @@ let eslint: ESLint
 let probeIndex = 0
 const created = new Set<string>()
 
-beforeAll(() => {
+/**
+ * Warmed here rather than paid for by whichever assertion runs first.
+ *
+ * The first `lintText` loads the whole config — Next's, typescript-eslint's,
+ * and the TypeScript project service behind type-aware linting — which is
+ * several seconds on a cold cache and more when the rest of the suite is
+ * competing for the CPU. Landing that on test one made it fail on timeout while
+ * the same file passed when run alone, which is the worst kind of red: it
+ * teaches people to re-run rather than to look.
+ */
+beforeAll(async () => {
   eslint = new ESLint({ cwd: process.cwd() })
-})
+  await boundaryErrorsIn('src/domain', 'export {}')
+}, 60_000)
 
 afterAll(async () => {
   await Promise.all([...created].map((file) => rm(file, { force: true })))

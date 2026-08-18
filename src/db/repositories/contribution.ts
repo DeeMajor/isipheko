@@ -47,6 +47,12 @@ export interface StartInput {
    * original is kept, so there is nothing else it could name (M4-01).
    */
   readonly photoKey?: string | null
+  /**
+   * The full derivative's dimensions, written beside the key so the album can
+   * reserve the space before a lazy image lands (M4-02).
+   */
+  readonly photoWidth?: number | null
+  readonly photoHeight?: number | null
   readonly visibility: Visibility
   readonly reportedIpHash?: string | null
 }
@@ -85,6 +91,8 @@ export async function startContribution(
           contributorPhoneE164: input.contributorPhoneE164 ?? null,
           message: input.message ?? null,
           photoKey: input.photoKey ?? null,
+          photoWidth: input.photoWidth ?? null,
+          photoHeight: input.photoHeight ?? null,
           visibility: input.visibility,
           verificationSource: 'organiser_confirmed',
           status: 'pending',

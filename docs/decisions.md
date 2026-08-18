@@ -2374,3 +2374,98 @@ The instruction that mattered — *do not add a second stripping path* — is ho
 - **No queue.** Processing is synchronous — 200–500ms of CPU bounded by an 8MB cap does not justify Redis and BullMQ, on the same reasoning as M1-06 §4 and M2-08 §1.
 - **No S3.** The derivatives go to the same `LocalObjectStore` the OG cards use, and inherit its per-instance limitation. Architecture §15 item 6 has still not chosen a region. **This one is worse than the OG card's version of the same gap**: a missing OG card costs a redraw, and a missing photo is somebody's picture gone. It should be near the front of whatever list that decision gets made from.
 - **No multiple photos, and no photo without a contribution.** One per contribution, and only through the flow.
+
+---
+
+## M4-02 · Album view
+
+### 1. Two columns for photo dimensions, and the table they hint at
+
+M4-01's processor computed a width and a height for every derivative and stored neither. The column was `photo_key` and nothing else.
+
+Native lazy loading needs intrinsic dimensions or it does not work properly: four hundred images each arriving without a reserved box is the whole page shifting for as long as they take, on the connection this product is built for. The alternative was a fixed aspect box in CSS, which crops — and cropping somebody's photo of a gravestone to fit a 4:3 frame is not a trade this makes.
+
+So `contributions.photo_width` and `photo_height`, nullable, written from the full derivative beside the key.
+
+**The shape this raises, deliberately not built:** M4-01b's handover evidence will want the same pair on `collections`, and a third caller after that. At two owners a `photos` table is the right answer — key, dimensions, owner, one row per photo. Building it now, for one caller, would be a table with one row type and one foreign key. The hint is recorded here and in the schema so that whoever adds the second owner sees it rather than adding a second pair of columns.
+
+Rows written before this migration have null dimensions and render inside a contained 4:3 box rather than a guessed one — a letterbox is a smaller wrong than a crop.
+
+### 2. The dimensions are inside the ticket's signature
+
+The photo is processed at the *who* step and the row is created at the *pay* step, so the dimensions have to cross a step boundary in a hidden field. `photoToken` now signs the whole claim — event, digest, width and height — rather than the digest alone, and the ticket is `<digest>.<width>x<height>.<token>`.
+
+Editable dimensions would not be a security hole. They would be an editable layout: one entry given a 1×9999 photo pushes everything else off the page. There was no reason to leave it open, and signing what you are already signing costs nothing.
+
+### 3. The cover and the entries come from one read of the chain
+
+`albumForEvent` returns `{ beads, entries }`. Two queries — one for the strand, one for the list — could disagree by a row written between them, and the disagreement would be invisible in exactly the way that matters: a bead on the cover pointing at an anchor that is not on the page.
+
+`strandForEvent` was left alone. It serves the public event page, which is the one under rule 9's ceiling, and this was not the task to touch it in. An integration test asserts the two agree, so the duplication cannot drift silently.
+
+The bead carries an `amount` and the entry does not. That is not an oversight: a bead's *diameter* is banded by the amount (Part C.4) and never rendered, and **`AlbumEntry` has no amount field at all**, so the entries below the cover could not show one even by accident. A test asserts the field's absence rather than its nullness.
+
+### 4. The album holds nothing the family has not confirmed — and the done screen now says so
+
+A ledger entry exists only once the organiser has confirmed the payment against her own bank notification. Reading the chain therefore means somebody's message and photo appear when the family confirms, not when they are typed.
+
+That is right — the album is the record, not the inbox — and it made an existing sentence untrue. The contribute flow's done screen said *"Your bead is on the strand. The family will see it when they open the page."* It is not on the strand, and they will not. It now reads *"Your contribution is with the family. It joins the record when they confirm it."*, and the photo caption changed from *"Your photo is on the record"* to *"Your photo joins the record with it."*
+
+A screen claiming the record already holds you, when the record does not, is the same shape of dishonesty as the held-balance figure M3-08 had to overrule.
+
+### 5. Link mode on the strand, and no motion on a record
+
+On the event page a bead is a submit button in a `<form method="get">` — a server round-trip that works with no script, opening the one place that bead's words appear. On the album every entry is already further down the same page, so a round-trip would fetch content the reader can reach by scrolling and land them back at the top of a page they had started.
+
+`hrefFor` turns each bead into an anchor. Same geometry, same `<ul>`, same accessible names; no form, no panels.
+
+**And nothing settles.** The strand's one animated bead is the most recent arrival on a live page. Nothing has just arrived on a record, so link mode suppresses it at every archetype — including the ones that permit motion, which is where a missing check would have shown.
+
+### 6. One shell for seven archetypes, asserted at all seven
+
+There is no `if (archetype === …)` in the album. What changes is the accent, which is a CSS fallback (rule 2), and one archetype-keyed intro line — because *"Everyone who stood with the family"* and *"Everything that was brought and everything that was said"* are not the same sentence, and a single neutral line for both would be written for neither.
+
+The tests run at every archetype rather than at the two the design files cover, and assert against the **visible text** rather than the markup: `width="2400"` is not the page saying 2400, and an assertion that cannot tell the difference is one that gets silenced by whoever trips it next. No amount, no count of contributions, no target, no progress, no countdown, nothing that moves.
+
+A group bead's own *"5 people, one bead"* stays. That is what rule 14 requires a group to say about itself, and it is a fact about one entry rather than a tally of the event.
+
+### 7. Almost all the album's words are borrowed
+
+The heading over the entries is `archetypeEventCopy[…].strandHeading`. A quiet giver is `eventCopy.strand.quietly`. What somebody did is the strand's own phrasing, and `nameOf`/`whatOf`/`groupSize` are now exported from `src/ui/strand.tsx` against a `BeadSubject` shape that both `StrandBead` and `AlbumEntry` satisfy.
+
+The album is the strand's record written out at length. A second set of strings for the same ideas is how a cover and its entries start saying different things about one event.
+
+`src/copy/album.ts` holds only what the album alone says — including the link's wording. *"The whole record"*, not *"View album"*: album is a word the product invented for a thing that already has a name, and that link appears on a funeral page.
+
+### 8. What it shares with the incwadi, and what it must not
+
+The incwadi (M2-11) lists every member, every amount and a **total**, because a group handing over money in somebody's front room must account for it on paper. The album must never carry an amount or a total at any archetype.
+
+One shared row component between them would put the one place a total belongs and the one place it must never appear in the same file. That is how a total eventually leaks into an album. They share the shell — tokens, `accentStyle`, `NotFoundPage` — and nothing structural.
+
+What did get shared is a date. `formatDayMonthYear` moves to `src/lib/dates.ts`, where the incwadi had a private copy of it. Both are records read later — the incwadi is the paper a family keeps, and the album is what the record looks like in five years — and a date without a year is fine right up until it is the only date on the page. `formatDayMonth` stays as it is: a verification date is read today, against a decision somebody is making today.
+
+The two "quiet giver" strings stay duplicated across `eventCopy.strand.quietly` and `collectionCopy.incwadi.quiet`. Merging one idea across two archetype-keyed copy files costs more than the duplication.
+
+### 9. The album's budget is its own, and it was tightened on the first measurement
+
+`pnpm gate:size` now measures `/e/[slug]/album` at four hundred entries. It measured **44.6KB** — 18.4KB of brotli'd document plus the latin font — so the budget was set to **50KB** rather than the 60KB it was provisionally given. Headroom nobody needs is headroom something grows into.
+
+It is not rule 9's 150KB ceiling and should not be conflated with it. That number is for the page a stranger opens from a WhatsApp link before they have decided anything; this is a record opened deliberately by somebody who already knows the family, and it is four hundred entries long. Photos are outside the number because they lazy-load, one request at a time.
+
+The event page went from 35.9KB to **36.0KB** — the album link — and the whole gate still passes.
+
+### 10. Two things found on the way past
+
+**A flaky unit test, made likelier by this task.** `tests/unit/domain-boundary.test.ts` paid the cost of ESLint's first `lintText` — the Next config, typescript-eslint, and the TypeScript project service — inside its first assertion, against a 5s timeout. Two new unit files competing for CPU pushed it over, and it passed when run alone. That is the worst kind of red: it teaches people to re-run rather than to look. The warm-up moved into `beforeAll` with its own timeout.
+
+**The review queue truncates in silence, and that is now M3-07b.** Two E2E tests started failing against a local database that had accumulated 108 open reports: `reviewQueue` takes 100, ordered by the deadline somebody was promised, so the newest report — the one the test had just filed — fell off the end. The local data was cleared, and the test was **not** made resilient to the cap: a test that tolerates it would hide the thing worth knowing, which is that a reviewer scrolling to the bottom of that list believes they have seen everything. The SLA then fails invisibly on the one screen built to guarantee it.
+
+**In-kind contributions can carry no message and no photo, and that is now M4-02b.** Somebody brings the tent — the most substantial thing anyone does, and the thing *ukupheka* names — and has nowhere to say anything. The album under-represents exactly that contribution. It is not a variation on the cash path: an in-kind row is created at *confirm* time inside `confirmDelivery`'s transaction, by the organiser, from a claim the contributor made days earlier, so the attachment point is not on the row's creation path at all. Recorded as a task with its shape rather than as a note.
+
+### 11. What this does not do
+
+- **No PDF.** M4-03, with real bleed and a queue.
+- **No pagination, and none needed at four hundred.** The document is 18.4KB and the photos are lazy. Beyond that the density bands stop changing and the honest answer is a print, not a page two.
+- **No amounts, ever, at any archetype.** Not behind a flag, not for the organiser, not on a variant. The organiser's own view of the money is the dashboard (M3-08), which is signed in and is a different artefact.
+- **No album for a collection.** `/c/[slug]/incwadi` is the collection's artefact and stays its own.

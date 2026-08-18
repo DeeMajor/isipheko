@@ -4,6 +4,7 @@ import { collectionCopy } from '@/copy/collection'
 import type { CollectionPage } from '@/db/repositories/collection'
 import type { ArchetypeConfig } from '@/domain/archetype'
 import { formatMoneyWhole, fromCents } from '@/domain/money'
+import { formatDayMonthYear } from '@/lib/dates'
 
 import { INCWADI_CSS } from './incwadi-css'
 import { TOKENS_CSS } from './tokens'
@@ -35,16 +36,8 @@ export interface IncwadiProps {
   readonly printedAt?: Date
 }
 
-function formatDate(date: Date | null): string | null {
-  if (date === null) return null
-
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date)
-}
+/** Shared with the album (M4-02) — see `src/lib/dates.ts`. */
+const formatDate = formatDayMonthYear
 
 const money = (cents: bigint | null) =>
   cents === null ? null : formatMoneyWhole(fromCents(cents))

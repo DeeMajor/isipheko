@@ -27,6 +27,7 @@ import { formatReference } from '@/domain/reference'
 import { requestFingerprint } from '@/lib/audit'
 import {
   acceptPhoto,
+  claimFromTicket,
   digestFromKey,
   digestFromTicket,
   fullPhotoKey,
@@ -462,7 +463,7 @@ async function startPayStep(
    * have edited the form, and a contribution without a photo is a complete
    * contribution.
    */
-  const digest = digestFromTicket(carried.photoTicket ?? '', event.id)
+  const claim = claimFromTicket(carried.photoTicket ?? '', event.id)
 
   const started = await startContribution(prisma, {
     eventId: event.id,
@@ -474,7 +475,9 @@ async function startPayStep(
     contributorPhoneE164: phoneE164,
     message: carried.message ?? null,
     visibility,
-    photoKey: digest === null ? null : fullPhotoKey(event.id, digest),
+    photoKey: claim === null ? null : fullPhotoKey(event.id, claim.digest),
+    photoWidth: claim?.width ?? null,
+    photoHeight: claim?.height ?? null,
     reportedIpHash: fingerprint.ipHash,
   })
 
@@ -485,6 +488,6 @@ async function startPayStep(
     carried,
     contributionId: started.id,
     reference: formatReference({ prefix: started.refPrefix, code: started.refCode }),
-    photoDigest: digest ?? undefined,
+    photoDigest: claim?.digest,
   })
 }

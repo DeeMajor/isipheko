@@ -102,11 +102,20 @@ export const contributeCopy = {
 
   done: {
     title: 'Thank you',
-    body: 'Your bead is on the strand. The family will see it when they open the page.',
+    /**
+     * **Accurate about confirmation.**
+     *
+     * This said the bead was already on the strand. It is not: a ledger entry
+     * is written when the organiser confirms the payment against her own bank
+     * notification, and the strand and the album are both read from the chain
+     * (M4-02). A screen that says the record already holds you, when the record
+     * does not, is the same shape of dishonesty as a held-balance figure.
+     */
+    body: 'Your contribution is with the family. It joins the record when they confirm it.',
     foot: 'You can close this page. Nothing else is needed from you.',
     pending:
       'The family will confirm it against their own bank notification. Nothing else is needed from you.',
-    photoCaption: 'Your photo is on the record.',
+    photoCaption: 'Your photo joins the record with it.',
     photoAnonymous:
       'You chose to give quietly, and your photo still shows. Your name and what you gave are the parts that stay off the page.',
   },

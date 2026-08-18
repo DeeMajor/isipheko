@@ -12,6 +12,7 @@ import {
   photoToken,
   photoTokenMatches,
   sniffPhotoFormat,
+  type PhotoClaim,
   type PhotoRejection,
 } from '@/domain/media'
 
@@ -35,7 +36,20 @@ import { env } from './env'
  */
 
 export type PhotoOutcome =
-  | { readonly ok: true; readonly digest: string; readonly ticket: string }
+  | {
+      readonly ok: true
+      readonly digest: string
+      readonly ticket: string
+      /**
+       * The full derivative's dimensions, after the cap.
+       *
+       * Carried out of here so they can be written beside the key: the album
+       * (M4-02) lazy-loads four hundred of these and an image with no intrinsic
+       * size shifts the layout when it lands.
+       */
+      readonly width: number
+      readonly height: number
+    }
   | { readonly ok: false; readonly reason: PhotoRejection }
 
 /**
@@ -79,6 +93,7 @@ export async function acceptPhoto(
   if (full === undefined) return { ok: false, reason: 'unreadable' }
 
   const digest = photoDigest(full.bytes)
+  const claim = { digest, width: full.width, height: full.height }
   const store = objectStore()
 
   await Promise.all(
@@ -93,26 +108,33 @@ export async function acceptPhoto(
   return {
     ok: true,
     digest,
-    ticket: formatPhotoTicket(digest, photoToken(eventId, digest, env.OTP_PEPPER)),
+    ticket: formatPhotoTicket(claim, photoToken(eventId, claim, env.OTP_PEPPER)),
+    width: full.width,
+    height: full.height,
   }
 }
 
 /**
- * The digest a carried ticket is entitled to, or null.
+ * What a carried ticket is entitled to, or null.
  *
- * Called at the pay step, before the key is written to a row. An unsigned or
+ * Called at the pay step, before anything is written to a row. An unsigned or
  * mis-signed ticket is treated as no photo at all rather than as an error: the
  * only way to hold one is to have edited the form, and a contribution without a
  * photo is a complete contribution.
  */
-export function digestFromTicket(ticket: string, eventId: string): string | null {
+export function claimFromTicket(ticket: string, eventId: string): PhotoClaim | null {
   const parsed = parsePhotoTicket(ticket)
   if (parsed === null) return null
-  if (!isPhotoDigest(parsed.digest)) return null
+  if (!isPhotoDigest(parsed.claim.digest)) return null
 
-  return photoTokenMatches(eventId, parsed.digest, env.OTP_PEPPER, parsed.token)
-    ? parsed.digest
+  return photoTokenMatches(eventId, parsed.claim, env.OTP_PEPPER, parsed.token)
+    ? parsed.claim
     : null
+}
+
+/** Just the digest, for the callers that only render. */
+export function digestFromTicket(ticket: string, eventId: string): string | null {
+  return claimFromTicket(ticket, eventId)?.digest ?? null
 }
 
 /** The stored key for the full AVIF — what goes on `contributions.photo_key`. */

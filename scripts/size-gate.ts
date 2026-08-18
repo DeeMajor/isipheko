@@ -15,7 +15,7 @@
 
 import { chromium } from '@playwright/test'
 
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { request as httpRequest } from 'node:http'
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -44,6 +44,29 @@ const STRAND_BUDGET_BYTES = 15 * 1024
 /** The count the done-criteria name, and the top of the three-cord band. */
 const STRAND_CONTRIBUTIONS = 200
 
+/** M4-02's done-criterion: the album has to render at four hundred entries. */
+const ALBUM_ENTRIES = 400
+
+/**
+ * What the album's document may cost at that size, over the wire, with the
+ * font.
+ *
+ * **Not the 150KB ceiling.** That is rule 9's number for the public event page,
+ * the one a stranger opens from a WhatsApp link before they have decided
+ * anything. The album is opened deliberately, by somebody who already knows the
+ * family, and it is four hundred entries long. It still gets a number, because
+ * a page with no number grows.
+ *
+ * Photos are excluded and that is the point: they lazy-load, one request each,
+ * and the document is what a reader pays for before any of them arrive.
+ *
+ * Set at 50KB against a first measurement of **44.6KB** — 18.4KB of brotli'd
+ * document plus the font — rather than at the 60KB it was provisionally given.
+ * The gap left is for copy, which is what grows: longer messages, longer names.
+ * A structural regression is bigger than that and should trip this.
+ */
+const ALBUM_BUDGET_BYTES = 50 * 1024
+
 const PORT = Number(process.env.GATE_PORT ?? 3210)
 const ORIGIN = `http://localhost:${String(PORT)}`
 const SLUG = 'SizeGateFixture01'
@@ -53,6 +76,9 @@ const STRAND_SLUG = 'SizeGateStrand001'
 
 /** The collection page — a public contributor path with the same data cost. */
 const COLLECTION_SLUG = 'SizeGateCollect01'
+
+/** The album at four hundred entries, with messages and photos through it. */
+const ALBUM_SLUG = 'SizeGateAlbum001'
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??
@@ -198,6 +224,83 @@ async function seedStrand(): Promise<void> {
         entryType: 'contribution',
         direction: 'credit',
         amountCents: inKind ? null : fromCents(BigInt(5_000 + index * 900)),
+        inKindDescription: inKind ? 'Chairs × 10' : null,
+        referenceId: contribution.id,
+        contributionId: contribution.id,
+      })
+    }
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+/**
+ * Four hundred entries, a third of them carrying a message and a fifth a photo.
+ *
+ * Its own event rather than a topped-up strand fixture: the strand line
+ * measures the event page at two hundred, which is its own criterion, and
+ * moving that number to serve this one would quietly change what it reports.
+ *
+ * The photo keys name objects that do not exist. That is deliberate — the album
+ * document is what is being measured, and a photo costs bytes here only as the
+ * `<picture>` markup that refers to it. What the images themselves cost is the
+ * reader's, one lazy request at a time, and is not this budget's business.
+ */
+async function seedAlbum(): Promise<void> {
+  const prisma = client()
+
+  try {
+    const existing = await prisma.event.findFirst({
+      where: { slug: ALBUM_SLUG },
+      select: { id: true },
+    })
+
+    const eventId = existing?.id ?? (await seed(ALBUM_SLUG, 'ALBUM1'))
+
+    const already = await prisma.ledgerEntry.count({
+      where: { eventId, entryType: 'contribution' },
+    })
+
+    for (let index = already; index < ALBUM_ENTRIES; index += 1) {
+      const inKind = index % 4 === 0
+      const cents = BigInt(5_000 + index * 900)
+
+      // Deterministic, so two runs of the gate measure the same page.
+      const digest = createHash('sha256')
+        .update(`album-photo-${String(index)}`)
+        .digest('hex')
+        .slice(0, 32)
+
+      const contribution = await prisma.contribution.create({
+        data: {
+          eventId,
+          contributorName: `Nomusa Ngcobo ${String(index + 1).padStart(3, '0')}`,
+          type: inKind ? 'in_kind' : 'cash',
+          amountCents: inKind ? null : cents,
+          visibility: 'name_only',
+          verificationSource: 'organiser_confirmed',
+          status: 'confirmed',
+          confirmedAt: new Date(),
+          message:
+            index % 3 === 0
+              ? 'Sisemuva kwenu. We are thinking of you and the whole family today.'
+              : null,
+          ...(index % 5 === 0 && !inKind
+            ? {
+                photoKey: `photo/${eventId}/${digest}-full.avif`,
+                photoWidth: 2400,
+                photoHeight: 1600,
+              }
+            : {}),
+        },
+        select: { id: true },
+      })
+
+      await appendEntry(prisma, {
+        chain: { eventId },
+        entryType: 'contribution',
+        direction: 'credit',
+        amountCents: inKind ? null : fromCents(cents),
         inKindDescription: inKind ? 'Chairs × 10' : null,
         referenceId: contribution.id,
         contributionId: contribution.id,
@@ -398,6 +501,7 @@ const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`
 async function main(): Promise<void> {
   await seed()
   await seedStrand()
+  await seedAlbum()
   await seedCollection()
 
   // `next start` is production, and production has no default environment —
@@ -510,6 +614,37 @@ async function main(): Promise<void> {
         `${String(STRAND_CONTRIBUTIONS)} contributions ` +
         `(budget ${kb(STRAND_BUDGET_BYTES)})\n`,
     )
+
+    /*
+     * The album at four hundred entries (M4-02).
+     *
+     * Reported with its own budget rather than measured against rule 9's
+     * ceiling: this is not the page a stranger opens from a link, it is the
+     * record somebody who already knows the family sits down with. The photos
+     * are not in the number — they lazy-load, one request each — so what this
+     * says is what a reader pays for before a single picture arrives.
+     */
+    const album = await fetchRaw(`${ORIGIN}/e/${ALBUM_SLUG}/album`)
+    if (album.status !== 200) {
+      throw new Error(`the album answered ${String(album.status)}`)
+    }
+
+    const albumTotal = album.bytes + latin.bytes
+    process.stdout.write(
+      `  ${kb(albumTotal).padStart(10)}  /e/[slug]/album at ${String(ALBUM_ENTRIES)} ` +
+        `entries (HTML ${kb(album.bytes)} + the latin font, ` +
+        `budget ${kb(ALBUM_BUDGET_BYTES)})\n`,
+    )
+
+    if (albumTotal > ALBUM_BUDGET_BYTES) {
+      process.stderr.write(
+        `The album is ${kb(albumTotal)} at ${String(ALBUM_ENTRIES)} entries, over its ` +
+          `${kb(ALBUM_BUDGET_BYTES)} budget.\n` +
+          'Photos are excluded from this number; the document itself has grown.\n',
+      )
+      process.exitCode = 1
+      return
+    }
 
     // The collection page: same audience, same prepaid bundle, same ceiling.
     const collection = await fetchRaw(`${ORIGIN}/c/${COLLECTION_SLUG}`)

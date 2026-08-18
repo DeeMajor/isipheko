@@ -605,6 +605,15 @@ Append-only audit of every security-relevant action. Minimal internal review que
 
 Access is an `ADMIN_PHONE_NUMBERS` environment allowlist checked against an ordinary session — **not a column**, because the app role holds UPDATE on `organisers` and a flag the application can set on itself is not a privilege boundary. It is a stopgap shape and belongs on Part J beside the KMS item; read docs/decisions.md M3-07 §2 before treating it as the intended design. Reading the queue is logged, not only acting on it.
 
+**M3-07b · Review queue pagination** *(NEW — outstanding)*
+*Deps:* M3-07
+`reviewQueue` takes 100 (`src/db/repositories/report.ts`), ordered by the deadline somebody was promised, and the screen says nothing about it. A reviewer who scrolls to the bottom of a silently-capped list believes they have seen everything — so **the SLA fails invisibly, on the one screen built to guarantee it**, and the reports that fall off are the newest ones, whose deadlines have not yet arrived.
+
+Found by two E2E tests failing against a local database that had accumulated 108 open reports; the cap is real in production and the failure mode there is a person, not a test.
+
+Either paginate, or show how many there are and state plainly that more exist below the cut. **What must not remain is a bottom that looks like the end and is not.** Note that a count on this screen is a count of reports, not of contributions — rule-free, unlike the album and the strand.
+*Done:* a reviewer can reach every open report; no list terminates without saying whether it is complete.
+
 **M3-08 · Organiser dashboard**
 *Deps:* M2-05, M3-03
 Per `design/dashboard.html`. Confirmation queue leading the page with its empty state. Needs board from the organiser's side — claimed-not-delivered vs unclaimed. `raised / settling / available` money split. Payout conditions with `protects` and `remedy` on every condition. **Use Stitch BAV for bank verification, not the R1 deposit flow in the design file — see Part F.**
@@ -646,6 +655,27 @@ Kept separate from M4-01 on purpose. It is a different surface with its own auth
 *Deps:* M4-01, M2-06
 Every message, photo and contribution as one readable artefact. Strand as the cover.
 *Done:* renders at 1 and 400 entries; lazy-loads below the fold.
+
+**Built.** `/e/[slug]/album` — a route handler shipping zero JavaScript, like the event page and for the same measured reason. **44.6KB at four hundred entries** (18.4KB of brotli'd document plus the font), against a budget now set at 50KB rather than the 60KB it was provisionally given. Photos are excluded from that number deliberately: they lazy-load, one request each, and the document is what a reader pays for before any of them arrive.
+
+**Read from the ledger, like the strand, and one read produces both.** The cover and the entries come out of the same query — two queries could disagree by a row written between them, and the disagreement would be invisible: a bead pointing at an anchor that is not on the page. Two consequences, both intended: a reversed entry is not in the album, and **an unconfirmed contribution is not either**. The album is the record, not the inbox.
+
+**That made the contribute flow's done screen untrue, and it has been fixed.** It said *"Your bead is on the strand"* before anything had been confirmed. It now says the contribution joins the record when the family confirms it, and the photo caption says the same.
+
+**One migration:** `contributions.photo_width` and `photo_height`. M4-01 computed both per derivative and stored neither. Without them four hundred lazy images each shift the layout as they land, and the alternative — a fixed aspect box — crops somebody's photo of a gravestone to fit. The dimensions are now signed into the carried photo ticket, so an edited hidden field cannot become an edited layout.
+
+**The strand gained a link mode** for the cover: same geometry, same `<ul>`, anchors instead of submit buttons, no panels and **no motion at any archetype** — nothing has just arrived on a record.
+
+**On sharing with the incwadi (M2-11):** beyond the strand, almost nothing, and deliberately. The incwadi lists every amount and a total because a group handing over money must account for it; the album must never carry either. One shared row component would put the one place a total belongs and the one place it must never appear in the same file. What did get shared is `formatDayMonthYear` — the incwadi held a private copy and the album needed the same thing, and a record read in five years needs the year.
+
+**M4-02b · Message and photo on in-kind contributions** *(NEW — outstanding)*
+*Deps:* M4-01, M2-04
+Somebody brings the tent — the most substantial thing anyone does, and the thing the product is named for — and can leave **no message and no photo, ever**. The album therefore under-represents exactly the contribution *ukupheka* describes.
+
+The shape is not the cash flow's. A cash contribution's row is created at the pay step, which is where M4-01 attaches the photo; an in-kind row is created **at confirm time, inside `confirmDelivery`'s transaction** (`src/db/repositories/needs.ts`), by the organiser, from a claim the contributor made hours or days earlier. So the attachment point is not on the row's creation path at all — it has to hang off the claim, which is the contributor's last contact with the system, and survive until the organiser confirms.
+
+Options worth weighing before building: carry it on the claim (a column on `need_claims`, attached at claim time, moved across at confirm); or reach the contributor after delivery through the undo/claim capability they already hold, which is the only handle we have on somebody with no account (rule 4).
+*Done:* somebody bringing something can leave a message and a photo; it appears on their album entry; the claim path still creates exactly one ledger entry.
 
 **M4-03 · Print-ready PDF**
 *Deps:* M4-02

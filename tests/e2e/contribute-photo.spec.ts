@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { PrismaPg } from '@prisma/adapter-pg'
 import sharp from 'sharp'
 
+import { contributeCopy } from '@/copy/contribute'
 import { PrismaClient } from '@/db/generated/client'
 import { findGpsFix, scanImageMetadata } from '@/domain/media'
 import { generateCode } from '@/domain/reference'
@@ -125,7 +126,10 @@ test('a photo travels with the contribution and arrives without the address', as
 
   await page.getByRole('button', { name: "I've paid" }).click()
   await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible()
-  await expect(page.getByText('Your photo is on the record.')).toBeVisible()
+  // Asserted against the copy rather than a literal: M4-02 changed this line —
+  // the record does not hold the photo until the family confirms — and a
+  // hardcoded string is a test that fails for the wrong reason when it does.
+  await expect(page.getByText(contributeCopy.done.photoCaption)).toBeVisible()
 
   /*
    * AVIF with a WebP fallback, chosen by the markup. Each URL names exactly one
