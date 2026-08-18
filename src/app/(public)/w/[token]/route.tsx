@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { prisma } from '@/db/client'
 import { handoverTokenSubject, redeemWitnessToken } from '@/db/repositories/handover'
 import { ARCHETYPES } from '@/domain/archetype'
+import { recordPublicAction, requestFingerprint } from '@/lib/audit'
 import { compressFor } from '@/lib/http-compress'
 import { isSameSite } from '@/lib/same-site'
 import { HandoverTapPage, type TapState } from '@/ui/handover-tap'
@@ -159,6 +160,19 @@ export async function POST(
   if (!outcome.ok) {
     return render(request, { token, state: 'error', error: outcome.reason })
   }
+
+  // A witness closing a handover is security-relevant and has no session behind
+  // it, so the fingerprint is the whole of what the row knows about them —
+  // which is correct. **Not the member id**: a witness has one, but writing it
+  // here would turn the log into a record of which cousin tapped the link, and
+  // nobody consented to that.
+  await recordPublicAction({
+    action: 'handover.confirmed',
+    actorType: 'witness',
+    target: { type: 'collection', id: outcome.collectionId },
+    fingerprint: await requestFingerprint(),
+    metadata: { confirmedBy: 'witness' },
+  })
 
   return renderDone(request, outcome.collectionId)
 }

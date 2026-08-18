@@ -16,6 +16,7 @@ import { ARCHETYPE_KEYS, type ArchetypeKey } from '@/domain/archetype'
 import { issueWitnessInvite } from '@/db/repositories/witness'
 import { MAX_WITNESSES, canPublish } from '@/domain/event'
 import { normalisePhone } from '@/domain/auth'
+import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
 
 /**
@@ -221,6 +222,17 @@ export async function publish(formData: FormData): Promise<void> {
   // Postgres declined would leave her looking for a link that does not exist.
   const published = await publishDraft(prisma, { id, organiserId })
   if (!published) redirect(`/create/${id}/share?error=not-verified`)
+
+  // Logged after Postgres agreed, never before. A row saying an event was
+  // published when the UPDATE refused would be the audit log's own version of
+  // the M3-02 §1 bug — a record of an intention rather than of what happened.
+  await recordOrganiserAction({
+    action: 'event.published',
+    organiserId,
+    target: { type: 'event', id },
+    fingerprint: await requestFingerprint(),
+    metadata: { archetype: draft.archetype },
+  })
 
   redirect(`/create/${id}/share?published=1`)
 }

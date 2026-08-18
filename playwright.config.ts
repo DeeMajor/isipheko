@@ -29,5 +29,15 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      // Who may open the review queue (M3-07). The allowlist is read from the
+      // environment at boot — deliberately, because the application role holds
+      // UPDATE on `organisers` and a column would be a privilege the app could
+      // grant itself. A pool rather than one number so that `review.spec.ts`
+      // has headroom against the three-codes-per-number-per-hour limit across
+      // a run and its retries.
+      ADMIN_PHONE_NUMBERS:
+        '+27820000901,+27820000902,+27820000903,+27820000904,+27820000905,+27820000906',
+    },
   },
 })

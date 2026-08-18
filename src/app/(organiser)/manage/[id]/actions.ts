@@ -6,6 +6,7 @@ import { prisma } from '@/db/client'
 import { confirmContribution } from '@/db/repositories/contribution'
 import { confirmDelivery } from '@/db/repositories/needs'
 import { issueWitnessInvite } from '@/db/repositories/witness'
+import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
 
 /**
@@ -61,6 +62,23 @@ export async function confirmReport(formData: FormData): Promise<void> {
 
   const outcome = await confirmContribution(prisma, { contributionId, organiserId })
 
+  // The ledger records the entry; this records who was signed in when it was
+  // appended, which the ledger row does not carry and which is the question
+  // asked afterwards. Only on success — a refused confirmation appended
+  // nothing.
+  if (outcome.ok) {
+    await recordOrganiserAction({
+      action: 'contribution.confirmed',
+      organiserId,
+      // Targeted at the umcimbi rather than the contribution: what the review
+      // screen asks is "what has happened to this event", and a trail split
+      // across one target per contribution answers nobody's question.
+      target: { type: 'event', id },
+      fingerprint: await requestFingerprint(),
+      metadata: { contributionId },
+    })
+  }
+
   redirect(`/manage/${id}?${outcome.ok ? 'confirmed=1' : 'error=confirm'}`)
 }
 
@@ -77,6 +95,16 @@ export async function confirmArrival(formData: FormData): Promise<void> {
   const claimId = text(formData, 'claim')
 
   const outcome = await confirmDelivery(prisma, { claimId, organiserId })
+
+  if (outcome.ok) {
+    await recordOrganiserAction({
+      action: 'delivery.confirmed',
+      organiserId,
+      target: { type: 'event', id },
+      fingerprint: await requestFingerprint(),
+      metadata: { claimId },
+    })
+  }
 
   redirect(`/manage/${id}?${outcome.ok ? 'confirmed=1' : 'error=confirm'}`)
 }

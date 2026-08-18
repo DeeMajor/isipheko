@@ -10,7 +10,7 @@ import {
 } from '@/db/repositories/report'
 import { normalisePhone } from '@/domain/auth'
 import { checkReport, type ReportReason } from '@/domain/report'
-import { requestFingerprint } from '@/lib/audit'
+import { recordPublicAction, requestFingerprint } from '@/lib/audit'
 import { formatDayMonth } from '@/lib/dates'
 import { compressFor } from '@/lib/http-compress'
 import { isSameSite } from '@/lib/same-site'
@@ -172,6 +172,24 @@ export async function POST(request: NextRequest): Promise<Response> {
     reporterPhoneE164: phone !== null && phone.ok ? phone.value : null,
     ipHash,
     userAgentHash,
+  })
+
+  // **The row says a report was filed and what it was about. It does not say
+  // what was alleged and it names nobody.** The reason is a category, not a
+  // sentence; the words stay in `reports`, where two people read them, rather
+  // than in a log that is exported, shipped and kept far longer (rule 8).
+  //
+  // Filing this row still changes nothing about the event (M3-06 §1) — an
+  // append to the audit log is not an act on a page.
+  await recordPublicAction({
+    action: 'report.filed',
+    actorType: 'contributor',
+    target:
+      about.eventId !== null
+        ? { type: 'event', id: about.eventId }
+        : { type: 'report', id: filed.id },
+    fingerprint: { ipHash, userAgentHash },
+    metadata: { reason: draft.reason, reportId: filed.id },
   })
 
   const respondBy = formatDayMonth(filed.respondBy) ?? ''

@@ -143,3 +143,48 @@ export function checkReport(
 
   return { ok: true }
 }
+
+/**
+ * Where a report may go next, and nowhere else.
+ *
+ * `received → reviewing → closed`, one direction. Reopening is deliberately not
+ * a transition: a report that needs looking at again is a state a person can
+ * see from the log, and an admin who can walk a report backwards can also walk
+ * it backwards to hide that they closed it.
+ *
+ * **None of these transitions touch the event.** The standing rule at the top
+ * of this file is about a report not changing a page by itself; triage is the
+ * obvious next place the same mistake would be made, because it *is* the human
+ * decision and it is tempting to let the decision write itself through. It must
+ * not: whatever a person decides to do about an event is done on the event, by
+ * them, and this status says only how far the reading has got. See
+ * docs/decisions.md M3-07 §4.
+ */
+const TRIAGE_TRANSITIONS: Readonly<Record<ReportStatus, readonly ReportStatus[]>> = {
+  received: ['reviewing', 'closed'],
+  reviewing: ['closed'],
+  closed: [],
+}
+
+export function canTriage(from: ReportStatus, to: ReportStatus): boolean {
+  return TRIAGE_TRANSITIONS[from].includes(to)
+}
+
+export function nextTriageStatuses(from: ReportStatus): readonly ReportStatus[] {
+  return TRIAGE_TRANSITIONS[from]
+}
+
+export function isReportStatus(value: string): value is ReportStatus {
+  return value === 'received' || value === 'reviewing' || value === 'closed'
+}
+
+/**
+ * How long somebody has been waiting, in whole hours.
+ *
+ * Used by the review queue to say *"waiting 19 hours"* rather than printing a
+ * timestamp somebody has to subtract in their head at the moment they are
+ * deciding what to pick up next.
+ */
+export function hoursWaiting(filedAt: Date, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - filedAt.getTime()) / (60 * 60 * 1000)))
+}

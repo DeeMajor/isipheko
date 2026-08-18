@@ -67,7 +67,25 @@ describe('parseEnv', () => {
   it('accepts a fully specified production environment', () => {
     const env = parseEnv({ NODE_ENV: 'production', ...PRODUCTION })
 
-    expect(env).toEqual({ NODE_ENV: 'production', ...PRODUCTION })
+    // The reviewer allowlist defaults to empty even in production (M3-07). A
+    // deployment with nobody on it is a deployment where the report queue goes
+    // unread — a staffing problem rather than a boot failure, and refusing to
+    // start would take the whole product down over a screen two people use.
+    expect(env).toEqual({
+      NODE_ENV: 'production',
+      ...PRODUCTION,
+      ADMIN_PHONE_NUMBERS: '',
+    })
+  })
+
+  it('carries the reviewer allowlist through as given', () => {
+    const env = parseEnv({
+      NODE_ENV: 'production',
+      ...PRODUCTION,
+      ADMIN_PHONE_NUMBERS: '+27821234567,0837654321',
+    })
+
+    expect(env.ADMIN_PHONE_NUMBERS).toBe('+27821234567,0837654321')
   })
 
   it('names every missing variable at once, not one per restart', () => {

@@ -158,6 +158,27 @@ function schemaFor(nodeEnv: string | undefined) {
             'is the development pepper published in .env.example — generate a real one and hold it outside the repository',
         })
       : base64Key(32).default(DEV_OTP_PEPPER),
+
+    // Who may open the report review queue (M3-07). A comma-separated list of
+    // phone numbers in any form `normalisePhone` accepts.
+    //
+    // **In the environment rather than in a column, and that is the whole
+    // mechanism.** The application role holds UPDATE on `organisers`, so an
+    // `is_admin` column would be a privilege the application could grant
+    // itself — which is not a privilege boundary at all, it is a field. This
+    // variable is set by whoever deploys, and the running code can only read
+    // it.
+    //
+    // It is a deliberate stopgap shape, not a design: a real admin model
+    // arrives with its own accounts, roles and revocation, and nobody reading
+    // this later should take an allowlist for the intended answer. See
+    // docs/decisions.md M3-07 §2.
+    //
+    // Empty is valid and means nobody. A deployment with no reviewer is a
+    // deployment where the queue is unread, which is a staffing problem rather
+    // than a boot failure — and refusing to start would take the whole product
+    // down over a screen two people use.
+    ADMIN_PHONE_NUMBERS: z.string().default(''),
   })
 }
 

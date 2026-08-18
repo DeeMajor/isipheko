@@ -12,6 +12,7 @@ import {
 } from '@/db/repositories/collection'
 import { issueHostToken, issueWitnessToken } from '@/db/repositories/handover'
 import { isArchetypeKey } from '@/domain/archetype'
+import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
 
 /**
@@ -145,6 +146,18 @@ export async function markHandedOver(formData: FormData): Promise<void> {
     // organiser-marked case on the record.
     confirmedByMemberId: null,
   })
+
+  // Her own word rather than a witness's, and the log says which — the same
+  // distinction the record itself keeps, for the same reason.
+  if (outcome.ok) {
+    await recordOrganiserAction({
+      action: 'handover.confirmed',
+      organiserId,
+      target: { type: 'collection', id },
+      fingerprint: await requestFingerprint(),
+      metadata: { confirmedBy: 'organiser' },
+    })
+  }
 
   redirect(`/collections/${id}?${outcome.ok ? 'closed=1' : 'handover=not-confirmable'}`)
 }
