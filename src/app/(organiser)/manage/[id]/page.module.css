@@ -336,3 +336,35 @@
   border-radius: var(--radius-card);
   background: var(--paper-raised);
 }
+
+/*
+ * The printed album (M4-03), under the strand on the record card.
+ *
+ * Set off by a rule rather than by a second card: it is the same record in
+ * another form, not another thing she has to manage.
+ */
+.print {
+  margin: var(--space-5) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.printHeading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.printNote {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.printLink {
+  color: var(--accent, #16233d);
+  font-weight: 700;
+}

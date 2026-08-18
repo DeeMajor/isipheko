@@ -7,7 +7,7 @@ import {
   type ObjectKey,
   type ObjectStore,
   type StoredObject,
-} from '@/domain/storage'
+} from '../../domain/storage/index.ts'
 
 /**
  * The object store that exists until a bucket does.

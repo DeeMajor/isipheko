@@ -5,6 +5,7 @@ import { payDetailsCopy } from '@/copy/contribute'
 import { dashboardCopy } from '@/copy/dashboard'
 import { setupCopy } from '@/copy/setup'
 import { prisma } from '@/db/client'
+import { latestRender } from '@/db/repositories/album-render'
 import { pendingReports } from '@/db/repositories/contribution'
 import { draftForOrganiser } from '@/db/repositories/event'
 import { awaitingDelivery, organiserBoard } from '@/db/repositories/needs'
@@ -25,6 +26,7 @@ import { askWitnessHere, savePayDetails } from './actions'
 import { NeedsBoard } from './board'
 import { MoneySection } from './money'
 import { ConfirmationQueue, buildQueue } from './queue'
+import { PrintSection } from './print'
 
 import styles from './page.module.css'
 
@@ -73,6 +75,7 @@ export default async function ManagePage({
     invited?: string
     witness?: string
     listed?: string
+    album?: string
   }>
 }) {
   const session = await currentSession()
@@ -86,6 +89,7 @@ export default async function ManagePage({
     invited,
     witness: witnessId,
     listed,
+    album: requestedAlbum,
   } = await searchParams
 
   const organiserId = session.organiserId
@@ -113,9 +117,10 @@ export default async function ManagePage({
       balanceForEvent(prisma, { eventId: id, now }),
     ])
 
-  const [bankVerified, witnessApproved] = await Promise.all([
+  const [bankVerified, witnessApproved, albumRender] = await Promise.all([
     bankAccountVerified(prisma, organiserId),
     payoutApprovedByWitness(prisma, id),
+    latestRender(prisma, id),
   ])
 
   const details = event.directPayDetails as { phone?: string; name?: string } | null
@@ -190,6 +195,20 @@ export default async function ManagePage({
               archetype={archetype}
               beads={beads}
               now={now}
+            />
+          )}
+
+          {/*
+            The printed album (M4-03). Under the strand, because it is the same
+            record in another form — and offered only once there is something in
+            it, like the link to the album itself (M4-02).
+          */}
+          {beads.length === 0 ? null : (
+            <PrintSection
+              eventId={id}
+              slug={draft.slug}
+              render={albumRender}
+              justRequested={requestedAlbum === '1'}
             />
           )}
         </Card>

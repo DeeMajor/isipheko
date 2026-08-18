@@ -680,7 +680,28 @@ Options worth weighing before building: carry it on the claim (a column on `need
 **M4-03 · Print-ready PDF**
 *Deps:* M4-02
 Server-generated, correct bleed and margins. Archetype-appropriate cover.
-*Done:* passes a printer's preflight; generation is queued, not synchronous.
+*Done:* ~~passes a printer's preflight~~ — **partially met, see below**; generation is queued, not synchronous.
+
+**Built.** `/e/[slug]/album/<version>.pdf` — A5 portrait, 148 × 210mm trimmed, 3mm bleed, with a MediaBox, BleedBox and TrimBox on every page. Four hundred entries render to **69 pages and 116KB in about three quarters of a second** without photographs; each photograph adds its own JPEG on top of that.
+
+**The first criterion is partially met and marked so deliberately**, the way M2-07 left WhatsApp rendering open. A real preflight runs a printer's own profile against the file at their counter and no test here can stand in for that. What is asserted instead, against a really-generated document at one entry and at four hundred: the three boxes on every page, the 3mm bleed, every font embedded and subset with no standard-14 font referenced, images as JPEG, no transparency and no soft masks, and the metadata. **What stays unverified is the colour conversion**, which is the printer's to make — and one known deviation is asserted rather than hidden: `pdf-lib` subsets glyphs properly but names the result `PublicSans-Regular-979` instead of carrying the conventional `AAAAAA+` subset tag, which some commercial preflights flag.
+
+**Two dependencies: `pdf-lib` and `@pdf-lib/fontkit`.** Pure JavaScript, no native binary, server-only. Printing M4-02's HTML through Chromium was rejected because it writes no TrimBox and no BleedBox and produces RGB with no way to say so — it would fail the exact criterion it existed to satisfy — and because a browser binary in production is not a small thing. The image half needed nothing new: `sharp` already decodes the AVIF a PDF cannot hold.
+
+**No third copy of the typeface.** `src/assets/fonts/` holds WOFF1, which is an sfnt with the tables individually zlib'd, so `woffToTtf` gets to TrueType in about seventy lines with `node:zlib`. The printed album provably uses the same font file the site does.
+
+**RGB throughout, said in words as well as in the metadata** — on the colophon page, because a colour space discovered at the press is discovered too late. South African trade printers convert to their own profile, `--ink #16233D` is a specific navy a naive CMYK build would not honour, and body text on four plates registers badly at this size.
+
+**Queued through the existing pattern.** `pnpm render`, beside `pnpm notify` and `pnpm expire`, with an `album_renders` table and no Redis — M1-06 §4 and M2-08 §1 declined it and this task did not change the answer. Claims are conditional updates, so two overlapping runs cannot render the same album; three attempts, then the row says it gave up.
+
+**No amount can reach the file.** `PrintableEntry` has no amount field and `PrintableBead` carries a diameter rather than a value, so the number the band was computed from never crosses into the renderer. The one number on the page is the folio — a count of pages, not of people (docs/decisions.md M4-03 §6, beside M3-07b's reasoning about report counts).
+
+**M4-03b · A real preflight, once there is a printer** *(NEW — outstanding)*
+*Deps:* M4-03
+Take a generated album to an actual print shop and run their preflight against it. The structural properties are asserted in `tests/unit/album-pdf.test.ts`; what nobody has checked is how it behaves against a real ICC profile, whether the missing subset tag trips their tooling, and whether 3mm is the bleed their finishing wants.
+
+**Not a task an agent can close** — it needs a person, a shop and a proof. It is here so that the partially-met criterion above has somewhere to land rather than reading as done.
+*Done:* one album has been through a commercial preflight, and whatever it said is recorded here.
 
 ---
 

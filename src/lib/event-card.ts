@@ -1,3 +1,5 @@
+import { formatEventDate } from './dates'
+
 import type { ArchetypeConfig } from '@/domain/archetype'
 import { cardKey, cardVersion, type CardFacts } from '@/domain/share'
 
@@ -24,19 +26,13 @@ export interface CardSubject {
 }
 
 /**
- * "Saturday, 15 August" in en-ZA, in UTC — the date the organiser typed, not
- * the server's idea of today.
+ * Moved to `src/lib/dates.ts` in M4-03 and re-exported here.
+ *
+ * `pnpm render` needs it and cannot load this module: the imports above are
+ * aliased, and plain Node resolves no tsconfig paths. `dates.ts` imports
+ * nothing, which is what makes it reachable from a scheduled job.
  */
-export function formatEventDate(date: Date | null): string | null {
-  if (date === null) return null
-
-  return new Intl.DateTimeFormat('en-ZA', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).format(date)
-}
+export { formatEventDate } from './dates'
 
 /** "Umngcwabo · Saturday, 15 August · KwaMashu". Never an amount, never a count. */
 export function cardMeta(archetype: ArchetypeConfig, subject: CardSubject): string {

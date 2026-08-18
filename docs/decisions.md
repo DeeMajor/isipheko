@@ -2469,3 +2469,117 @@ The event page went from 35.9KB to **36.0KB** — the album link — and the who
 - **No pagination, and none needed at four hundred.** The document is 18.4KB and the photos are lazy. Beyond that the density bands stop changing and the honest answer is a print, not a page two.
 - **No amounts, ever, at any archetype.** Not behind a flag, not for the organiser, not on a variant. The organiser's own view of the money is the dashboard (M3-08), which is signed in and is a different artefact.
 - **No album for a collection.** `/c/[slug]/incwadi` is the collection's artefact and stays its own.
+
+---
+
+## M4-03 · Print-ready PDF
+
+### 1. `pdf-lib` and `@pdf-lib/fontkit`, and why not Chromium
+
+Two dependencies, both pure JavaScript with no native binary and no browser.
+
+The tempting alternative was printing M4-02's HTML through Chromium: one renderer for both artefacts, one stylesheet, no layout code. It was rejected because **it fails the criterion it would exist to satisfy** — Chromium writes no TrimBox and no BleedBox, and produces RGB with no way to declare it — and because a browser binary in production is a large operational commitment for a job that runs hourly.
+
+`@react-pdf/renderer` brings its own layout engine and no bleed-box control. Writing a PDF writer with font subsetting is not a task, it is a library.
+
+The image half needed nothing new. `sharp` was already installed for M4-01 and decodes AVIF and WebP, which is exactly what a PDF cannot embed.
+
+**What would make this wrong:** pdf-lib is quiet upstream. It is unmaintained-adjacent rather than unmaintained, and the file it writes is a plain PDF that any tool can read — so the exposure is bounded to "no new features", not to "a format nobody else understands".
+
+### 2. WOFF1 back to TrueType, rather than a third copy of the typeface
+
+`pdf-lib` embeds `ttf` and `otf`. The site ships `woff2`, and `src/assets/fonts/` already holds two **WOFF1** files that M2-07 added for Satori.
+
+WOFF1 is an sfnt with the tables individually zlib'd — no brotli, no glyph transform — so `node:zlib` undoes it in about seventy lines. The alternative was committing two more binaries in a third format, which M2-07's precedent would have covered.
+
+The converter won on a property rather than on tidiness: **the printed album provably uses the same font file the site does**, not one converted somewhere else, at some point, by somebody. `tests/unit/woff-to-ttf.test.ts` asserts the output parses in fontkit — the same library that will embed it — with the same tables and the same glyphs.
+
+### 3. What "passes a printer's preflight" was taken to mean
+
+It cannot be run here. There is no Acrobat and no pdftoolbox, and a real preflight is a printer's own profile against the file at their counter.
+
+So the criterion is **marked partially met in the plan**, the way M2-07 left WhatsApp rendering open, and `tests/unit/album-pdf.test.ts` asserts every structural property such a check looks at, against a really-generated document at one entry and at four hundred: three boxes on every page, 3mm bleed, fonts embedded and subset, no standard-14 font referenced, images as JPEG, no transparency, no soft masks, metadata.
+
+**One known deviation is asserted rather than hidden.** A subset font is conventionally named `AAAAAA+PublicSans`; `pdf-lib` subsets the glyphs correctly and names the result `PublicSans-Regular-979`, with no tag. Some commercial preflights flag that. There is a test that the tag is *absent*, so that if a future pdf-lib starts emitting one, it fails and this note comes out.
+
+**M4-03b exists for the rest**, and is deliberately not a task an agent can close: it needs a person, a print shop and a proof.
+
+### 4. RGB throughout, said in words as well as in metadata
+
+Three reasons, and the third is the one that decided it.
+
+South African trade printers convert to their own profile as a matter of course. `--ink #16233D` is a specific navy, and a naive CMYK conversion without an ICC profile would not honour it. And body text built from four plates registers badly at this size and looks cheap — which is the opposite of what a keepsake is for.
+
+So the file is RGB, the metadata says so, **and the colophon page says so in words**. A colour space discovered at the press is discovered too late, and not everybody opens the properties.
+
+**What would make this wrong:** a printer who wants CMYK supplied. Then this becomes a per-shop option rather than a decision, and it needs a real profile rather than a formula.
+
+### 5. A5 portrait, 3mm bleed, 16mm margins
+
+A-series and millimetres are what the trade uses here, and A5 is the shape of a thing somebody keeps rather than files. Three millimetres is the trade default for bleed.
+
+Sixteen millimetres of margin is generous — the usual safe zone is five — and generous is right for a record somebody reads slowly. Text crowding a cut edge reads as cheap.
+
+### 6. The folio is the second legitimate exception to the no-count rule
+
+*"3 / 12"* is a count of **pages**, not of people. The rule exists so a family is not ranked and amounts cannot be reverse-engineered (Part C.4, M4-02 §3); a folio touches neither, and a printed record without one cannot be reassembled after it is dropped.
+
+This is the second such exception, and they are recorded together on purpose because somebody will eventually try to apply the rule too broadly. The first is M3-07b's: a count of **reports** on the review queue, which is a count of complaints rather than of contributions and is the thing that stops an SLA failing invisibly.
+
+The test that guards the album's version of this rule asserts against the **visible text** rather than the markup, for the same reason M4-02's does.
+
+### 7. Nothing that could carry an amount crosses the boundary
+
+`PrintableEntry` has no amount field. `PrintableBead` carries a diameter, not a value: the amount is read to choose a band, the band chooses a diameter, and the diameter is what the renderer receives.
+
+So "no amount in the printed album" is a property of the types rather than of anybody's care — which matters more here than on screen, because this is the artefact that gets printed and passed around and cannot be corrected after it is handed over.
+
+### 8. Queued through the pattern that already exists
+
+`pnpm render`, beside `pnpm notify` and `pnpm expire`. No Redis and no BullMQ: M1-06 §4 and M2-08 §1 both declined to add one and this task did not change the answer.
+
+**Its own script rather than folded into `expire`.** Expire is fast, idempotent, and always takes about two seconds; this decodes and re-encodes every photograph in an album and can take minutes. A cron entry that sometimes runs long is a different operational animal from one that never does.
+
+**A table rather than columns on `events`**, because a render has a state machine, a history of attempts, and more than one version over the life of an umcimbi. The row that matters when something is wrong is the one saying it failed three times, and columns would have overwritten it.
+
+Claims are **conditional updates** — the same shape as claiming the last chair (M2-04) — so a slow run and the next hour's cannot render the same album between them. Three attempts, then `failed`, because a job retried forever fails forever in silence and burns a scheduled run each time.
+
+### 9. Content-addressed, and what that buys on paper
+
+The version is a hash of everything the album would draw. Asking twice for an unchanged record costs nothing — the second request finds the file that exists — and **a record that has grown mints a new version rather than replacing a file somebody has already printed from**.
+
+That last property is the one that matters here rather than on a screen. A family who printed in August and again in October should be holding two different books at two different addresses, not one URL that changed underneath them.
+
+Amounts are deliberately **not** in the hash: the album is identical whether somebody gave R50 or R5 000, and a version that moved on a number the album never prints would rebuild a file that is byte-for-byte what it already was.
+
+The renderer takes `generatedAt` as an argument and reads no clock, so the same album really does produce the same bytes — asserted, because a content-addressed URL that changes on every generation is a URL claiming something it cannot keep.
+
+### 10. The wait is stated, and the copy is bound to the schedule
+
+There is no queue daemon. A render waits for the next run of `pnpm render`, and a spinner would be a lie with a moving part — so the dashboard says *"It is made by a job that runs every hour, so it will usually be ready within the hour."*
+
+**That sentence is only true because of the cron entry.** If the schedule changes, `albumCopy.print.queued` changes with it. It is recorded here because the failure mode is silent: nobody notices copy that quietly stopped being true.
+
+### 11. Four things moved so a scheduled job could reach them
+
+`pnpm render` runs under `node --experimental-strip-types`, which resolves no tsconfig aliases and cannot compile JSX (docs/decisions.md M2-01 §8). Four things had to move, and each is better where it now is:
+
+- **`nameOf`, `whatOf`, `groupSize`** — out of `src/ui/strand.tsx` and into `src/copy/strand-words.ts`. They are phrasing, and copy is where phrasing belongs (rule 11); a job that wanted three string functions was otherwise pulling a rendering component through a JSX transform.
+- **`formatEventDate`** — out of `src/lib/event-card.ts` and into `src/lib/dates.ts`, beside the other two date formatters. `dates.ts` imports nothing at all, which is what makes it loadable from a job.
+- **`src/adapters/pdf/`** and **`src/adapters/storage/`** — relative imports with explicit extensions, the pattern `src/adapters/messaging/` already followed for `pnpm notify`.
+
+Type-only imports were left aliased throughout: `import type` is erased before Node sees it.
+
+### 12. Two smaller things
+
+**`Creator`, not `Producer`.** PDF means something specific by each: the Creator is the application the document came from, the Producer is the tool that wrote the PDF. That is Isipheko and pdf-lib respectively, and claiming otherwise would misname the one field a printer reads when they need to know what made a file.
+
+**An entry is never split across a page break.** An entry is one person — their name, what they brought, what they said and their photograph — and a break through the middle puts a stranger's name at the foot of one page and their words on the next. The photograph shrinks instead; it is the one part of an entry that can give. An entry too tall for any page gets its own.
+
+### 13. What this does not do
+
+- **No crop marks and no registration marks.** A printer imposes their own, and marks we drew would be a second set to reconcile. The TrimBox is what tells them where the cut goes.
+- **No CMYK, no ICC profile, no PDF/X conformance claim.** §4 and §3. Claiming PDF/X without being able to verify it would be worse than not claiming it.
+- **No printed cover variant per archetype beyond the accent.** The accent band is the archetype's, and it is the print equivalent of `var(--accent, #16233D)` — bereavement declares none and gets indigo, with no branch anywhere (rule 2).
+- **No pagination control for the organiser.** No page-size choice, no "photos only", no reordering. The record has an order and it is the order people came.
+- **Nothing deletes an old render.** `ObjectStore` still has no `delete` and the app role holds no DELETE on `album_renders`. Old versions of a book stay reachable, which is the point of addressing them by content.

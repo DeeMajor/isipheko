@@ -1,10 +1,12 @@
 import { join } from 'node:path'
 
-import type { ObjectStore } from '@/domain/storage'
+// Relative with explicit extensions: `scripts/render.ts` reaches this through
+// the album pipeline under plain Node (docs/decisions.md M2-01 §8).
+import type { ObjectStore } from '../../domain/storage/index.ts'
 
-import { LocalObjectStore } from './local-object-store'
+import { LocalObjectStore } from './local-object-store.ts'
 
-export { LocalObjectStore } from './local-object-store'
+export { LocalObjectStore } from './local-object-store.ts'
 
 /**
  * The store the application uses.

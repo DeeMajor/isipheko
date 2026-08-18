@@ -607,6 +607,7 @@ model Event {
   notifications Notification[]
   digestEntries DigestEntry[]
   reports          Report[]
+  albumRenders     AlbumRender[]
 
   @@unique([refPrefix, refCode])
   @@index([organiserId])
@@ -1193,4 +1194,67 @@ model DigestEntry {
 
   @@index([organiserId, eventId, notificationId])
   @@map("digest_entries")
+}
+
+/// Where a print-ready album is in its life (M4-03).
+///
+/// A state machine rather than a boolean, because a render can fail and a
+/// failure that looks like "not started yet" is a job nobody retries.
+enum AlbumRenderStatus {
+  pending
+  rendering
+  ready
+  failed
+
+  @@map("album_render_status")
+}
+
+/// A request for the printable album, and what became of it.
+///
+/// **Queued, never synchronous.** Rendering four hundred entries with their
+/// photographs is seconds of CPU, and no organiser should watch a spinner for
+/// it — nor should a web worker be held open that long. `pnpm render` picks
+/// these up, the same shape as `pnpm notify` and `pnpm expire`, and no Redis
+/// (M1-06 §4, M2-08 §1).
+///
+/// A table rather than columns on `events`: a render has a state machine, a
+/// history of attempts, and more than one version over the life of an umcimbi.
+model AlbumRender {
+  id      String @id @default(uuid(7))
+  eventId String @map("event_id")
+
+  /// A hash of everything the album would draw. The same record always
+  /// produces the same version, so a second request for an unchanged album
+  /// returns the file that already exists instead of rendering it again — and
+  /// a record that has grown mints a new one (the OG card's bargain, M2-07 §2).
+  version String
+
+  status AlbumRenderStatus @default(pending)
+
+  /// Where the finished PDF lives, `album/<event>/<version>.pdf`. Null until
+  /// there is one.
+  objectKey String? @map("object_key")
+
+  /// How many times the job has picked this up. A render that fails forever
+  /// must stop being retried forever, and must say so.
+  attempts Int @default(0)
+
+  /// Why it failed, for the organiser's screen and for the log. Never a stack
+  /// trace and never anybody's name (rule 8).
+  lastError String? @map("last_error")
+
+  /// Supplied by the application, not defaulted by the column: the sweep reads
+  /// these to decide what is due, and a rule computed against a wall clock is a
+  /// rule that cannot be tested (CLAUDE.md, working agreement).
+  requestedAt DateTime  @map("requested_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  /// Requesting the same version twice is one row, which is what makes the
+  /// request button safe to press twice on a slow connection.
+  @@unique([eventId, version])
+  @@index([status, requestedAt])
+  @@map("album_renders")
 }

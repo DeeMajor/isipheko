@@ -10,6 +10,7 @@ import {
   declineSuggestion,
 } from '@/db/repositories/needs'
 import { issueWitnessInvite } from '@/db/repositories/witness'
+import { requestAlbumPdf } from '@/lib/album-pdf'
 import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
 
@@ -164,4 +165,58 @@ export async function decideSuggestion(formData: FormData): Promise<void> {
       : await declineSuggestion(prisma, { needItemId, organiserId })
 
   redirect(`/manage/${id}?${decided ? 'listed=1' : 'error=suggestion'}`)
+}
+
+/**
+ * Asking for the printed album (M4-03).
+ *
+ * **Queued, not rendered here.** Building four hundred entries with their
+ * photographs is seconds of CPU — every photo is AVIF and a PDF holds neither
+ * AVIF nor WebP, so each one is decoded and re-encoded — and a server action
+ * that took that long would be a spinner on a phone with a dying battery.
+ * `pnpm render` picks it up, and the screen says when.
+ *
+ * Idempotent by `(event, version)`: pressing it twice on a connection that has
+ * already eaten one tap is one job, and pressing it on an unchanged record
+ * returns the file that already exists rather than rebuilding it.
+ *
+ * Organiser-only, and deliberately: a public trigger for a job that costs real
+ * CPU is a public trigger for exhausting it.
+ */
+export async function requestAlbumRender(formData: FormData): Promise<void> {
+  const organiserId = await requireOrganiser()
+  const id = text(formData, 'id')
+
+  const event = await prisma.event.findFirst({
+    where: { id, organiserId },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      archetype: true,
+      place: true,
+      eventDate: true,
+      organiser: { select: { displayName: true } },
+    },
+  })
+
+  if (event === null) redirect('/account')
+
+  const requested = await requestAlbumPdf(
+    prisma,
+    {
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      archetype: event.archetype,
+      organiserName: event.organiser?.displayName ?? null,
+      place: event.place,
+      eventDate: event.eventDate,
+    },
+    { now: new Date() },
+  )
+
+  // Null means there is nothing on the record to print. Not an error, and not a
+  // queued job that would produce an empty book.
+  redirect(`/manage/${id}?${requested === null ? 'error=album-empty' : 'album=1'}`)
 }
