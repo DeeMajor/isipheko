@@ -13,7 +13,7 @@ import type {
   ContributionStep,
   Visibility,
 } from '@/domain/contribution'
-import { stepNumber, stepsFor } from '@/domain/contribution'
+import { requiresPayment, stepNumber, stepsFor } from '@/domain/contribution'
 import { formatMoney } from '@/domain/money'
 import type { Money } from '@/domain/money'
 
@@ -50,6 +50,44 @@ export interface ContributePageProps {
   readonly error?: keyof typeof contributeCopy.errors | undefined
   /** The organiser's verification date, so the badge follows them (M3-04). */
   readonly verifiedOn?: string | undefined
+  /**
+   * The 32 hex characters a stored photo is served under, if one is attached.
+   *
+   * Derived from the carried ticket rather than read out of it here — the ticket
+   * carries a signature, and a signature has no business in markup.
+   */
+  readonly photoDigest?: string | undefined
+  /** What they chose on the who step, so the done step can be honest about it. */
+  readonly visibility?: Visibility | undefined
+}
+
+/**
+ * `<picture>`: AVIF first, WebP as the `<img>` itself.
+ *
+ * The choice is made by the markup, so each URL names exactly one
+ * representation and no cache has to understand `Vary` to get it right. Both
+ * were produced by the same stripping pipeline — there is no path by which one
+ * of the two still carries the location.
+ */
+function Photo({
+  slug,
+  digest,
+  size,
+  className,
+}: {
+  slug: string
+  digest: string
+  size: 'full' | 'thumb'
+  className: string
+}) {
+  const base = `/e/${encodeURIComponent(slug)}/photo/${digest}-${size}`
+
+  return (
+    <picture>
+      <source srcSet={`${base}.avif`} type="image/avif" />
+      <img className={className} src={`${base}.webp`} alt="" loading="lazy" decoding="async" />
+    </picture>
+  )
 }
 
 function Shell({
@@ -143,12 +181,28 @@ function Shell({
   )
 }
 
-function Carried({ values }: { values: Readonly<Record<string, string>> }) {
+/**
+ * The flow's state, as hidden fields.
+ *
+ * `except` is not decoration. A field rendered hidden *and* visible on the same
+ * form is sent twice, and `FormData.get` returns the first — so the stale copy
+ * wins and an edit is silently dropped. The who step shows name, number and
+ * message as inputs, so it must not also carry them.
+ */
+function Carried({
+  values,
+  except = [],
+}: {
+  values: Readonly<Record<string, string>>
+  except?: readonly string[]
+}) {
   return (
     <>
-      {Object.entries(values).map(([name, value]) => (
-        <input key={name} type="hidden" name={name} value={value} />
-      ))}
+      {Object.entries(values)
+        .filter(([name]) => !except.includes(name))
+        .map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
     </>
   )
 }
@@ -178,7 +232,7 @@ export function ContributePage(props: ContributePageProps) {
       {step === 'item' ? <ItemStep action={action} {...props} /> : null}
       {step === 'who' ? <WhoStep action={action} {...props} /> : null}
       {step === 'pay' ? <PayStep action={action} {...props} /> : null}
-      {step === 'done' ? <DoneStep /> : null}
+      {step === 'done' ? <DoneStep {...props} /> : null}
     </Shell>
   )
 }
@@ -302,12 +356,17 @@ function ItemStep({
   )
 }
 
+/** The visible inputs on the who step, which must not also be hidden fields. */
+const WHO_FIELDS = ['name', 'phone', 'message'] as const
+
 function WhoStep({
   action,
   route,
+  slug,
   carried,
   amountsPublic,
   defaultVisibility,
+  photoDigest,
 }: ContributePageProps & { action: string }) {
   const options: { value: Visibility; label: string }[] = [
     { value: 'public', label: contributeCopy.who.visibilityPublic },
@@ -322,8 +381,19 @@ function WhoStep({
         {amountsPublic ? contributeCopy.who.introPublic : contributeCopy.who.introHidden}
       </p>
 
-      <form method="post" action={action} className="claimForm">
-        <Carried values={carried} />
+      {/*
+        Multipart, because this step carries a file. It is the only step that
+        does, and the one that has to keep working on a phone with no
+        JavaScript — so the photo travels in the same plain form submit as the
+        name, with no upload widget and nothing to fail separately.
+      */}
+      <form
+        method="post"
+        action={action}
+        className="claimForm"
+        encType="multipart/form-data"
+      >
+        <Carried values={carried} except={WHO_FIELDS} />
         <input type="hidden" name="route" value={route} />
         <input type="hidden" name="step" value="who" />
 
@@ -337,6 +407,7 @@ function WhoStep({
           type="text"
           autoComplete="name"
           placeholder={contributeCopy.who.namePlaceholder}
+          defaultValue={carried.name ?? ''}
           required
         />
 
@@ -351,13 +422,71 @@ function WhoStep({
           inputMode="tel"
           autoComplete="tel"
           data-numeric=""
+          defaultValue={carried.phone ?? ''}
         />
         <p className="claimHelp">{contributeCopy.who.phoneHelp}</p>
 
         <label className="claimLabel" htmlFor="message">
           {contributeCopy.who.messageLabel}
         </label>
-        <input className="claimInput" id="message" name="message" type="text" />
+        <input
+          className="claimInput"
+          id="message"
+          name="message"
+          type="text"
+          defaultValue={carried.message ?? ''}
+        />
+
+        {/*
+          The photo, where `design/contribute.html` puts it — but only on the
+          routes that create a contribution row.
+
+          "Bring something" has no pay step, and the pay step is what creates
+          the row (M2-05); that route reserves through the claim path M2-04
+          already built. A file field there would take somebody's photo, store
+          it, and attach it to nothing — so it is not offered rather than
+          quietly discarded.
+
+          `accept` is a hint to the file picker and nothing more. What is
+          actually allowed is decided by the magic bytes on the server, because
+          a browser's idea of the type is whatever the client wrote there.
+        */}
+        {!requiresPayment(route) ? null : (
+        <>
+        <label className="claimLabel" htmlFor="photo">
+          {contributeCopy.who.photoLabel}
+        </label>
+        <input
+          className="claimInput"
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+        />
+        <p className="claimHelp">{contributeCopy.who.photoHelp}</p>
+        <p className="claimHelp">{contributeCopy.who.photoSafety}</p>
+
+        {photoDigest === undefined ? null : (
+          <>
+            <Photo
+              slug={slug}
+              digest={photoDigest}
+              size="thumb"
+              className="photoThumb"
+            />
+            <p className="claimHelp">{contributeCopy.who.photoAttached}</p>
+            <button
+              type="submit"
+              name="removePhoto"
+              value="1"
+              className="buttonQuiet"
+            >
+              {contributeCopy.who.photoRemove}
+            </button>
+          </>
+        )}
+        </>
+        )}
 
         <fieldset className="claimQuantity">
           <legend className="claimLabel">{contributeCopy.who.visibilityLabel}</legend>
@@ -375,6 +504,9 @@ function WhoStep({
           ))}
         </fieldset>
         <p className="claimHelp">{contributeCopy.who.visibilityFoot}</p>
+        {photoDigest === undefined ? null : (
+          <p className="claimHelp">{contributeCopy.who.photoAnonymousNote}</p>
+        )}
 
         <button type="submit" className="buttonPrimary">
           {contributeCopy.who.submit}
@@ -447,11 +579,28 @@ function PayStep({
   )
 }
 
-function DoneStep() {
+function DoneStep({ slug, photoDigest, visibility }: ContributePageProps) {
   return (
     <>
       <h1 className="title">{contributeCopy.done.title}</h1>
       <p className="intro">{contributeCopy.done.body}</p>
+
+      {photoDigest === undefined ? null : (
+        <>
+          <Photo slug={slug} digest={photoDigest} size="thumb" className="photoThumb" />
+          <p className="claimHelp">{contributeCopy.done.photoCaption}</p>
+          {/*
+            Said here rather than nowhere, because the photo and the visibility
+            are chosen in the same submit — there is no moment before this one at
+            which the two could be seen to disagree. It states the fact and
+            leaves the choice alone: it is her photo.
+          */}
+          {visibility === 'anonymous' ? (
+            <p className="claimHelp">{contributeCopy.done.photoAnonymous}</p>
+          ) : null}
+        </>
+      )}
+
       <p className="claimHelp">{contributeCopy.done.pending}</p>
       <p className="claimHelp">{contributeCopy.done.foot}</p>
     </>

@@ -627,6 +627,21 @@ Attach to a contribution. Upload limits, dimension caps, EXIF stripped, content-
 
 **M2-11's handover evidence is waiting on this.** The handover's fallback path — the organiser marking it herself — was built without the photo the design offers, because a JPEG off a phone carries the GPS of the house it was taken at and there is no stripper yet. `collections.handover_evidence_key` exists and is unused. When this task lands, the photo attaches to a record that already exists; do not add a second stripping path for it.
 
+**Built, and it needed the first new runtime dependency since the scaffold.** AVIF needs an AV1 encoder and there is no way to have one without a package; `sharp` was the one to take because it is already an optional dependency of Next itself, for the image optimiser. It is server-side, so the 150KB budget is untouched — `/e/[slug]` still measures 35.9KB. Everything that *can* be written without a codec is: the magic-byte sniff and the metadata reader are in `src/domain/media/`, and `src/adapters/media/sharp-image-processor.ts` is the only file in the codebase that imports sharp.
+
+**The reader is independent of the encoder, deliberately.** A test in which sharp is asked whether sharp stripped the metadata proves that it agrees with itself. `scanImageMetadata` walks JPEG segments, PNG chunks, RIFF chunks and ISO-BMFF boxes by hand, and `findGpsFix` parses the EXIF GPS IFD, so the fixture can be proved to carry a real fix in KwaZulu-Natal before the output is proved not to. **All four derivatives are asserted clean** — full and thumb, AVIF and WebP — because a stripped AVIF beside an unstripped fallback is the whole protection lost to whichever format the browser picks.
+
+**The original is never stored.** Only the four re-encodes are, content-addressed, under `photo/<event>/`. Keeping the source "just in case" would keep the GPS with it for as long as the bucket exists.
+
+Three things beyond the spec, all in docs/decisions.md M4-01: the photo is processed at the *who* step and carried forward as an **HMAC-signed ticket** bound to the event, because the row does not exist yet and a hidden field is a field anybody can edit; there are **two size limits**, 8MB for a photo and 24MB for a body, so a real oversized photo is refused with the flow's state intact and only an abusive one is refused unread; and a photo attached to an **anonymous** contribution is allowed with the conflict stated plainly rather than silently overridden.
+
+**M4-01b · Handover evidence photo** *(NEW — outstanding)*
+*Deps:* M4-01
+Where M2-11's deferral lands. `collections.handover_evidence_key` still exists and is still unused. The pipeline it was waiting for is built and reusable — `acceptPhoto` in `src/lib/contribution-photo.ts` — so this is the organiser-authenticated surface, not a second stripper: the upload control on the collection handover screen, `src/copy/collection.ts` rewritten from *"a photo will be part of this later"*, and `tests/unit/handover.test.ts:140` inverted from asserting the copy claims no photo to asserting it claims one and can take it.
+*Done:* an organiser can mark a handover with a photo; the record says it was her word with evidence rather than a witness's tap; the copy no longer promises a later.
+
+Kept separate from M4-01 on purpose. It is a different surface with its own authorisation, and it changes what a collection record *claims about its own provenance* — which deserves its own mutation checks rather than riding along with a contributor-side upload.
+
 **M4-02 · Album view**
 *Deps:* M4-01, M2-06
 Every message, photo and contribution as one readable artefact. Strand as the cover.

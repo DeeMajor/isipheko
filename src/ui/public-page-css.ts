@@ -253,6 +253,23 @@ export const PUBLIC_PAGE_CSS = String.raw`
   color: var(--ink-soft);
 }
 
+/*
+ * The photo, on the who step's confirmation and on the done step.
+ *
+ * 12px like every other card and never a pill (design system). Height is
+ * intrinsic rather than fixed so a portrait photo is not cropped by the layout
+ * — this is somebody's picture of a tent or a gravestone, not an avatar.
+ */
+.photoThumb {
+  display: block;
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--paper-raised);
+}
+
 .buttonPrimary {
   width: 100%;
   min-height: var(--control-height);

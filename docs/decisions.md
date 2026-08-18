@@ -2281,3 +2281,96 @@ A partly-claimed item appears in **both** `open` and `promised`, deliberately. S
 - **No "send the list to the family group".** The design has the button and there is no BSP to send it with (Part J item 3). It would be a control that queues a message nobody receives, which is the same mistake as the payout button one notch smaller.
 - **No undo on the queue.** The design offers Undo and Clear on a resolved row. There is no unconfirm by design (M2-05 §4) and a correction is a reversal entry — an Undo button would promise something the ledger does not do.
 - **No countdown, ever, at any archetype.** Not only bereavement: nothing renders one, so `allowsCountdown` has no consumer yet. The field remains the thing a future countdown must ask.
+
+---
+
+## M4-01 · Messages and photos
+
+### 1. `sharp` — the first runtime dependency since the scaffold, and why it was allowed
+
+AVIF needs an AV1 encoder. There is no Node built-in, and there is no version of hand-rolling one. The alternatives were `@jsquash/*` (four wasm packages instead of one, materially slower), `@squoosh/lib` (unmaintained), and dropping AVIF from the done criteria — which would have been a spec change made to avoid a dependency rather than for a reason.
+
+What settled it: **sharp is already an optional dependency of `next` itself**, for the image optimiser (`node_modules/next/package.json`, `"sharp": "^0.35.3"`). It is a package this stack expects, not a new vendor. It is server-side and native, so the public page pays nothing — `pnpm gate:size` still measures `/e/[slug]` at 35.9KB.
+
+The parts that *can* be written without a codec are written without one. `src/domain/media/image.ts` does the magic-byte sniff and owns the key shapes; `src/domain/media/metadata-scan.ts` reads metadata out of four container formats. sharp appears in exactly one file, `src/adapters/media/sharp-image-processor.ts`, behind the `ImageProcessor` interface declared in `src/domain/media/` — the same inversion as the payment provider and the object store.
+
+**What would make this wrong:** sharp's prebuilt binaries not covering a deployment target. There is a source build, but it wants libvips and a toolchain.
+
+### 2. HEIC is refused, and refused *by name*
+
+Prebuilt sharp carries no HEIC decoder — the HEVC patent position is why, and it is not going to change. Safari converts HEIC to JPEG on a form upload in the common case, so most iPhone photos arrive readable.
+
+For the rest, the sniff returns `'heic'` rather than `'unknown'`, and it does so for one reason: *"that is an iPhone photo in a format we cannot read — send it through WhatsApp or Photos first, which turns it into a JPEG"* is something a person can act on. *"We could not read that file"* is not. Naming a format we refuse costs one branch and turns a dead end into an instruction.
+
+### 3. The reader is independent of the encoder, or "EXIF confirmed stripped" means nothing
+
+A test in which sharp encodes an image and sharp is then asked whether the metadata is gone proves that sharp agrees with itself. That is the whole of what most such tests prove.
+
+So `scanImageMetadata` walks the containers by hand — JPEG segments to SOS, PNG chunks, RIFF chunks, ISO-BMFF boxes including `infe` item types — and `findGpsFix` parses the EXIF TIFF header and the GPS IFD, inline ASCII values and all. It shares no code with the encoder.
+
+That buys the assertion that matters: `tests/unit/photo-stripping.test.ts` **first proves the fixture really carries the family's address** (−29.851, 31.019 — a house in KwaZulu-Natal) and only then proves nothing coming out of the pipeline does. Without the first half, a reader that always returned nothing would pass the second. `tests/unit/media-image.test.ts` holds the reader up against hand-assembled fixtures that do carry markers, so it cannot quietly become vacuous.
+
+**All four derivatives are asserted, not just the primary one.** Full and thumb, AVIF and WebP. A stripped AVIF beside an unstripped WebP fallback is the entire protection lost to whichever format the browser picks — and the fallback is what an older phone gets, which is most of the phones this is for. There is a third assertion behind both: the strings `iPhone`, `Apple` and `Exif` must not appear anywhere in the output bytes, which catches a container the reader does not know about.
+
+### 4. The original is never stored
+
+Only the four re-encodes are written. Keeping the source "just in case" would keep the GPS with it, in a bucket, for as long as the bucket exists — which is exactly the outcome this task exists to prevent. An integration test reads the store directory and asserts it holds four files and no fifth.
+
+The consequence to accept: there is no going back to a higher-quality original, and no re-deriving a size that was not produced at upload time. Adding a size later means re-uploading, and that is the right trade.
+
+### 5. Orientation is applied before the metadata goes
+
+`rotate()` with no argument bakes the EXIF orientation into the pixels. It has to run **before** the strip, or a photo taken sideways is stored sideways for good — the tag that told the browser how to turn it is no longer there to do it. Tested with an orientation-6 fixture, asserting the output's width and height have swapped.
+
+A detail found on the way: sharp does not treat `Orientation` as an ordinary EXIF tag in `withExif` — it reads and rewrites it itself — so the test fixture sets it through `withMetadata({ orientation })` *after* `withExif`, which is the order that keeps both the GPS and the orientation.
+
+### 6. Processed at the *who* step, carried forward as a signed ticket
+
+The contribution row does not exist until the *pay* step — a reference code needs something to be unique against — and a file cannot ride in a hidden field. `design/contribute.html` puts the photo on the who step, which is the right place: it belongs beside the name and the message.
+
+So the bytes are processed and stored the moment they arrive, and what travels is the digest. **The digest is signed**, HMAC over `(eventId, digest)` under `OTP_PEPPER`, modelled on the claim undo token in `src/domain/needs/undo.ts`. A bare digest in a hidden field would be a form anybody can edit: paste a digest recovered from another umcimbi's URL and the next submit attaches somebody else's photo to your contribution. The signature binds it to the event it was uploaded for; a ticket that does not verify is treated as *no photo*, not as an error, because the only way to hold one is to have edited the form.
+
+**The cost, accepted:** photos uploaded by people who then wander off are orphaned. Most contributors who reach the who step never reach the pay step. `ObjectStore` has no `delete` and is not gaining one — the interface's lack of it is deliberate (M2-07), the keys are content-addressed, and tidying them is an operational job rather than an application call.
+
+### 7. Two size limits, because one would cost a real contributor their typed name
+
+`request.formData()` buffers the whole body, so a ceiling checked on `content-length` before reading is not optional once a step is multipart.
+
+But a single ceiling forces a bad choice. Set it at the photo cap and a genuine 9MB phone photo is refused by a handler that never parsed the form and therefore cannot re-render the step with the amount, the name and the message intact. Set it high and the DoS is open.
+
+So: **8MB for a photo**, refused after parsing with the whole flow's state preserved and copy that says the rest of what they typed is still there. **24MB for a body**, refused on the header with a 413 and never read. Between the two is where a real oversized photo lands, which is the case worth being careful about. Both are covered by E2E tests, the second by posting 25MB.
+
+### 8. A photo on an anonymous contribution is allowed, and the conflict is stated
+
+An anonymous contribution carrying a photo of a face is two settings fighting. Suppressing the photo silently would be a product overriding somebody's decision without telling them; refusing the combination would be worse.
+
+It is allowed. The done step says so plainly — *"You chose to give quietly, and your photo still shows. Your name and what you gave are the parts that stay off the page."* — with no scolding and no undo button pretending there is a way back. It is her photo.
+
+The warning is on the **done** step and not before it because the photo and the visibility are chosen in the same submit: with no JavaScript there is no moment earlier at which the two could be seen to disagree. The who step carries the same note once a photo is already attached, which happens on the error paths.
+
+### 9. `<picture>` in the markup, not `Accept` negotiation
+
+Each URL names exactly one representation: `<digest>-<size>.avif` and `<digest>-<size>.webp`. The choice is made by `<source type="image/avif">` in the markup.
+
+Content negotiation on `Accept` would need `Vary: accept` on every image response, and a cache that ignores `Vary` — or normalises it — hands an AVIF to a browser that asked for the fallback. Two URLs cost nothing and are correct on every intermediary. The responses are `immutable` for a year, which is honest because the key is a hash of the bytes.
+
+### 10. Two things found on the way past
+
+**Hidden and visible fields with the same name were fighting.** The who step rendered `name`, `phone` and `message` as inputs *and*, on any re-render, as hidden carried fields. `FormData.get` returns the first, so the stale hidden copy won and an edit was silently dropped. Latent since M2-05 and nearly harmless while the only error path was a blank name; not harmless now that a rejected photo bounces people back to this step with everything else filled in. `Carried` takes an `except` list, and the three visible inputs are repopulated from `carried` rather than emptied.
+
+**The queue thumbnail is the only place a photo renders for the organiser.** The album is M4-02. A picture of the tent that arrived is a reason to tap the confirm button, so it sits on the row above the ask — small, intrinsic height so a portrait photo is not cropped.
+
+**"Bring something" would have swallowed a photo whole.** That route is `choose → item → who → done` — no pay step, and the pay step is what creates the contribution row. A file field on its who step would have taken somebody's photo, processed it, stored four derivatives and attached them to nothing, then shown *"Thank you"*. The field is not offered there, and the server refuses one on that route too, so a forged field cannot orphan an object either. `requiresPayment(route)` is the predicate in both places: today "reaches a pay step" and "creates a row" are the same question, and if they ever stop being, this is one of the callers to revisit.
+
+### 11. Handover evidence is M4-01b, not this task
+
+M2-11 §1 deferred the handover photo here and asked for a decision rather than a quiet widening. The decision is a follow-up task, recorded in the plan as **M4-01b**.
+
+The instruction that mattered — *do not add a second stripping path* — is honoured: `acceptPhoto` is the one pipeline and it takes any `File` and an owning id. What M4-01b adds is a different **surface**: organiser-authenticated rather than contributor-facing, and it changes what a collection record claims about its own provenance. `src/copy/collection.ts` currently promises the photo *later*, and `tests/unit/handover.test.ts:140` asserts that promise — inverting an assertion about what a record says about itself deserves its own session and its own mutation checks, not a ride along with a contributor-side upload.
+
+### 12. What this does not do
+
+- **No album.** M4-02. A photo appears in exactly three places: the who step once attached, the done step, and the organiser's queue row. Nowhere on the public event page, which is why the size gate is unmoved.
+- **No queue.** Processing is synchronous — 200–500ms of CPU bounded by an 8MB cap does not justify Redis and BullMQ, on the same reasoning as M1-06 §4 and M2-08 §1.
+- **No S3.** The derivatives go to the same `LocalObjectStore` the OG cards use, and inherit its per-instance limitation. Architecture §15 item 6 has still not chosen a region. **This one is worse than the OG card's version of the same gap**: a missing OG card costs a redraw, and a missing photo is somebody's picture gone. It should be near the front of whatever list that decision gets made from.
+- **No multiple photos, and no photo without a contribution.** One per contribution, and only through the flow.

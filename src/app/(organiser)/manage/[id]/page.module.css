@@ -318,3 +318,21 @@
   margin-top: var(--space-2);
   text-decoration: none;
 }
+
+/*
+ * A contributor's photo on a queue row (M4-01).
+ *
+ * Small and beside the ask, not above it: the headline is what she reads and
+ * the button is what she taps. Intrinsic height so a portrait photo is not
+ * cropped by the layout.
+ */
+.photo {
+  display: block;
+  margin: var(--space-2) 0 0;
+  width: 120px;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--paper-raised);
+}

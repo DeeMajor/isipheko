@@ -39,6 +39,14 @@ export interface StartInput {
   readonly contributorName: string
   readonly contributorPhoneE164?: string | null
   readonly message?: string | null
+  /**
+   * The object key of the full AVIF derivative, or null.
+   *
+   * A key rather than a digest, because a key is what an object store is asked
+   * for. The bytes it names have already had their metadata removed — no
+   * original is kept, so there is nothing else it could name (M4-01).
+   */
+  readonly photoKey?: string | null
   readonly visibility: Visibility
   readonly reportedIpHash?: string | null
 }
@@ -76,6 +84,7 @@ export async function startContribution(
           contributorName: input.contributorName,
           contributorPhoneE164: input.contributorPhoneE164 ?? null,
           message: input.message ?? null,
+          photoKey: input.photoKey ?? null,
           visibility: input.visibility,
           verificationSource: 'organiser_confirmed',
           status: 'pending',
@@ -150,6 +159,7 @@ export interface PendingReport {
   amountCents: bigint | null
   type: string
   message: string | null
+  photoKey: string | null
   reference: string
   selfReportedAt: Date
 }
@@ -180,6 +190,7 @@ export async function pendingReports(
       amountCents: true,
       type: true,
       message: true,
+      photoKey: true,
       refPrefix: true,
       refCode: true,
       selfReportedAt: true,
@@ -196,6 +207,7 @@ export async function pendingReports(
     amountCents: row.amountCents,
     type: row.type,
     message: row.message,
+    photoKey: row.photoKey,
     reference: `${row.refPrefix ?? ''}-${row.refCode ?? ''}`,
     selfReportedAt: row.selfReportedAt ?? new Date(0),
   }))

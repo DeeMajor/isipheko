@@ -2,6 +2,7 @@ import { dashboardCopy } from '@/copy/dashboard'
 import type { PendingReport } from '@/db/repositories/contribution'
 import { inKindDescription, type AwaitedDelivery } from '@/db/repositories/needs'
 import { formatMoney, fromCents } from '@/domain/money'
+import { digestFromKey } from '@/lib/contribution-photo'
 import { Button, Card } from '@/ui/primitives'
 
 import { confirmArrival, confirmReport } from './actions'
@@ -37,6 +38,13 @@ interface QueueRow {
   readonly checkAgainst: string | null
   readonly formId: string
   readonly formValue: string
+  /**
+   * The photo the contributor attached, if any. Shown small, beside what she is
+   * being asked to confirm — a picture of the tent that arrived is a reason to
+   * tap the button, and it is the only place a photo appears until the album
+   * (M4-02) exists.
+   */
+  readonly photoDigest: string | null
 }
 
 /**
@@ -83,6 +91,7 @@ export function buildQueue(
             ),
       formId: 'contribution',
       formValue: report.id,
+      photoDigest: digestFromKey(report.photoKey),
     }
   })
 
@@ -99,6 +108,7 @@ export function buildQueue(
     checkAgainst: null,
     formId: 'claim',
     formValue: arrival.claimId,
+    photoDigest: null,
   }))
 
   // Oldest first: the person who has been waiting longest for an acknowledgement
@@ -109,9 +119,11 @@ export function buildQueue(
 
 export function ConfirmationQueue({
   eventId,
+  slug,
   rows,
 }: {
   eventId: string
+  slug: string
   rows: readonly QueueRow[]
 }) {
   if (rows.length === 0) {
@@ -143,6 +155,27 @@ export function ConfirmationQueue({
             </p>
 
             <p className={styles.headline}>{row.headline}</p>
+
+            {/*
+              AVIF with a WebP fallback, chosen by the markup rather than by a
+              header so each URL names one representation. Both came out of the
+              same stripping pipeline — neither carries where it was taken.
+            */}
+            {row.photoDigest === null ? null : (
+              <picture>
+                <source
+                  srcSet={`/e/${slug}/photo/${row.photoDigest}-thumb.avif`}
+                  type="image/avif"
+                />
+                <img
+                  className={styles.photo}
+                  src={`/e/${slug}/photo/${row.photoDigest}-thumb.webp`}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+            )}
             {row.detail === null ? null : (
               <p className={styles.meta} data-numeric="">
                 {row.detail}

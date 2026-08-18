@@ -49,6 +49,7 @@ const report = (over: Partial<PendingReport> = {}): PendingReport => ({
   amountCents: 500_00n,
   type: 'cash',
   message: null,
+  photoKey: null,
   reference: 'MTH-4K7B2X',
   selfReportedAt: hoursAgo(2),
   ...over,
@@ -130,7 +131,7 @@ describe('the confirmation queue', () => {
     // Rule 5's posture on the organiser side: the two most important actions of
     // her day work with JavaScript switched off.
     const markup = renderToStaticMarkup(
-      <ConfirmationQueue eventId="e1" rows={buildQueue([report()], [arrival()])} />,
+      <ConfirmationQueue eventId="e1" slug="mthembu" rows={buildQueue([report()], [arrival()])} />,
     )
 
     expect(markup.match(/<form/g)).toHaveLength(2)
@@ -146,7 +147,7 @@ describe('the confirmation queue', () => {
     // it, and she is the one who checks. A statement-shaped name is what makes
     // that comparison quick.
     const markup = renderToStaticMarkup(
-      <ConfirmationQueue eventId="e1" rows={buildQueue([report()], [])} />,
+      <ConfirmationQueue eventId="e1" slug="mthembu" rows={buildQueue([report()], [])} />,
     )
 
     expect(markup).toContain('T NGCOBO')
@@ -156,14 +157,14 @@ describe('the confirmation queue', () => {
 
   it('says there is no unconfirm before the tap rather than after it', () => {
     const markup = renderToStaticMarkup(
-      <ConfirmationQueue eventId="e1" rows={buildQueue([report()], [])} />,
+      <ConfirmationQueue eventId="e1" slug="mthembu" rows={buildQueue([report()], [])} />,
     )
 
     expect(markup).toContain('not by rubbing it out')
   })
 
   it('invites nothing when there is nothing waiting', () => {
-    const markup = renderToStaticMarkup(<ConfirmationQueue eventId="e1" rows={[]} />)
+    const markup = renderToStaticMarkup(<ConfirmationQueue eventId="e1" slug="mthembu" rows={[]} />)
 
     expect(markup).toContain(dashboardCopy.queue.empty.heading)
     expect(markup).toContain('put the phone down')

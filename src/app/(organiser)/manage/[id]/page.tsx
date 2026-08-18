@@ -167,7 +167,11 @@ export default async function ManagePage({
         )}
 
         {/* Leads the page. Everything else is below it, deliberately. */}
-        <ConfirmationQueue eventId={id} rows={buildQueue(reports, arrivals)} />
+        <ConfirmationQueue
+          eventId={id}
+          slug={draft.slug}
+          rows={buildQueue(reports, arrivals)}
+        />
 
         <NeedsBoard eventId={id} board={board} />
 

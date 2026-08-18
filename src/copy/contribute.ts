@@ -46,6 +46,27 @@ export const contributeCopy = {
     phoneLabel: 'Your number (optional)',
     phoneHelp: 'Only so the family can thank you. It is never shown on the page.',
     messageLabel: 'A message for the family (optional)',
+
+    photoLabel: 'A photo (optional)',
+    photoHelp: 'Only if you have one to hand. JPEG, PNG or WebP, up to 8MB.',
+    /**
+     * Rule: security copy explains what it protects, never just what it blocks.
+     *
+     * The thing being protected is an address. A phone writes the place a photo
+     * was taken inside the file itself, and on a funeral that place is the
+     * family's house — so this says what is taken out and why, in the words
+     * somebody would use for it.
+     */
+    photoSafety:
+      'Phones save the place a photo was taken inside the file. We take that out before it is stored, so the page never carries the family\u2019s address or yours.',
+    photoAttached: 'Photo added.',
+    photoRemove: 'Remove the photo',
+    /**
+     * Shown only once a photo is attached, because it is only then a real
+     * conflict. It states the fact and leaves the choice alone: it is her photo.
+     */
+    photoAnonymousNote:
+      'Your photo shows on the page whichever of these you choose. Only your name and what you gave follow this setting.',
     visibilityLabel: 'What the page shows',
     visibilityPublic: 'My name and what I gave',
     visibilityNameOnly: 'My name only',
@@ -85,6 +106,9 @@ export const contributeCopy = {
     foot: 'You can close this page. Nothing else is needed from you.',
     pending:
       'The family will confirm it against their own bank notification. Nothing else is needed from you.',
+    photoCaption: 'Your photo is on the record.',
+    photoAnonymous:
+      'You chose to give quietly, and your photo still shows. Your name and what you gave are the parts that stay off the page.',
   },
 
   errors: {
@@ -95,6 +119,17 @@ export const contributeCopy = {
     'too-many-address':
       'That is a lot of reports from one place. Wait a few minutes and try again.',
     'cross-site': 'That request did not come from this page.',
+    'photo-empty': 'No photo came through. Choose the file again, or carry on without one.',
+    'photo-too-big':
+      'That photo is over 8MB. Choose a smaller one, or carry on without a photo \u2014 everything else you typed is still here.',
+    'photo-heic':
+      'That is an iPhone photo in a format we cannot read. Send it through WhatsApp or Photos first, which turns it into a JPEG, or carry on without a photo.',
+    'photo-not-an-image':
+      'That file is not a photo we can read. JPEG, PNG and WebP work.',
+    'photo-unreadable':
+      'That photo did not come through in one piece. Choose it again.',
+    'photo-too-large-request':
+      'That was too large to send. Choose a smaller photo, or carry on without one.',
     generic: 'That did not go through. Nothing was sent from your account.',
   },
 } as const
