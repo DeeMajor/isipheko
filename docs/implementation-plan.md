@@ -226,13 +226,17 @@ const DENSITY = [
 ];
 ```
 
-- **Cash bead:** solid `var(--accent)` disc, four coarse diameters (10/14/18/24px) by band. Bands **unlabelled** so nobody reverse-engineers an amount.
-- **In-kind bead:** same diameters, white fill, 2px accent ring, 2px horizontal bar across the middle. Equal visual mass — the forms differ by shape, never by prominence.
+- **Cash bead:** solid `var(--accent)` disc, four coarse diameters (10/14/18/24px) by band. Bands **unlabelled** so nobody reverse-engineers an amount. Bands in cents: `< R100 / < R500 / < R2 000 / ≥ R2 000`.
+
+**Corrected in M2-06 — bands apply only where `amountsPublic` is true.** This line previously said four diameters everywhere, and that is wrong on a bereavement page. Amounts there default to hidden (§7.3, and `defaultAmountVisibility: 'hidden'` in §6), and four monotonic diameters hand back a coarse amount to anybody willing to compare two beads — permanently, in public, on the page the family shared with fifty people. Where `amountsPublic` is false, **every bead takes one diameter (14px)** and the forms differ by shape alone. The rule reads the same config flag that sets the visibility default, so the two cannot drift. `design/event.html` bands its funeral variant; that is a prototype bug of the same class as the accent literal M1-04 found, not a decision.
+
+- **In-kind bead:** same diameters, white fill, 2px accent ring, 2px horizontal bar across the middle. Equal visual mass — the forms differ by shape, never by prominence. A pure in-kind contribution has no amount to band and takes the 14px middle diameter, never the smallest.
 - **Group bead (collections):** a third form — a bead with a visible ring of smaller beads around it, or equivalent — opening to reveal the members inside. One bead per collection, never one per member.
 - No total, no count, no target displayed.
-- Each bead is a real `<button>` with a 44px hit area via padding while the visible bead stays small.
-- Beads are CSS-drawn `<div>`s in declared markup, not JS-generated.
-- Screen readers get the strand as a list.
+- Each bead is a real `<button>` with a 44px hit area via padding while the visible bead stays small. **M2-06:** they are submit buttons in one `<form method="get">`, so opening a bead is a server round-trip that works with JavaScript disabled — the same posture as claiming.
+- Beads are CSS-drawn `<div>`s in declared markup, not JS-generated. **M2-06:** geometry travels as two custom properties per bead (`--x`, `--y`) and everything else is in the stylesheet, which is what keeps 200 beads inside 15KB.
+- Screen readers get the strand as a list. **M2-06:** an `aria-label` on the strand as an image would have to say how many people are in it, which is the count this element refuses to display. So it is `<ul>`/`<li>` at every density.
+- **M2-06:** an in-kind bead needs an in-kind ledger entry, and nothing wrote one until now. Confirming a delivery creates the `in_kind` contribution and appends its entry in one transaction — see docs/decisions.md M2-06.
 
 ### C.5 Behaviours settled by the designs
 
@@ -290,6 +294,8 @@ Anchor examples that must survive:
 **Voice rules:** plain, warm, second person, sentence case. Never "campaign," "donate," "fundraiser," or "goal." An action keeps its name through the flow — "Claim the tent" produces "You've claimed the tent." Errors say what happened and what to do next; they never apologise and are never vague.
 
 **i18n:** this structure is the translation unit. Build it keyed from commit one — retrofitting is expensive, and the emotional moments in this product do not happen in a second language.
+
+**Open, and blocking nothing yet:** every string in `src/copy/` is English, and there is no locale on an organiser or an event. M2-07 needed "the organiser's language" for the WhatsApp message and could not have it. Translation needs a first-language isiZulu speaker (open item 9); the shape is ready, the words are not. Add the locale **with** the translations, not before them.
 
 ---
 
@@ -383,6 +389,8 @@ ledger_entries                ADD entry_type 'collection'
 
 **Critical:** `collections` has no payout, no float, no disbursement. There is no money path through us. Any task that adds one is wrong.
 
+**Done in M1-02, with the rules built in M2-09.** The tables, the enums, the archetype/group CHECK and the grants shipped with the schema; `ledger_entries` already allows a collection chain. M2-09 added one column beyond this list — `need_claims.collection_id`, nullable — because a group claim has to reserve through the **same** conditional UPDATE every other claim uses, and a claim row had no way to say the claimant was a group. Without it there is also no way to release an item when a collection is abandoned. See docs/decisions.md M2-09.
+
 ---
 
 ## Part E — Task Breakdown
@@ -439,7 +447,11 @@ Hash chain per architecture §4.3. Append-only, genesis entry, per-event sequenc
 **M2-02 · Reference codes**
 *Deps:* M1-07
 Crockford base32, 6 chars, stored split as `["MTH","4K7B2X"]`. Case-insensitive with ambiguous-character normalisation.
-*Done:* 100k codes, no collisions within an event; `mth-4k7b2x`, `MTH-4K7B2X` and `MTH-4KZBZX` all resolve.
+*Done:* 100k codes, no collisions within an event; `mth-40g1bx`, `MTH-40G1BX` and `MTH-4OGLBX` all resolve.
+
+**Corrected in M2-02.** This line previously read `MTH-4KZBZX` against a stored `MTH-4K7B2X`, which no normalisation can satisfy: it needs `Z→7` in one position and `Z→2` in another, and if `7` and `2` both aliased to `Z` the alphabet would halve in the worst possible way. The replacement exercises Crockford's actual aliases — `O→0`, `I→1`, `L→1` — which is what Part C.5 specifies.
+
+**Also corrected:** "no collisions" is a property of the unique index on `(ref_prefix, ref_code)` plus generate-and-retry, not of the generator. 32^6 ≈ 1.07 × 10^9, and the birthday bound over 100 000 draws predicts about 4.7 collisions — a test asserting zero from randomness alone would be flaky rather than passing.
 
 **M2-03 · Needs board — data and rules**
 *Deps:* M1-07
@@ -463,8 +475,14 @@ Per Part C.4, `DENSITY` table exactly as specified. Server-rendered. Motion supp
 
 **M2-07 · WhatsApp share + OG images**
 *Deps:* M1-07
-Per-event OG image generated server-side, cached in object storage. Share sheet with pre-written message in the organiser's language. **Verified badge legible at thumbnail size** — bead colour, name and tick carry the card.
+Per-event OG image generated server-side, cached in object storage. Share sheet with a pre-written message keyed by archetype, **in English at launch**. **Verified badge legible at thumbnail size** — bead colour, name and tick carry the card.
 *Done:* preview renders correctly in WhatsApp on iOS and Android; generation cached, not per-request.
+
+**Corrected in M2-07 — "in the organiser's language" was unbuildable.** There is no locale on an organiser or an event and no isiZulu copy anywhere: `src/copy/` is the translation unit Part D describes, with one language in it. Translating it needs a first-language speaker, which is open item 9 and a piece of work in its own right rather than a line in this task. The message is therefore keyed by archetype and written in English, in `src/copy/share.ts`, which is the file a translation pass replaces. **Part D's i18n note now carries this as a dependency** — no language column was stubbed, deliberately: an unused column is an invitation to populate it badly.
+
+**The badge is a slot and draws nothing.** Verification is M3-01 and the gate is M3-02, so the card carries the name and no tick, and `setupCopy.share.intro` — *"Every person who opens it sees your verified name"* — is not shipped. Same call as M1-08 §5.
+
+**"Renders correctly in WhatsApp on iOS and Android" is still open.** WhatsApp's crawler fetches from the internet and cannot reach a development server; it needs a public URL and two real phones. The automated half is `tests/e2e/og-image.spec.ts`; the device checklist is in docs/decisions.md M2-07.
 
 **M2-09 · Collections — data and rules** *(NEW)*
 *Deps:* M2-01, M2-03
@@ -476,15 +494,41 @@ Schema per Part D2.8. Attached and standalone collections. Members, joining, vis
 The collection page: members, running total, what they're collecting toward. Joining reuses the contribution flow — **still no account for members.** Verification gates *sharing*, not payout: no verified identity, no shareable link.
 *Done:* an unverified organiser cannot generate a share link; members join without accounts; the trust panel states plainly that the organiser holds the money, not Isipheko.
 
+**Expect no demoable share path until M3-02.** M2-09 built the gate and it refuses everybody: `canShare` requires `idVerificationStatus === 'verified'`, M3-01 is what sets that, and nothing sets it today. So a collection can be created, joined, claim an item and be handed over — and cannot be given a link. That is rule 13 working rather than a gap to route around, and it is the same shape as M1-07 §5's missing verification clause. Tests set the status directly to exercise the shared path; **do not add a flag that bypasses it.**
+
+**Built in M2-10, and none of it bypasses the gate.** `/c/[slug]` is a route handler with the same posture and the same 150KB ceiling as the event page, and `pnpm gate:size` measures it (31.6KB first load). Joining is the contribution flow's shape with no payment step, because there is no payment rail: the last screen shows the organiser's own words about where to send it and takes the person's word that they did. The organiser's screen asks for the link and is told no, in the words `collectionCopy.shareBlocked` uses.
+
+**One design element could not be built: the shortfall line.** `design/collection.html` computes *"The tent costs R1 200 and we have R900. Still R300 short"* from an item's cost, and a need item carries the organiser's free text — *"Around R1 200 to hire"*, *"Mealie meal, rice, sugar, oil"* — rather than a number (M1-07 §3). Parsing that into arithmetic on a page whose subject is money, where being wrong tells a group they are short when they are not, is not a trade worth making. **It needs need items to carry a real cost, which is a separate decision with its own cost.** See docs/decisions.md M2-10.
+
 **M2-11 · Handover** *(NEW)*
 *Deps:* M2-10, M4-02 *(soft — album can follow)*
 Witness confirmation as default. Organiser-marks-with-evidence as fallback. Optional one-tap host acknowledgement by SMS link, never required. Generates the group's album.
-*Done:* handover completes with the host taking no action in the system; witness confirmation works from a contributor's phone; evidence photo EXIF-stripped per M4-01 rules.
+*Done:* handover completes with the host taking no action in the system; witness confirmation works from a contributor's phone; ~~evidence photo EXIF-stripped per M4-01 rules~~ — **deferred, see below**.
+
+**Built:** a witness link that reaches one of the group and is spent by one tap; the organiser closing it on her own word when nobody can; the family's optional acknowledgement, which writes no ledger entry and never displaces the account of who actually closed the record; and the **incwadi**, the one page the group prints and hands over — every name, every amount, the total, who collected it, and how it was confirmed.
+
+**The third criterion is deferred, not met.** "Evidence photo EXIF-stripped per M4-01 rules" needs M4-01, which does not exist. A JPEG straight off a phone carries GPS coordinates, and on a funeral handover those are the family's home — published to anyone with the link. Improvising a stripper in a task about something else, or building a second one that duplicates M4-01, are both worse than waiting. So the fallback is *"marked by her, on her word"*, and the record says exactly that. **The photo attaches in M4-01 to a record that already exists.**
+
+**Nothing sends the links.** No BSP is configured (M2-08), so the organiser's screen shows each link and she passes it on the way she already talks to these people. No new WhatsApp template was added, for the reason M2-08 §6 gives about the payout templates.
+
+**The album boundary held.** The incwadi is the sheet handed over on the day; M4-02's album (messages and photos across an umcimbi, strand as cover) and M4-03's PDF are different artefacts and stay theirs.
 
 **M2-08 · Notifications**
 *Deps:* M2-05
-WhatsApp utility templates via BSP adapter. **Batched digests, max one per hour to the organiser.** SMS for OTP only. Email fallback.
+WhatsApp utility templates via BSP adapter. **Batched digests, max one per hour to the organiser, per umcimbi.** SMS for OTP only. Email fallback for organisers and witnesses.
 *Done:* 50 contributions in 10 minutes produce exactly one organiser message; template categories verified as utility, not marketing.
+
+**Settled in M2-08, and none of it should read later as an unexplained constraint:**
+
+**Digests are held to 07:00–21:00 SAST.** A digest is non-urgent by construction — that is what makes it digestible — so holding it costs nothing, and a phone buzzing at three in the morning about contributions to your mother's funeral is a harm this product would otherwise have shipped without noticing. The *build* is held rather than the send, so a night's updates arrive as one message in the morning rather than as a 03:00 snapshot that misses whatever happened at dawn. Immediate messages — a contributor's confirmation, a claim, a two-day warning — are unaffected.
+
+**The cap is per organiser per umcimbi**, not per organiser. A digest mixing a wedding and a funeral into one message is the worst possible output of a batching rule; a third message an hour to somebody running three imicimbi is trivial against that.
+
+**Email is not a fallback for contributors.** §8.2 says email backs every row, and it was written before rule 4 was as firm as it is: a contributor has no account and is never asked for an address, so where there is no phone number there is nothing to fall back to. Some contributors are not notified. The alternative is collecting addresses, which costs the property M2-05 has a test guarding.
+
+**No queue.** Architecture §3 lists Redis + BullMQ; neither is installed, and M1-06 §4 already declined to add Redis for rate limiting. An outbox table, a digest-entry table and `pnpm notify` (hourly) do the job transactionally; BullMQ can replace the runner later without touching either table. See docs/decisions.md M2-08 §1.
+
+**The three payout rows of §8.2 have no templates.** Mode B is gated on the legal opinion, so they cannot be sent or tested, and a template that looks reviewed but has never been exercised is worse than an obvious gap. The registry is shaped so they slot in.
 
 ### Milestone 3 — Trust
 
@@ -493,9 +537,13 @@ WhatsApp utility templates via BSP adapter. **Batched digests, max one per hour 
 Provider interface + one implementation. Async job with polling UI — never blocking, must survive a 120-second pending response. Peppered ID hashing via KMS. Selfie and DHA photo never persisted. Timestamped consent capture.
 *Done:* a test proves no plaintext ID number and no image reaches storage or logs.
 
+**Built, with two qualifications recorded against Part J rather than quietly met.** "Via KMS" is not met — the pepper is an environment variable and the seam for moving it is `hashIdNumber`'s argument (item 2a). "No image is persisted" is met because **no image is captured**, and whether one ever is depends on the vendor (item 2).
+
+M3-01 also added `/verify`, which is **organiser-level rather than event-level**: verification is a property of the person, so one check serves every event they set up and every collection they run. The collection organiser's screen links to it, which closes the refusal-with-no-way-out that M2-10 §10 left open. **The publish gate is still M3-02** — `canPublish` carries no verification clause today, deliberately.
+
 **M3-02 · Verified badge and publish gating**
 *Deps:* M3-01, M1-07
-Verification required before publish. Badge above the fold with date. `"Why can't I skip this?"` secondary action explaining the reason rather than demanding compliance.
+Verification required before publish. **Built.** `canPublish` carries the clause M1-07 §5 left out and `publishDraft` carries it again as a condition on the UPDATE, so a caller that never asks the domain publishes nothing. The badge is above the fold with its date, in the trust panel, and on the OG card — where a second hard-coded `verified={false}` in the image route turned out to be drawing an unbadged picture at a URL whose hash already claimed the badge. The tick on the card is an inline SVG, because Satori has no font for U+2713 and answers a missing glyph by fetching one over the network. Badge above the fold with date. `"Why can't I skip this?"` secondary action explaining the reason rather than demanding compliance.
 *Done:* an unverified event cannot be published; badge appears in the OG image.
 
 **M3-03 · Witnesses (abakhaphi)**
@@ -503,30 +551,72 @@ Verification required before publish. Badge above the fold with date. `"Why can'
 Invite by phone, accept/decline, public display. Copy per Part D — honour, not audit. Relation hints on each slot.
 *Done:* invite and acceptance work end-to-end; witnesses render publicly; nothing is sent before they agree.
 
+**Built.** The invite is a capability at `/k/<token>` — the third of three, beside `/w/` and `/h/`, tabulated in docs/decisions.md M3-03 — and **nothing is sent**: the organiser is given the link and passes it on herself, as she does the handover link (M2-11 §7). The public page names only those who agreed; a decline is recorded and never published. Publishing still needs a *named* umkhaphi rather than an accepted one, deliberately.
+
+Two things beyond the task, both recorded: `replaceWitnesses` deleted and rewrote every row on each save, which would have wiped acceptances and live links the first time an organiser added a third person — it reconciles on the phone number now. And `setupCopy.witnesses.askBody` said *"We send them one message"*, which this task made false.
+
+**M3-03 note:** the trust panel's "what Isipheko has checked" block is true as of M3-02 and states the limit of what a badge means. M3-04 owns the panel itself.
+
 **M3-04 · "Is this real?" panel**
 *Deps:* M3-02
 Permanent panel on every event page. Not styled as a warning. Must state that a number on the page cannot verify the page, and link to `/check`.
 *Done:* present on every event page; no self-referential verification route anywhere in the copy.
 
-**M3-05 · `/check` — independent verification route** *(NEW)*
+**Built, together with M3-05 — see below.** "Every event page" turned out to mean the contribution flow as well, which had no panel, no safety line and no badge: that is the screen where somebody is looking at a number they are about to pay, having navigated away from the page that reassured them. The link to `/check` sits **under** the typed instruction and is labelled with the literal address; docs/decisions.md M3-04 §2 records why both conditions matter.
+
+**M3-05 · `/check` — independent verification route** *(NEW)* — **built inside M3-04, not outstanding**
 *Deps:* M3-02
 The canonical route the trust panel and verify screen both point to. Someone holding a link, a reference code, or an organiser name can confirm independently whether an event is real and verified. **Must be reachable without following a link from the event page** — that is the entire point.
 *Done:* resolvable by slug and by reference code; returns verification status and organiser name; rate-limited against enumeration; exposes no personal data beyond what the event page already shows publicly.
+
+**Merged into M3-04 and shipped with it.** A panel whose whole content is an instruction to come here could not ship pointing at a 404, and this route's only dependency was M3-02. It resolves a code, a slug or a whole pasted link; a contribution's code resolves to its event; a draft answers exactly like a code nobody was issued. The rate limit is in memory and says so — architecture §10's edge half is the one that works for a public read.
+
+**Not built, and it is a real gap:** resolution by **organiser name**. The spec offers it and it is not implemented — a name is not unique, so it is a search rather than a lookup, and a search over organiser names on an unauthenticated endpoint is a way to ask which people have set up an umcimbi. It needs a deliberate design (exact-match only? paired with something else?) rather than a `contains` query. Whoever picks it up should read docs/decisions.md M3-04 §7 first.
+
+**M2-08b · Threading `now` through the notification path** *(NEW — done)*
+*Deps:* M2-08
+Three integration tests passed only before 03:00 SAST: the scenario ran on the wall clock while the flush was asked about a fixed timestamp. Fixed by threading the clock through the tests, and by supplying `created_at` on `notifications` and `digest_entries` rather than letting the column default — retention reads both. **The integration suite is clock-independent as of this task**, and CLAUDE.md carries the rule. `contributions.created_at` has the same shape and is deliberately untouched; see docs/decisions.md M2-08b §5 before touching M2-05's sweep.
 
 **M3-06 · Report channel**
 *Deps:* M3-04
 Report form, monitored queue, acknowledgement path with an SLA.
 *Done:* a report creates a reviewable record and sends an acknowledgement.
 
+**Built.** `/report` takes a report about an event, a collection, or **nothing we hold** — a link that resolves to nothing is the scam case, and `/check` offers the path at exactly the moment somebody discovers one. No account, no email, no script.
+
+The acknowledgement is a **reference on screen**, immediately, because no BSP exists to send a message and 57% of people who report a scam hear nothing back: an acknowledgement that queues is not one that arrives. The message goes to the outbox as well, for the day there is a provider. Somebody who leaves no number is told plainly that the screen is the whole of it.
+
+The SLA is **one working day**, stored on the record and stated in the copy so the two cannot drift, and `pnpm notify` prints the queue every run **including when it is empty**.
+
+**Read docs/decisions.md M3-06 §1 before changing anything here.** It records a standing rule: a report does nothing by itself. The review screen a person works from is M3-07's, deliberately.
+
 **M3-07 · Audit log and admin review**
 *Deps:* M1-02
 Append-only audit of every security-relevant action. Minimal internal review queue for flagged events.
 *Done:* auth, publish, confirm, payout-request and report events all logged; log not mutable by the app role.
 
+**Built, with one criterion answered by saying no.** Auth and identity were already logged (M1-06, M3-01); this added publish, both confirmations, both handover paths and both report events, and moved the taxonomy into `src/domain/audit/` so the closed set of action strings is a contract rather than a convention. **`payout-request` is not logged and must not be**: Mode B is Milestone 5 and no payout can be requested today, so the three action strings are reserved and documented in the taxonomy and deliberately absent from the union — a logger for an action nobody can take is dead code wearing the appearance of a reviewed control.
+
+*"Not mutable by the app role"* needed no migration — the grants have been right since M1-02 — but the existing test only proved an ORM update is refused, which says nothing about a psql session running as the app. Raw SQL UPDATE, DELETE and TRUNCATE are now all proved refused.
+
+**"Flagged events" has no referent, and that is the design.** Nothing flags an event, because nothing may (M3-06 §1). Reported is the only thing an event can be, so the queue is the report queue — ordered by the deadline somebody was promised rather than by arrival, with the reported umcimbi's audit trail beside each one, which is why M3-06 §9 left this screen to ship with the log.
+
+**The standing rule moved one layer along and is tested there.** M3-06 proved a report changes nothing about an event. M3-07 proves *triage* changes nothing either — the obvious next hole, since triage is the human decision the rule reserves for a person. The event row is compared whole across a full received → reviewing → closed pass, again with five reports all closed, and the rendered public page is compared before and after.
+
+Access is an `ADMIN_PHONE_NUMBERS` environment allowlist checked against an ordinary session — **not a column**, because the app role holds UPDATE on `organisers` and a flag the application can set on itself is not a privilege boundary. It is a stopgap shape and belongs on Part J beside the KMS item; read docs/decisions.md M3-07 §2 before treating it as the intended design. Reading the queue is logged, not only acting on it.
+
 **M3-08 · Organiser dashboard**
 *Deps:* M2-05, M3-03
 Per `design/dashboard.html`. Confirmation queue leading the page with its empty state. Needs board from the organiser's side — claimed-not-delivered vs unclaimed. `raised / settling / available` money split. Payout conditions with `protects` and `remedy` on every condition. **Use Stitch BAV for bank verification, not the R1 deposit flow in the design file — see Part F.**
 *Done:* confirm and mark-delivered are the two easiest actions on the page; every unmet condition shows a concrete next step; the 72h hold fences only the recent portion, never the whole balance.
+
+**Built, and the money section is where the design had to be overruled.** `design/dashboard.html` renders *"Ready to pay out now — R44 600"* above a **Request** button, under *"Money sits in a held Isipheko account"*. None of it is true: Mode B is Milestone 5, and under Mode A the contributor pays the organiser directly, so the money is already in her own account. The split is computed for real from the ledger and labelled for what it is — **Confirmed on the record**, **Still inside the 72 hours**, **Settled** — with no request button anywhere. Gating the section behind `mode: 'hosted'` was considered and rejected: no event is hosted, so it would render nowhere.
+
+**`design/dashboard.html` now has three known-untrue elements** and should be checked rather than copied: the R1 test deposit (Part F), the **countdown on the bereavement variant** — *"in 4 days"*, which rule 1 forbids and `allowsCountdown` exists to prevent — and the held-balance payout section. Read docs/decisions.md M3-08 §2 before working from that file.
+
+The four conditions render with `protects` and `remedy`, and **only identity has a button**, because `/verify` is the only screen that exists: bank verification needs a Stitch BAV adapter and approval needs a payout, both Milestone 5. Where a remedy cannot be acted on the copy says so rather than leaving a dead end. None of the four always passes — identity is unmet on a draft, which is why the dashboard stays reachable before publishing.
+
+Two things beyond the task, both recorded. The confirmation queue is **one list** rather than the stub's two cards, because two lists put the deliveries below the payments. And **suggestions from M2-04 had been built, tested and unreachable** — a contributor could tell a family they had forgotten something and no organiser could ever see it; they are the fourth group on the board now.
 
 ### Milestone 4 — Album
 
@@ -534,6 +624,8 @@ Per `design/dashboard.html`. Confirmation queue leading the page with its empty 
 *Deps:* M2-05
 Attach to a contribution. Upload limits, dimension caps, EXIF stripped, content-type validated by magic bytes not extension.
 *Done:* oversized and mistyped uploads rejected; EXIF confirmed stripped; served as AVIF with WebP fallback.
+
+**M2-11's handover evidence is waiting on this.** The handover's fallback path — the organiser marking it herself — was built without the photo the design offers, because a JPEG off a phone carries the GPS of the house it was taken at and there is no stripper yet. `collections.handover_evidence_key` exists and is unused. When this task lands, the photo attaches to a record that already exists; do not add a second stripping path for it.
 
 **M4-02 · Album view**
 *Deps:* M4-01, M2-06
@@ -562,6 +654,8 @@ The `protects` line as written stays — it is accurate for either mechanism.
 
 **M3-08 must not implement the R1 flow.** Flagged here because the design file contains it and would otherwise be copied faithfully.
 
+**Done, and it was not the only one.** M3-08 shipped Part F's replacement wording and no test deposit — and found two further untrue elements in the same file: a countdown on the bereavement variant, and a held-balance payout section with a Request button. All three are tabulated in docs/decisions.md M3-08 §2. **Treat `design/dashboard.html` as a file to check against the rules rather than copy from.**
+
 ---
 
 ## Part G — Performance Budget (restated with measured numbers)
@@ -580,6 +674,43 @@ Comfortably inside 150KB with room for growth.
 **Two notes for the CI gate:**
 1. Measure the **Next.js production build**, not the Claude Design bundle. Those files carry ~200KB of preview runtime and React that will not exist in production. The real page is the template, not the wrapper.
 2. Fonts cache across navigations, so only the first page pays. Gate on first load anyway — that is the contributor's experience.
+
+### G.1 Why the public path is a route handler, not a page — measured in M1-08
+
+**Do not convert `src/app/(public)/e/[slug]/route.tsx` into `page.tsx`.** It will typecheck, it will render identically, and it will silently put 174KB back.
+
+M1-08 built the page both ways and measured the production build. An App Router page with **zero client components and no interactivity** — the M1-07 stub, a title and six list items — came to:
+
+| | gzipped |
+|---|---|
+| HTML | 2.8 KB |
+| CSS | 1.4 KB |
+| **JavaScript (6 chunks)** | **174.3 KB** |
+| Font (latin) | 26.8 KB |
+| **First load** | **199 KB** |
+
+That is 33% over the 150KB ceiling before any of the real content exists. The JavaScript is Next's App Router client runtime — React, the router, the Turbopack runtime — and it ships whether or not a route has a client component. Next 16 has no configuration option that removes it; `inlineCss`, `cssChunking` and `prefetchInlining` were all checked.
+
+The budget above was written for a page that does not ship a framework runtime: ~62KB typical, of which 26.8KB is the font, leaves ~35KB for everything else.
+
+**So the public event page is rendered with `renderToStaticMarkup` and served from a route handler**, with the tokens and page CSS inlined into the head. Measured after the change, same production build, same fixture:
+
+| | transferred |
+|---|---|
+| HTML + inline critical CSS (brotli) | 4.6 KB |
+| JavaScript | **0 KB** |
+| Font (latin) | 26.2 KB |
+| **First load** | **30.8 KB** |
+| Worst case, pulling latin-ext | 48.8 KB |
+
+LCP on slow 3G (400kbps, 400ms RTT): **0.61s** against the 2.5s budget.
+
+Two consequences to plan around:
+
+- **The contribution flow inherits this.** Claiming and contributing on the public path are `<form method="post">` to route handlers or server actions. Rule 5 already required that — the claim has to work with JavaScript disabled — so this removes the option of quietly not doing it. **Noted against M2-04.**
+- **Next does not compress a raw `Response` from a route handler.** It compressed the page it replaced. The handler compresses its own output (`src/lib/http-compress.ts`); without it the document ships 13.3KB instead of 4.6KB.
+
+`pnpm gate:size` builds nothing, starts the production server, seeds a published funeral, measures what crosses the wire, measures LCP, and deletes the fixture. It fails the build on breach and names the cause. Reverting the route to a page was tried: the gate reports 198.6KB, "over budget by 66.6KB", and "the page loaded 7 script(s)".
 
 ---
 
@@ -632,8 +763,13 @@ Comfortably inside 150KB with room for growth.
 None of these block Milestones 1–4.
 
 1. **Legal opinion on the Stitch float** — gates Milestone 5 only. Commission now.
-2. Identity vendor and pricing — gates M3-01's implementation, not its interface.
-3. WhatsApp BSP selection — gates M2-08's implementation, not its interface.
+2. Identity vendor and pricing — gates M3-01's implementation, not its interface. **M3-01 is built:** the `IdentityVerifier` interface, an in-memory implementation, consent capture, the peppered hash and the polling UI all exist, and `identityVerifier()` refuses to construct in production until a vendor is chosen. The choice also decides one thing beyond the credential — **whether a selfie capture step exists at all.** VerifyNow and Datanamix return the Home Affairs photograph for us to compare, which means capture, upload and images we are then responsible for not keeping; Didit does liveness and face match inside its own hosted flow, so no image reaches us. `VerificationStart` accepts either shape. **No capture was built**, so M3-01's "no image reaches storage or logs" is honest today because none is captured — if the vendor chosen needs one, that criterion has to be earned again in the task that builds it rather than inherited.
+
+2a. **A KMS for the ID pepper.** Architecture §7.3 puts it in one and M3-01 uses `ID_NUMBER_PEPPER` from the environment, the same stopgap M1-02 §5 recorded for the column key. It was on neither list. `hashIdNumber` takes the pepper as an argument, so the seam is already where it needs to be — moving it is one function in `src/lib/identity.ts`.
+
+2b. **A real admin model.** M3-07 gates the report review queue on `ADMIN_PHONE_NUMBERS`, an environment allowlist checked against an ordinary organiser session. It is in the environment rather than in a column for a good reason — the application role holds UPDATE on `organisers`, so an `is_admin` column would be a privilege the app could grant itself — but it has no roles, no revocation short of a redeploy, no record of who granted it, and it does not scale past a handful of people. Same stopgap posture as item 2a, recorded so nobody later mistakes it for the intended design. See docs/decisions.md M3-07 §2.
+
+3. WhatsApp BSP selection — gates M2-08's *delivery*, not its interface: the templates, the outbox, the digest rule and the flush are built and tested, and `whatsAppSender()` refuses to construct in production until a BSP exists. **An email provider and an SMS provider are open in the same way** — the SMS one has been outstanding since M1-06 §6 and belongs on this list.
 4. AWS af-south-1 vs Azure SA North.
 5. CIPC, domain, trademark on "Isipheko".
 6. User interviews validating the public-ledger default and the needs board.
@@ -643,7 +779,7 @@ None of these block Milestones 1–4.
 **Newly surfaced by the designs, needing a decision:**
 
 7. **`isipheko.co.za/check` must exist at launch.** Load-bearing in two places. M3-05 builds it; the domain and route need reserving now.
-8. **The R5,000 witness-approval threshold** was invented by the dashboard design. Make it configurable and confirm against real contribution sizes — PayShap data suggests 80% of transactions are under R500, so R5,000 may be high or low depending on total event size.
+8. **The R5,000 witness-approval threshold** was invented by the dashboard design. Make it configurable and confirm against real contribution sizes — PayShap data suggests 80% of transactions are under R500, so R5,000 may be high or low depending on total event size. **M3-08 made it `WITNESS_APPROVAL_THRESHOLD` in `src/domain/payout/balance.ts`** — a named constant and deliberately *not* an environment variable, because nothing needs to vary it yet and a setting implies it has been tuned. When there is evidence, the evidence moves that line.
 9. **isiZulu and Sesotho copy in the designs needs first-language review** before anything ships publicly.
 10. **Collection organiser fraud has no product-level chokepoint.** Verification-gates-sharing plus witness confirmation plus the social graph are the controls. Watch actual abuse rates once live and be prepared to add friction — a hold on link sharing for new organisers, or a member-count threshold before sharing unlocks.
 11. **Standalone collections dilute positioning if led with.** Build early, market second. Revisit if collections outgrow ceremony events by more than ~3:1.

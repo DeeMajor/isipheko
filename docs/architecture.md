@@ -148,9 +148,23 @@ Organiser ──1:N──▶ Event ──1:N──▶ Contribution ──1:1─�
 
 ### 4.3 The ledger hash chain
 
-Each `ledger_entries` row stores `prev_hash` (the previous entry's `entry_hash` for that event) and `entry_hash = SHA256(sequence_no || entry_type || direction || amount_cents || reference_id || prev_hash || created_at)`.
+Each `ledger_entries` row stores `prev_hash` (the previous entry's `entry_hash` for that chain) and
 
-Genesis entry uses `prev_hash = SHA256(event_id)`.
+```
+entry_hash = SHA256(
+  sequence_no || entry_type || direction || amount_cents ||
+  in_kind_description || reference_id || contribution_id ||
+  prev_hash || created_at
+)
+```
+
+**`in_kind_description` and `contribution_id` were added in M2-01** and are not in the original formula. Without the description in the chain, *"the tent"* could be edited to *"a chair"* and every hash would still verify — and the threat model here is precisely somebody with database write access, since the application role holds no UPDATE on `ledger_entries` at all. In-kind is the core of what *isipheko* means: the description **is** the contribution. See docs/decisions.md M2-01.
+
+Fields are joined with U+001F (unit separator) and a NULL is written as U+0000 — both are characters Postgres refuses to store in a text column, so no value can forge a field boundary and an absent description is distinguishable from an empty one. `created_at` is ISO-8601 with milliseconds, supplied by the application because the hash covers it, and matching what `TIMESTAMP(3)` stores.
+
+**This format cannot be changed.** Not "requires a migration" — changing it invalidates every chain ever written, and leaves no way to tell an altered row from a re-serialised one. A fixed test vector pins it.
+
+The first entry in a chain uses `prev_hash = SHA256(chain_id)` — the event id, or the collection id for a standalone collection chain. There is **no synthetic genesis row**: the first real contribution or payout is sequence 1. Sequence numbers are per chain.
 
 This makes tampering detectable: altering any historic entry breaks every subsequent hash. A nightly job re-verifies every chain and alerts on mismatch. This is cheap to implement and is a genuinely defensible claim to make to users — *"nobody, including us, can quietly change this record."*
 
@@ -307,17 +321,19 @@ The economics matter: at R29.90 per DHA check, verifying every organiser at sign
 
 | Stage | Trigger | Checks | Approx. cost |
 |---|---|---|---|
-| **Tier 0** | Event creation | Phone OTP only | ~R0.10 |
-| **Tier 1** | Event published publicly | DHA ID check + liveness/face match | ~R30 + ~R3 |
+| **Tier 0** | Event creation, or starting a collection | Phone OTP only | ~R0.10 |
+| **Tier 1** | **Before anything shareable exists** — an event published publicly, or a collection's link being issued | DHA ID check + liveness/face match | ~R30 + ~R3 |
 | **Tier 2** | First payout requested (Mode B) | Stitch BAV (bank ↔ ID) | TBC |
 
-Tier 1 at publication — not at payout — because the trust badge has to be on the page *before* anyone is asked for money. That is the entire point.
+Tier 1 before anything shareable exists — not at payout — because the trust badge has to be on the page *before* anyone is asked for money. That is the entire point.
+
+**This section predates collections (Part D2) and the Tier 1 trigger has been generalised to cover them.** A collection has no publication step: the organiser holds the money in her own account, so there is no payout to withhold and the absence of a shareable link is the only leverage that exists (rule 13). Publication and the share gate are therefore the same moment in two different shapes — the first time a stranger can reach the page. A collection organiser also never reaches Tier 2, because a collection has no payout at all (rule 12).
 
 **Note on the DHA photo route:** VerifyNow and Datanamix can return the official ID photograph for biometric comparison against a live selfie. Didit's bundle does liveness plus face match at a much lower unit price. **Get quotes from both before choosing** — the cost difference at volume is large.
 
 ### 7.3 POPIA handling of identity data
 
-- **Never store the ID number in plaintext.** Store `SHA256(id_number + pepper)` for uniqueness checks; the pepper lives in a KMS, not the database.
+- **Never store the ID number in plaintext.** Store `SHA256(id_number + pepper)` for uniqueness checks; the pepper lives in a KMS, not the database. **As built in M3-01 the pepper is an environment variable and not a KMS** — the same stopgap M1-02 recorded for the column encryption key, and now on the open-items list as item 13. `hashIdNumber` takes the pepper as an argument, so moving it is one function.
 - **Never store the selfie or the DHA photo** beyond the verification transaction. Store only the result and a provider reference.
 - **Explicit consent capture** before any DHA check, with a timestamped record — POPIA s11 requires a lawful basis, and consent is the practical one here.
 - Verification results are immutable audit records with a defined retention period.
@@ -500,6 +516,7 @@ Milestones 1–4 have no dependency on the unresolved regulatory question. That 
 | 10 | User interviews validating public-ledger default and needs board | Milestone 2 scope | Research |
 | 11 | Print fulfilment partner and unit economics | Milestone 6 | Procurement |
 | 12 | Whether PayShap Request is accessible to us as a platform, and on what terms | Mode B method priority | Stitch / PayInc |
+| 13 | **KMS for the ID pepper and the column encryption key** — §7.3 and §10 both assume one, and both are environment variables today | Anything real being stored | Tech decision |
 
 **Item 1 is the gate.** Everything in Milestone 5 waits on it, and it should be commissioned this week.
 

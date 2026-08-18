@@ -87,6 +87,8 @@ The contributors are trusting her. Implying otherwise would be the one dishonest
 
 **Never mock the ledger or the database in integration tests.** Use Testcontainers.
 
+**Any timestamp a rule is computed against must be supplied by the application, not defaulted by the column.** The database default stays for anything bypassing the repository, but a rule that reads a wall-clock column cannot be tested against a simulated one — the test then passes or fails according to the hour somebody runs it, and a clock-dependent suite teaches people to ignore red. Two instances so far: the ledger hash covers `created_at` (M2-01 §3), and the digest cap and retention window read `notifications.created_at` (M2-08b).
+
 **After each task:** run `pnpm typecheck && pnpm lint && pnpm test`, then append anything decided beyond the spec to `docs/decisions.md`.
 
 **Commit format:** `feat(M2-04): needs board claiming with expiry`
