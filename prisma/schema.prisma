@@ -128,6 +128,18 @@ enum ContributionStatus {
   @@map("contribution_status")
 }
 
+/// A contributor can suggest something the family forgot. It does not appear on
+/// the public board until the organiser has looked at it — and `declined` is a
+/// different thing from `suggested`, because an organiser working through a
+/// list needs to know what they have already dealt with.
+enum NeedItemStatus {
+  active
+  suggested
+  declined
+
+  @@map("need_item_status")
+}
+
 enum NeedClaimStatus {
   claimed
   delivered
@@ -233,9 +245,16 @@ enum ActorType {
 model Organiser {
   id String @id @default(uuid(7))
 
-  phoneE164   String  @unique @map("phone_e164")
-  email       String?
-  displayName String  @map("display_name")
+  phoneE164 String  @unique @map("phone_e164")
+  email     String?
+
+  /// Nullable, and filled at setup (M1-07) rather than at sign-in.
+  ///
+  /// The organiser record is created by the first successful OTP verification,
+  /// at which point we have a phone number and nothing else. Asking for a name
+  /// on the sign-in form would have to happen only for numbers we do not know —
+  /// which tells whoever is asking whether a number is registered.
+  displayName String? @map("display_name")
 
   /// SHA-256 of the ID number with a pepper held outside the database
   /// (architecture §7.3). The plaintext is never stored, here or anywhere.
@@ -245,11 +264,88 @@ model Organiser {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  bankAccounts BankAccount[]
-  events       Event[]
-  collections  Collection[]
+  bankAccounts        BankAccount[]
+  events              Event[]
+  collections         Collection[]
+  sessions            Session[]
+  notifications       Notification[]
+  digestEntries       DigestEntry[]
+  identityConsents    IdentityConsent[]
+  identityChecks      IdentityVerification[]
 
   @@map("organisers")
+}
+
+/// A one-time code, in flight. CLAUDE.md rule 8 and architecture §10.
+///
+/// `codeHash` is an HMAC-SHA256 of the code under a pepper held outside the
+/// database. A six-digit code is a 10^6 space, so a plain hash of one is a
+/// lookup table rather than a secret — the pepper is what makes a stolen row
+/// useless. The code itself is never written down: not here, not in a log, not
+/// in an error.
+///
+/// Rows are kept after use. They are how the rate limit is counted, and how an
+/// attempt on a number nobody owns is still visible afterwards.
+model OtpChallenge {
+  id String @id @default(uuid(7))
+
+  /// Not a foreign key. A code can be requested for a number that has no
+  /// organiser yet, and the response must not differ either way.
+  phoneE164 String @map("phone_e164")
+
+  codeHash String @map("code_hash")
+
+  expiresAt  DateTime  @map("expires_at")
+  /// Six wrong guesses ends the challenge. Unlimited guesses against six digits
+  /// is a walk, not an attack.
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at")
+
+  /// Hashed, never stored (rule 8). Carries the per-IP limit — one phone per
+  /// attacker is not the threat model.
+  requestedIpHash String? @map("requested_ip_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phoneE164, createdAt])
+  @@index([requestedIpHash, createdAt])
+  @@map("otp_challenges")
+}
+
+/// A session, revocable by construction.
+///
+/// This exists rather than a JWT because architecture §10 requires payout
+/// approval to re-authenticate regardless of session age, and a stolen phone
+/// needs "sign out everywhere". Neither is possible against a token that cannot
+/// be withdrawn before it expires. See docs/decisions.md M1-06.
+///
+/// `tokenHash` is SHA-256 of the cookie value. The cookie itself is 32 random
+/// bytes and is never stored — a database dump does not yield a working
+/// session.
+model Session {
+  id String @id @default(uuid(7))
+
+  organiserId String    @map("organiser_id")
+  organiser   Organiser @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique @map("token_hash")
+
+  expiresAt  DateTime  @map("expires_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  /// When the person last proved they hold the phone. Payout approval reads
+  /// this, not `createdAt` (architecture §10, M5).
+  authenticatedAt DateTime @default(now()) @map("authenticated_at")
+
+  createdIpHash String? @map("created_ip_hash")
+  userAgentHash String? @map("user_agent_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([organiserId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 /// Architecture §4.2. The account number is encrypted at the column level with
@@ -265,10 +361,10 @@ model BankAccount {
   accountNumberEncrypted String @map("account_number_encrypted")
   accountType            String @map("account_type")
 
-  bavResult      Json?             @map("bav_result")
-  bavVerifiedAt  DateTime?         @map("bav_verified_at")
-  status         BankAccountStatus @default(pending)
-  createdAt      DateTime          @default(now()) @map("created_at")
+  bavResult     Json?             @map("bav_result")
+  bavVerifiedAt DateTime?         @map("bav_verified_at")
+  status        BankAccountStatus @default(pending)
+  createdAt     DateTime          @default(now()) @map("created_at")
 
   organiser Organiser @relation(fields: [organiserId], references: [id], onDelete: Restrict)
   payouts   Payout[]
@@ -278,6 +374,175 @@ model BankAccount {
   /// organisers; that would be a circular foreign key for the same guarantee.
   @@index([organiserId])
   @@map("bank_accounts")
+}
+
+/// The lawful basis for a Home Affairs check, captured before the check runs
+/// (POPIA s11, architecture §7.3).
+///
+/// **Insert-only.** The application role is granted no UPDATE and no DELETE on
+/// this table, so a consent cannot later be back-dated or reworded by the code
+/// that wrote it — the same posture as `ledger_entries` and `audit_log`. That is
+/// what makes it evidence rather than a checkbox we remember ticking.
+///
+/// It records *what* was agreed to, not only when: the copy key, its version and
+/// a hash of the exact words on screen. "They consented" is not an answer to
+/// "consented to what?", and the wording will change.
+model IdentityConsent {
+  id          String @id @default(uuid(7))
+  organiserId String @map("organiser_id")
+
+  /// The key and version in src/copy/verify.ts.
+  copyKey     String @map("copy_key")
+  copyVersion String @map("copy_version")
+  /// SHA-256 of the exact text shown. The words themselves live in the repo.
+  copyHash    String @map("copy_hash")
+
+  /// Hashed, like everywhere else they appear (rule 8).
+  ipHash        String? @map("ip_hash")
+  userAgentHash String? @map("user_agent_hash")
+
+  consentedAt DateTime @default(now()) @map("consented_at")
+
+  organiser     Organiser              @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  verifications IdentityVerification[]
+
+  @@index([organiserId, consentedAt])
+  @@map("identity_consents")
+}
+
+enum IdentityCheckStatus {
+  pending
+  verified
+  failed
+
+  @@map("identity_check_status")
+}
+
+/// One attempt at a Home Affairs check (architecture §7.2, Tier 1).
+///
+/// **No plaintext ID number, and no photograph.** What an attempt carries is the
+/// peppered hash; the plaintext exists for the length of one provider call and
+/// nowhere else (§7.3). There is no column an image could go in, which is how
+/// "the selfie and the Home Affairs photo are never persisted" is kept — by
+/// having nowhere to put them rather than by remembering not to.
+///
+/// The hash is here and not only on the organiser because the answer arrives on
+/// a later poll, when the plaintext is gone. It is promoted to
+/// `organisers.id_number_hash` when a check passes and not before: writing it
+/// there at the start would let one mistyped digit park somebody else's identity
+/// against this account until the check came back.
+model IdentityVerification {
+  id          String @id @default(uuid(7))
+  organiserId String @map("organiser_id")
+  /// NOT NULL: a check cannot exist without the consent that preceded it.
+  consentId   String @map("consent_id")
+
+  /// Which vendor answered, so a change of provider is visible in the record.
+  provider String
+  /// The vendor's opaque handle. Never an ID number, never a person.
+  providerReference String? @map("provider_reference")
+
+  /// SHA-256 of the number with a pepper held outside the database. Deliberately
+  /// not unique: two attempts on the same number are two attempts, and the
+  /// uniqueness that matters — one identity, one account — is on `organisers`.
+  idNumberHash String? @map("id_number_hash")
+
+  status IdentityCheckStatus @default(pending)
+  /// A code, never a provider's prose — the same reason
+  /// `notifications.last_error_code` holds one (rule 8).
+  failureReason String? @map("failure_reason")
+
+  /// Booleans and nulls only: what was checked and what matched. Never a payload.
+  checks Json?
+
+  /// The floor between two provider calls, whoever is asking. Two tabs open on
+  /// the pending page must not double somebody's bill.
+  lastPolledAt DateTime? @map("last_polled_at")
+
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  organiser Organiser       @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  consent   IdentityConsent @relation(fields: [consentId], references: [id], onDelete: Restrict)
+
+  @@index([organiserId, startedAt])
+  @@map("identity_verifications")
+}
+
+enum ReportReason {
+  not_who_they_say
+  never_happened
+  asked_for_a_code
+  money_not_received
+  something_else
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  received
+  reviewing
+  closed
+
+  @@map("report_status")
+}
+
+/// Somebody telling us a page is not what it says it is (M3-06).
+///
+/// **A report does nothing by itself.** It does not flag, hold or change the
+/// event it names — there is no column here that could, and that is deliberate.
+/// The reporter has no account and never will (rule 4), so anything automatic
+/// would be automatic for whoever is willing to press it most: five reports on
+/// a funeral would change the page under a family who are burying somebody. A
+/// person decides; this table records. See docs/decisions.md M3-06 §1.
+///
+/// It accepts a report about **nothing we hold**, which is the most valuable
+/// kind: a link that resolves to nothing is the scam case.
+model Report {
+  id String @id @default(uuid(7))
+
+  /// `REP-4K7B2X`, shown on screen the moment it is filed. That is the
+  /// acknowledgement which actually arrives, because no BSP exists to send the
+  /// other one. Deliberately **not** resolvable through /check — a code anybody
+  /// could type in would let somebody read a report about themselves, and the
+  /// reporter may well be in the same family.
+  refPrefix String @map("ref_prefix")
+  refCode   String @map("ref_code")
+
+  reason ReportReason
+  /// Free text, never required. A report with no words is still a report.
+  detail String?
+
+  /// What we hold, if anything. Both null is ordinary, not an error.
+  eventId      String? @map("event_id")
+  collectionId String? @map("collection_id")
+  /// What they were sent, when it resolves to nothing.
+  aboutTyped   String? @map("about_typed")
+
+  /// The only way to come back to them, and optional. Never required to file.
+  reporterPhoneE164 String? @map("reporter_phone_e164")
+
+  /// Hashed, like everywhere else they appear (rule 8).
+  ipHash        String? @map("ip_hash")
+  userAgentHash String? @map("user_agent_hash")
+
+  status ReportStatus @default(received)
+
+  /// One working day, computed at insert so the promise on screen and the
+  /// deadline in the record are the same number (M3-06).
+  respondBy      DateTime  @map("respond_by")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  closedAt       DateTime? @map("closed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  event      Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@unique([refPrefix, refCode])
+  @@index([status, respondBy])
+  @@index([eventId])
+  @@map("reports")
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +557,13 @@ model Event {
   /// (architecture §10). A death in the family must not be guessable.
   slug String @unique
 
+  /// What somebody types into isipheko.co.za/check to verify this page without
+  /// taking the page's word for it (architecture §10, design/event.html). Same
+  /// primitive as a contribution's bank reference; a different thing to look
+  /// up. Replaces the slug-derived stopgap from M1-08.
+  refPrefix String @map("ref_prefix")
+  refCode   String @map("ref_code")
+
   archetype ArchetypeKey
 
   /// Denormalised from `archetype`. A CHECK constraint cannot perform a lookup,
@@ -299,7 +571,17 @@ model Event {
   /// database. A second CHECK keeps this column from drifting from the key.
   archetypeGroup ArchetypeGroup @map("archetype_group")
 
-  title       String
+  title String
+
+  /// The line under the title: a clan name (*uMaZondi*), the other partner, the
+  /// family. `design/event.html` renders it directly beneath the title, and
+  /// `design/setup.html` asks for it as the optional second field.
+  subtitle String?
+
+  /// The area, not the street. The setup screen says so in as many words: a
+  /// public page does not need somebody's address on it.
+  place String?
+
   description String?
   eventDate   DateTime? @map("event_date")
 
@@ -322,7 +604,11 @@ model Event {
   ledgerEntries LedgerEntry[]
   payouts       Payout[]
   collections   Collection[]
+  notifications Notification[]
+  digestEntries DigestEntry[]
+  reports          Report[]
 
+  @@unique([refPrefix, refCode])
   @@index([organiserId])
   @@index([status])
   @@map("events")
@@ -335,13 +621,28 @@ model NeedItem {
   label    String
   category String?
 
-  quantityRequired Int @map("quantity_required")
-  quantityClaimed  Int @default(0) @map("quantity_claimed")
+  /// Free text, as the setup screen asks for it — *"Around R1 200 to hire"*,
+  /// *"Mealie meal, rice, sugar, oil"*, *"2 head"*.
+  ///
+  /// Deliberately not parsed into the columns below. A grocery list has no
+  /// quantity in it, and a parser that guessed would turn one into "1 unit" —
+  /// data loss that reads like data. Real quantities and partial claiming
+  /// arrive in M2-03, where something actually uses them.
+  note String?
+
+  quantityRequired Int     @default(1) @map("quantity_required")
+  quantityClaimed  Int     @default(0) @map("quantity_claimed")
   unit             String?
 
   estimatedCostCents BigInt? @map("estimated_cost_cents")
   allowsCashToward   Boolean @default(true) @map("allows_cash_toward")
   sortOrder          Int     @default(0) @map("sort_order")
+
+  status NeedItemStatus @default(active)
+
+  /// Who suggested it. A name only — a contributor has no account and never
+  /// will (CLAUDE.md rule 4).
+  suggestedByName String? @map("suggested_by_name")
 
   event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   claims        NeedClaim[]
@@ -349,6 +650,7 @@ model NeedItem {
   collections   Collection[]
 
   @@index([eventId, sortOrder])
+  @@index([eventId, status])
   @@map("need_items")
 }
 
@@ -361,19 +663,43 @@ model NeedClaim {
 
   contributionId String? @unique @map("contribution_id")
 
-  quantity           Int
-  claimantName       String  @map("claimant_name")
-  claimantPhoneE164  String? @map("claimant_phone_e164")
+  /// Set when a collection claims the item as a unit (Part D2.5). The
+  /// reservation is the same conditional UPDATE every other claim uses — a
+  /// second path is how one tent gets promised to two families — and this is
+  /// what says the claimant is a group rather than a person. Unique: a
+  /// collection claims one item, as a unit.
+  collectionId String? @unique @map("collection_id")
 
-  status                NeedClaimStatus @default(claimed)
-  expiresAt             DateTime?       @map("expires_at")
-  deliveredConfirmedAt  DateTime?       @map("delivered_confirmed_at")
-  createdAt             DateTime        @default(now()) @map("created_at")
+  quantity          Int
+  claimantName      String  @map("claimant_name")
+  claimantPhoneE164 String? @map("claimant_phone_e164")
+
+  status NeedClaimStatus @default(claimed)
+
+  /// Hashed, never stored in the clear (CLAUDE.md rule 8). Carries the per-
+  /// address limit on an endpoint that needs no session, and is what an abuse
+  /// review has to work from.
+  claimedIpHash String? @map("claimed_ip_hash")
+
+  expiresAt            DateTime? @map("expires_at")
+  deliveredConfirmedAt DateTime? @map("delivered_confirmed_at")
+
+  /// When the "two days left" message was sent, so the hourly sweep sends it
+  /// once. A column rather than a lookup against `notifications`, which is
+  /// pruned on a retention schedule and would eventually read as "never told".
+  expiryWarnedAt DateTime? @map("expiry_warned_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   needItem     NeedItem      @relation(fields: [needItemId], references: [id], onDelete: Cascade)
   contribution Contribution? @relation(fields: [contributionId], references: [id], onDelete: SetNull)
+  collection   Collection?   @relation(fields: [collectionId], references: [id], onDelete: SetNull)
 
   @@index([needItemId, status])
+  /// The sweep in scripts/expire-claims.ts reads exactly this.
+  @@index([status, expiresAt])
+  /// The hourly warning sweep: still held, expiring soon, not yet warned.
+  @@index([status, expiresAt, expiryWarnedAt])
+  @@index([claimedIpHash, createdAt])
   @@map("need_claims")
 }
 
@@ -387,6 +713,20 @@ model Witness {
   status            WitnessStatus @default(invited)
   canApprovePayouts Boolean       @default(false) @map("can_approve_payouts")
   acceptedAt        DateTime?     @map("accepted_at")
+  /// Recorded as a fact and never published. A declined invite is a private
+  /// answer to a private question (M3-03).
+  declinedAt        DateTime?     @map("declined_at")
+
+  /// The invite link, as a hash. **The token itself is never stored**, like a
+  /// session (M1-06) and the handover link (M2-11) — a database dump yields
+  /// nothing anybody can present.
+  ///
+  /// One live invite per witness, which is why this is a column rather than the
+  /// table `handover_tokens` is: a collection has many links across two kinds
+  /// and several members, a witness has exactly one. Issuing again replaces it.
+  inviteTokenHash  String?   @unique @map("invite_token_hash")
+  inviteExpiresAt  DateTime? @map("invite_expires_at")
+
   createdAt         DateTime      @default(now()) @map("created_at")
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -424,21 +764,39 @@ model Contribution {
   pspPaymentId       String?                @unique @map("psp_payment_id")
   status             ContributionStatus     @default(pending)
 
-  /// Short, typeable, base32 Crockford with an event tag: `MTH-4K7B2X`
-  /// (architecture §5.2). Unique so reconciliation cannot go to two places.
-  referenceCode String? @unique @map("reference_code")
+  /// The bank reference, stored split (implementation-plan Part C.5) so the
+  /// tag and the code can be styled separately: `MTH-4K7B2X`. Crockford
+  /// base32, six characters. Unique as a pair — the whole string is what goes
+  /// into a banking app's reference field, so that pair must reconcile to
+  /// exactly one contribution.
+  refPrefix String? @map("ref_prefix")
+  refCode   String? @map("ref_code")
+
+  /// When the contributor came back and said they had paid — **not** when the
+  /// row was created. The row exists from the moment the pay step is reached,
+  /// because a reference code needs something to be unique against, and most of
+  /// those rows are people who looked and wandered off. Without this the
+  /// organiser's queue cannot tell the two apart.
+  selfReportedAt DateTime? @map("self_reported_at")
+
+  /// Hashed, never the address (CLAUDE.md rule 8). Carries the per-address
+  /// limit on a flow that has no account by design.
+  reportedIpHash String? @map("reported_ip_hash")
 
   createdAt   DateTime  @default(now()) @map("created_at")
   confirmedAt DateTime? @map("confirmed_at")
 
-  event       Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  collection  Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  needItem    NeedItem?   @relation(fields: [needItemId], references: [id], onDelete: SetNull)
+  event       Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  collection  Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  needItem    NeedItem?    @relation(fields: [needItemId], references: [id], onDelete: SetNull)
   needClaim   NeedClaim?
   ledgerEntry LedgerEntry?
 
+  @@unique([refPrefix, refCode])
   @@index([eventId, status])
   @@index([collectionId])
+  @@index([reportedIpHash, createdAt])
+  @@index([contributorPhoneE164, createdAt])
   @@map("contributions")
 }
 
@@ -483,10 +841,19 @@ model Collection {
   /// know where to send money. Never an account we hold, verify or pay into.
   organiserBankHint String? @map("organiser_bank_hint")
 
-  handoverStatus      HandoverStatus @default(not_started) @map("handover_status")
-  handoverConfirmedBy String?        @map("handover_confirmed_by")
-  handoverEvidenceKey String?        @map("handover_evidence_key")
-  handoverAt          DateTime?      @map("handover_at")
+  handoverStatus            HandoverStatus @default(not_started) @map("handover_status")
+  /// Free text, for display: the name as it should read on the incwadi.
+  handoverConfirmedBy       String?        @map("handover_confirmed_by")
+  /// Who confirmed it, as a fact rather than a string. NULL is exactly the
+  /// organiser-marked case — she closed it on her own word (Part D2.4).
+  handoverConfirmedMemberId String?        @map("handover_confirmed_member_id")
+  handoverEvidenceKey       String?        @map("handover_evidence_key")
+  handoverAt                DateTime?      @map("handover_at")
+
+  /// The family's optional one-tap acknowledgement (rule 15). **Not a status**:
+  /// `handoverStatus` records who closed the record, and a host tapping a link
+  /// must not erase whether a witness was there. Nothing ever waits on this.
+  hostAcknowledgedAt DateTime? @map("host_acknowledged_at")
 
   /// Set when the group claims a need item as a unit (Part D2.5). Eight cousins
   /// jointly bringing the tent is how families actually operate.
@@ -495,12 +862,16 @@ model Collection {
   status    CollectionStatus @default(draft)
   createdAt DateTime         @default(now()) @map("created_at")
 
-  event         Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  organiser     Organiser          @relation(fields: [organiserId], references: [id], onDelete: Restrict)
-  needItem      NeedItem?          @relation(fields: [needItemId], references: [id], onDelete: SetNull)
-  members       CollectionMember[]
-  contributions Contribution[]
-  ledgerEntries LedgerEntry[]
+  event                   Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  organiser               Organiser          @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  needItem                NeedItem?          @relation(fields: [needItemId], references: [id], onDelete: SetNull)
+  members                 CollectionMember[]
+  contributions           Contribution[]
+  ledgerEntries           LedgerEntry[]
+  needClaim               NeedClaim?
+  handoverTokens          HandoverToken[]
+  handoverConfirmedMember CollectionMember?  @relation("HandoverWitness", fields: [handoverConfirmedMemberId], references: [id], onDelete: SetNull)
+  reports                 Report[]
 
   @@index([eventId])
   @@index([organiserId])
@@ -526,8 +897,48 @@ model CollectionMember {
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
+  handoverTokens    HandoverToken[]
+  /// Set when this member is the one who confirmed the handover.
+  witnessedHandover Collection[]    @relation("HandoverWitness")
+
   @@index([collectionId])
   @@map("collection_members")
+}
+
+/// A capability that has to travel to somebody else's phone.
+///
+/// **In a URL, unlike the undo capability of M2-04 §3**, because a witness link
+/// must reach a different person and no cookie can travel. Single use,
+/// expiring, scoped to one collection and one member, and it confirms a
+/// handover and nothing else. The token is never stored — only its SHA-256,
+/// like a session (M1-06).
+model HandoverToken {
+  id           String @id @default(uuid(7))
+  collectionId String @map("collection_id")
+
+  kind HandoverTokenKind
+
+  /// The member who was asked to be there. Null for a host acknowledgement,
+  /// which is optional and never required (rule 15).
+  memberId String? @map("member_id")
+
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  redeemedAt DateTime? @map("redeemed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  collection Collection        @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  member     CollectionMember? @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([collectionId, kind])
+  @@map("handover_tokens")
+}
+
+enum HandoverTokenKind {
+  witness
+  host
+
+  @@map("handover_token_kind")
 }
 
 // ---------------------------------------------------------------------------
@@ -647,4 +1058,123 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([createdAt])
   @@map("audit_log")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (M2-08)
+// ---------------------------------------------------------------------------
+
+/// WhatsApp for notifications, SMS for one-time codes only, email as the
+/// fallback where there is no WhatsApp number (architecture §8.1, §8.2).
+enum NotificationChannel {
+  whatsapp
+  sms
+  email
+
+  @@map("notification_channel")
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  failed
+
+  @@map("notification_status")
+}
+
+/// Why a message exists. `organiser_digest` is the batched one; the rest go
+/// straight to the person they concern.
+enum NotificationKind {
+  organiser_digest
+  contribution_confirmed
+  claim_confirmed
+  claim_expiring
+  /// The acknowledgement somebody who reported a page gets, if they left a
+  /// number. The reference on screen is the acknowledgement that arrives today,
+  /// because no BSP exists to send this one (M3-06).
+  report_received
+
+  @@map("notification_kind")
+}
+
+/// A thing that happened and is waiting to be summarised.
+enum DigestEntryKind {
+  contribution_self_reported
+  contribution_confirmed
+  need_claimed
+
+  @@map("digest_entry_kind")
+}
+
+/// The outbox: **a message we intend to send**.
+///
+/// Separate from `digest_entries`, which holds facts awaiting a summary. One
+/// table with a mode column would be one row type pretending to be two, and the
+/// queries diverge on the first day.
+///
+/// Rows carry the template and its parameters, never a rendered body: the
+/// parameters are what goes on the wire to Meta, and storing prose would put a
+/// second copy of the copy layer in the database.
+model Notification {
+  id String @id @default(uuid(7))
+
+  kind    NotificationKind
+  channel NotificationChannel
+  status  NotificationStatus  @default(pending)
+
+  /// The registry id in src/domain/messaging/templates.ts.
+  templateId String @map("template_id")
+  /// Named parameters. Positional order is the registry's, not this column's.
+  params     Json
+
+  /// One of these, depending on the channel. Never both filled speculatively.
+  toPhoneE164 String? @map("to_phone_e164")
+  toEmail     String? @map("to_email")
+
+  /// Who it is about, for the digest window and for pruning with the event.
+  organiserId String? @map("organiser_id")
+  eventId     String? @map("event_id")
+
+  /// Held until the send window opens (07:00–21:00 SAST) or until a retry.
+  scheduledFor  DateTime @map("scheduled_for")
+  attempts      Int      @default(0)
+  /// A code, never a provider's prose and never a phone number (rule 8).
+  lastErrorCode String?  @map("last_error_code")
+
+  sentAt    DateTime? @map("sent_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  organiser Organiser? @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  event     Event?     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  digestEntries DigestEntry[]
+
+  @@index([status, scheduledFor])
+  @@index([organiserId, eventId, kind, sentAt])
+  @@map("notifications")
+}
+
+/// A thing that happened on one umcimbi, waiting for the next digest.
+///
+/// `notificationId` is null until a digest claims it, which is what makes
+/// "fifty contributions in ten minutes produce one message" a property of the
+/// data rather than of a counter somebody has to maintain.
+model DigestEntry {
+  id String @id @default(uuid(7))
+
+  eventId     String @map("event_id")
+  organiserId String @map("organiser_id")
+
+  kind DigestEntryKind
+
+  notificationId String? @map("notification_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organiser    Organiser     @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([organiserId, eventId, notificationId])
+  @@map("digest_entries")
 }

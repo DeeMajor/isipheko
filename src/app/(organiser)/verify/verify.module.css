@@ -1,0 +1,89 @@
+/* The identity check (M3-01). Shared by /verify and by step five of the setup
+ * flow, which renders the same panel inside SetupShell. */
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-header);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.card {
+  width: 100%;
+}
+
+.list {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.item {
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* The words that are hashed into the consent record. Set at body size and full
+ * contrast on purpose: a consent nobody can read is not one. */
+.consent {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.check {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* 24px is the smallest a checkbox can be and still be hit reliably with a
+ * thumb, which is the only input device most of these organisers have. */
+.check input {
+  inline-size: 24px;
+  block-size: 24px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--accent, #16233d);
+}
