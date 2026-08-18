@@ -11,6 +11,9 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    /* scripts/ are run with `node --experimental-strip-types`, which needs the
+       explicit .ts extension on imports. Safe with noEmit. */
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     /* Strictness. The four below `strict` are deliberate — see docs/decisions.md. */
     "strict": true,

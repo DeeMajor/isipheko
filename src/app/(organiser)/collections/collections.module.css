@@ -1,0 +1,89 @@
+/* The collection organiser's screens. Deliberately plain — M3-08 replaces the
+ * organiser side, the same treatment /account and /manage/[id] got. */
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-header);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.03em;
+}
+
+.card {
+  width: 100%;
+}
+
+.subheading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-title);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.body {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.link {
+  margin: 0;
+  font-size: var(--text-body);
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.memberName {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.memberAmount {
+  flex: none;
+  font-size: var(--text-metadata);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.memberStatus {
+  flex: none;
+  font-size: var(--text-metadata);
+  color: var(--ink-soft);
+}

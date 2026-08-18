@@ -1,0 +1,23 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.card {
+  width: 100%;
+  max-width: 430px;
+}
+
+.body {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

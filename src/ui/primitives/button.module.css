@@ -1,0 +1,56 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  font-family: inherit;
+  font-size: var(--text-control);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) linear;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/*
+ * `--accent-strong` rather than `--accent`: this is the accent behind white
+ * text, and two of the six accents fail contrast unmixed. See tokens.css. The
+ * second fallback covers a primitive used outside an ArchetypeTheme.
+ */
+.primary {
+  border: 1px solid var(--accent-strong, #16233d);
+  background: var(--accent-strong, #16233d);
+  color: var(--paper-raised);
+}
+
+.secondary {
+  border: 1px solid var(--accent, #16233d);
+  background: var(--paper-raised);
+  color: var(--accent-strong, #16233d);
+}
+
+.quiet {
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+/*
+ * Auto width, and never below the 44px hit-area floor. The visible control can
+ * be smaller than the target; the target cannot be smaller than the thumb.
+ */
+.inline {
+  width: auto;
+  min-width: var(--hit-area-min);
+}

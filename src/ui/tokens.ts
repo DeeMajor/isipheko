@@ -1,0 +1,196 @@
+/**
+ * The design tokens, as one string.
+ *
+ * **This is the source. `src/ui/tokens.css` is generated from it** — run
+ * `pnpm tokens:css` after editing, and a unit test fails if the two disagree.
+ *
+ * Why a string rather than a stylesheet: the public event page is served as
+ * hand-rendered HTML from a route handler (docs/decisions.md M1-08), and a
+ * route handler cannot import CSS. It inlines these tokens into the document
+ * head instead. The organiser pages are ordinary App Router pages and import
+ * the generated `.css`.
+ *
+ * Two hand-maintained copies would drift, and the thing that drifts would be a
+ * colour nobody notices is wrong — or worse, an `--accent` declaration that
+ * quietly ends the bereavement fallback. Same pattern as the archetype SQL in
+ * M1-04, same reason.
+ */
+export const TOKENS_CSS = String.raw`
+/*
+ * The design system, in one file. Implementation plan Part C.2 and C.3.
+ *
+ * Two things here are load-bearing and are not stylistic choices:
+ *
+ * 1. **No \`--accent\` is declared anywhere in this file.** Every accent usage is
+ *    \`var(--accent, #16233D)\`. An archetype that declares an accent has it set
+ *    as an inline custom property by \`src/ui/theme.tsx\`, from its config;
+ *    bereavement declares none, so nothing is set and the fallback renders
+ *    indigo (CLAUDE.md rule 2).
+ *
+ *    Declaring \`--accent: #16233D\` here as a "default" would look identical on
+ *    screen and would silently end the fallback — every archetype would then
+ *    inherit indigo from this file rather than from the absence of a decision,
+ *    and bereavement would stop being the fallback case that proves the
+ *    mechanism works. A unit test fails the build if this file ever declares
+ *    one.
+ *
+ * 2. **The @font-face rules are hardcoded, self-hosted, latin + latin-ext.**
+ *    Not \`next/font\`, not a Google Fonts URL — the design pipeline re-added the
+ *    Vietnamese subset twice when a URL was involved. There is no italic face,
+ *    and there is no third file.
+ */
+
+/* Public Sans variable. latin + latin-ext only. No Vietnamese, no italic. */
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/public-sans-latin.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * Fetched only when the page actually contains these characters — the
+ * unicode-range makes it lazy. An English page never pays the 18.5KB; an
+ * isiZulu or isiXhosa page does (Part G).
+ */
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/public-sans-latin-ext.woff2') format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* Part C.2. The accent is deliberately absent — see the note above. */
+  --ink: #16233d;
+  --ink-soft: #4a5670;
+  --paper: #f2f1ed;
+  --paper-raised: #ffffff;
+  --rule: #d8d6ce;
+  --muted-icon: #a8a69e;
+
+  /* Radius: controls and cards. Never pills — no token exists for one. */
+  --radius-control: 4px;
+  --radius-card: 12px;
+
+  /* Type. Body floor 15px, metadata 13px, header 28px (Part C.3). */
+  --font-sans:
+    'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --text-metadata: 13px;
+  --text-body: 15px;
+  --text-control: 16px;
+  --text-title: 17px;
+  --text-header: 28px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+
+  /* 44px is the hit-area floor; 48px is what controls actually stand at. */
+  --hit-area-min: 44px;
+  --control-height: 48px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --motion-fast: 120ms;
+  --motion-settle: 200ms;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Tabular figures on every amount and every count (Part C.3). Applied here
+ * rather than per-component so a number added later cannot forget it and jitter
+ * as it updates.
+ */
+[data-numeric],
+input[type='number'],
+output,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The focus ring, once, globally. \`var(--accent, #16233D)\` means a funeral page
+ * gets an indigo ring with no code asking whether it is a funeral.
+ */
+:focus-visible {
+  outline: 2px solid var(--accent, #16233d);
+  outline-offset: 2px;
+}
+
+/*
+ * No motion at all when the reader has asked for none. \`!important\` and the
+ * near-zero durations rather than \`none\`: a duration of zero still fires
+ * transitionend, so anything waiting on that event completes instead of
+ * hanging.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * The accent as a *background behind text*, darkened toward ink.
+ *
+ * Two of the six accents cannot carry white text at WCAG AA: achievement
+ * \`#C89211\` reaches 2.8:1 and gathering \`#A6742B\` reaches 4.1:1, both short of
+ * 4.5:1, and gold is short of even the 3:1 large-text floor. The prototypes did
+ * not hit this because their palette had darker colours in those two slots —
+ * the accents here are the ones CLAUDE.md and Part C.2 fix.
+ *
+ * Mixing 60% accent into ink keeps the archetype's hue, stays inside the
+ * family palette, and clears 4.5:1 for all six plus the fallback. Pure
+ * \`var(--accent, #16233D)\` remains correct everywhere the colour is not behind
+ * text: rules, borders, focus rings, beads, marks.
+ *
+ * It is declared here rather than in \`:root\` because a custom property is
+ * resolved where it is declared. In \`:root\` the \`var(--accent, …)\` inside it
+ * would resolve to the fallback before any theme exists, and every archetype
+ * would inherit that one indigo value. On the themed element the inline
+ * \`--accent\` is already in scope, so it resolves per archetype and inherits
+ * correctly from there.
+ *
+ * This selector is generic on purpose. No stylesheet may select on a *specific*
+ * archetype — \`[data-archetype='umngcwabo']\` is the accent map this design
+ * exists to avoid, and a unit test fails the build on one.
+ */
+[data-archetype] {
+  --accent-strong: color-mix(in srgb, var(--accent, #16233d) 60%, #16233d);
+}
+`

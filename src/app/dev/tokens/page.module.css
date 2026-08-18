@@ -1,0 +1,73 @@
+.page {
+  padding: var(--space-6) var(--space-4);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--text-header);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.03em;
+}
+
+.intro {
+  max-width: 62ch;
+  margin: var(--space-2) 0 var(--space-6);
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.grid {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--space-4);
+}
+
+.column {
+  flex: 0 0 auto;
+  width: 340px;
+}
+
+.columnHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+/* The one place on this page showing the raw accent, unmixed. */
+.bead {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent, #16233d);
+}
+
+.columnTitle {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.02em;
+}
+
+.columnMeta {
+  margin: 0;
+  font-size: var(--text-metadata);
+  color: var(--ink-soft);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardBody {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}

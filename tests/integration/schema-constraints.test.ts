@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { PrismaClient } from '@/db/generated/client'
 
 import { clientFor } from '../setup/prisma'
+import { uniqueRefCode } from '../setup/reference'
 
 /**
  * CLAUDE.md rule 1, at the database layer.
@@ -41,6 +42,8 @@ describe('bereavement events cannot carry a target', () => {
           slug: nextSlug(),
           archetype: 'umngcwabo',
           archetypeGroup: 'bereavement',
+          refPrefix: 'TST',
+          refCode: uniqueRefCode(),
           title: 'Umngcwabo kaMaMthembu',
           targetAmountCents: 5000_00n,
         },
@@ -55,6 +58,8 @@ describe('bereavement events cannot carry a target', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo kaMaMthembu',
       },
     })
@@ -72,6 +77,8 @@ describe('bereavement events cannot carry a target', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo',
       },
     })
@@ -91,6 +98,8 @@ describe('bereavement events cannot carry a target', () => {
         slug: nextSlug(),
         archetype: 'umshado',
         archetypeGroup: 'union',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umshado',
         targetAmountCents: 5000_00n,
       },
@@ -111,6 +120,8 @@ describe('bereavement events cannot carry a target', () => {
         slug: nextSlug(),
         archetype: 'umshado',
         archetypeGroup: 'union',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umshado kaThandi noSipho',
         targetAmountCents: 5000_00n,
       },
@@ -127,6 +138,8 @@ describe('bereavement events cannot carry a target', () => {
           slug: nextSlug(),
           archetype: 'itiye',
           archetypeGroup: 'gathering',
+          refPrefix: 'TST',
+          refCode: uniqueRefCode(),
           title: 'Itiye',
           targetAmountCents: 0n,
         },
@@ -151,6 +164,8 @@ describe('archetype and archetype_group cannot disagree', () => {
           slug: nextSlug(),
           archetype: 'umngcwabo',
           archetypeGroup: 'union',
+          refPrefix: 'TST',
+          refCode: uniqueRefCode(),
           title: 'Mislabelled',
         },
       }),
@@ -165,6 +180,8 @@ describe('archetype and archetype_group cannot disagree', () => {
           slug: nextSlug(),
           archetype: 'umshado',
           archetypeGroup: 'bereavement',
+          refPrefix: 'TST',
+          refCode: uniqueRefCode(),
           title: 'Mislabelled',
         },
       }),
@@ -178,6 +195,8 @@ describe('archetype and archetype_group cannot disagree', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo',
       },
     })
@@ -199,7 +218,15 @@ describe('archetype and archetype_group cannot disagree', () => {
     ['itiye', 'gathering'],
   ] as const)('accepts %s in group %s', async (archetype, archetypeGroup) => {
     const event = await prisma.event.create({
-      data: { organiserId, slug: nextSlug(), archetype, archetypeGroup, title: 'Valid' },
+      data: {
+        organiserId,
+        slug: nextSlug(),
+        archetype,
+        archetypeGroup,
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
+        title: 'Valid',
+      },
     })
 
     expect(event.archetypeGroup).toBe(archetypeGroup)
@@ -245,6 +272,8 @@ describe('a contribution belongs to exactly one parent', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo',
       },
     })
@@ -278,6 +307,8 @@ describe('a contribution belongs to exactly one parent', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo',
       },
     })
@@ -325,6 +356,8 @@ describe('a contribution belongs to exactly one parent', () => {
         slug: nextSlug(),
         archetype: 'itiye',
         archetypeGroup: 'gathering',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Itiye',
       },
     })
@@ -350,6 +383,8 @@ describe('a contribution belongs to exactly one parent', () => {
         slug: nextSlug(),
         archetype: 'umngcwabo',
         archetypeGroup: 'bereavement',
+        refPrefix: 'TST',
+        refCode: uniqueRefCode(),
         title: 'Umngcwabo',
       },
     })

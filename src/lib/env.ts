@@ -81,6 +81,7 @@ const base64Key = (bytes: number) =>
  */
 const DEV_ENCRYPTION_KEY = 'ZGV2ZWxvcG1lbnQtb25seS1rZXktZG8tbm90LXVzZSE='
 const DEV_ID_PEPPER = 'ZGV2ZWxvcG1lbnQtb25seS1wZXBwZXItZG8tbm90ISE='
+const DEV_OTP_PEPPER = 'ZGV2ZWxvcG1lbnQtb25seS1vdHAtcGVwcGVyLWRvISE='
 
 /**
  * In development and test the documented defaults apply, so a clean clone runs
@@ -139,6 +140,24 @@ function schemaFor(nodeEnv: string | undefined) {
             'is the development pepper published in .env.example — generate a real one and hold it outside the repository',
         })
       : base64Key(32).default(DEV_ID_PEPPER),
+
+    // One-time codes are stored as HMAC-SHA256 under this pepper, and the
+    // phone, IP and user-agent hashes in the audit log use it too (M1-06).
+    //
+    // A six-digit code is a 10^6 space and a South African mobile number about
+    // 10^9: an unpeppered digest of either is a lookup table, not a secret.
+    // This is the only thing that makes a stolen `otp_challenges` row useless.
+    //
+    // Separate from ID_NUMBER_PEPPER on purpose. Rotating this one costs the
+    // codes in flight and the ability to correlate old audit rows; rotating
+    // that one invalidates every stored identity hash. They should not be
+    // forced to share a fate.
+    OTP_PEPPER: isProduction
+      ? base64Key(32).refine((value) => value !== DEV_OTP_PEPPER, {
+          message:
+            'is the development pepper published in .env.example — generate a real one and hold it outside the repository',
+        })
+      : base64Key(32).default(DEV_OTP_PEPPER),
   })
 }
 

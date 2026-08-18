@@ -1,0 +1,128 @@
+import type { NextRequest } from 'next/server'
+
+import { prisma } from '@/db/client'
+import { claimItem } from '@/db/repositories/needs'
+import { CLAIM_COOKIE, claimCookieOptions, claimCookieValue } from '@/lib/claim-session'
+import { requestFingerprint } from '@/lib/audit'
+import { checkClaimRateLimit } from '@/lib/claim-rate-limit'
+import { isSameSite } from '@/lib/same-site'
+
+/**
+ * `POST /api/claim`. Implementation plan Part C.5.
+ *
+ * **Two callers, two correct answers.** A browser posting a form gets
+ * `303 See Other` back to the event page — POST-redirect-GET, so a refresh does
+ * not claim a second tent. A caller asking for JSON gets the `409 Conflict`
+ * that C.5 specifies, which is what the page enhancement reads. Same
+ * reservation either way; C.5's "409" describes the JSON path.
+ *
+ * **Nothing here decides who wins.** The reservation is M2-03's conditional
+ * UPDATE, and it is the only thing standing between two people tapping "I'll
+ * bring the tent" in the same second (CLAUDE.md rule 5).
+ *
+ * Claiming needs no session — anybody holding the event link can claim, and the
+ * link is the capability. So the endpoint carries its own two protections: a
+ * same-site check, and a per-address limit.
+ */
+
+function wantsJson(request: NextRequest): boolean {
+  return (request.headers.get('accept') ?? '').includes('application/json')
+}
+
+function respond(
+  request: NextRequest,
+  {
+    slug,
+    status,
+    query,
+    cookie,
+  }: {
+    slug: string
+    status: number
+    query: string
+    cookie?: { name: string; value: string } | undefined
+  },
+): Response {
+  const headers = new Headers()
+
+  if (cookie !== undefined) {
+    const options = claimCookieOptions
+    headers.append(
+      'set-cookie',
+      `${cookie.name}=${cookie.value}; Max-Age=${String(options.maxAge)}; Path=${options.path}; SameSite=Lax; HttpOnly${options.secure ? '; Secure' : ''}`,
+    )
+  }
+
+  if (wantsJson(request)) {
+    headers.set('content-type', 'application/json')
+    return new Response(JSON.stringify({ ok: status === 200, query }), {
+      status,
+      headers,
+    })
+  }
+
+  // A browser form post. Redirect so the result is a GET somebody can refresh.
+  headers.set('location', `/e/${slug}?${query}`)
+  return new Response(null, { status: 303, headers })
+}
+
+export async function POST(request: NextRequest): Promise<Response> {
+  const form = await request.formData()
+  const text = (key: string) => {
+    const value = form.get(key)
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const slug = text('slug')
+  const itemId = text('item')
+  const name = text('name')
+  const quantity = Number(text('quantity'))
+
+  // A claim triggered from another site would silently hold a chair on somebody
+  // else's funeral. No money moves, which does not make it harmless.
+  if (!isSameSite(request)) {
+    return respond(request, { slug, status: 403, query: 'claim=error&reason=cross-site' })
+  }
+
+  const fingerprint = await requestFingerprint()
+  const withinLimit = await checkClaimRateLimit(prisma, fingerprint.ipHash)
+
+  if (!withinLimit) {
+    return respond(request, {
+      slug,
+      status: 429,
+      query: 'claim=error&reason=too-many-requests',
+    })
+  }
+
+  if (name === '' || itemId === '') {
+    return respond(request, {
+      slug,
+      status: 400,
+      query: 'claim=error&reason=at-least-one',
+    })
+  }
+
+  const outcome = await claimItem(prisma, {
+    needItemId: itemId,
+    quantity: Number.isFinite(quantity) ? quantity : Number.NaN,
+    claimantName: name,
+    claimedIpHash: fingerprint.ipHash,
+  })
+
+  if (!outcome.ok) {
+    // 409 for the JSON caller; the browser is redirected to the same branch.
+    return respond(request, {
+      slug,
+      status: outcome.reason === 'conflict' ? 409 : 400,
+      query: `claim=${outcome.reason === 'conflict' ? 'conflict' : 'error'}&item=${itemId}&reason=${outcome.reason}`,
+    })
+  }
+
+  return respond(request, {
+    slug,
+    status: 200,
+    query: `claim=claimed&item=${itemId}`,
+    cookie: { name: CLAIM_COOKIE, value: claimCookieValue(outcome.claimId) },
+  })
+}

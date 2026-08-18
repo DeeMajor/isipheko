@@ -1,0 +1,75 @@
+.field {
+  display: block;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.help {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.control {
+  display: block;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--text-control);
+  line-height: 1.4;
+}
+
+.control::placeholder {
+  /* --muted-icon is for icons. Placeholder text is text, and this is the
+     lightest ink that still clears 4.5:1 on white. */
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.multiline {
+  min-height: calc(var(--control-height) * 2);
+  padding: var(--space-3);
+  resize: vertical;
+}
+
+/*
+ * The invalid state is carried by weight, a border and `aria-invalid` — not by
+ * a colour. Part C.2 defines no error colour, and inventing one would put an
+ * untested hue on the most stressful screen in the product. Colour alone is not
+ * an accessible signal in any case.
+ */
+.invalid {
+  border-width: 2px;
+  border-color: var(--ink);
+}
+
+.error {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata);
+  font-weight: var(--weight-bold);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.error::before {
+  content: '';
+  flex: none;
+  width: 2px;
+  align-self: stretch;
+  background: var(--ink);
+}

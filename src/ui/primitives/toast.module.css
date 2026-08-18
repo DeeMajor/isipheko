@@ -1,0 +1,44 @@
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+/*
+ * The accent bar is the only archetype-coloured part, and it carries no text —
+ * so pure `var(--accent, …)` is correct here where `--accent-strong` is needed
+ * behind white.
+ */
+.mark {
+  flex: none;
+  align-self: stretch;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent, #16233d);
+}
+
+/*
+ * A problem is marked by weight and by the word, not by a hue. Part C.2 has no
+ * error colour, and colour alone is not a signal a screen reader or a
+ * colour-blind reader receives.
+ */
+.problem .mark {
+  background: var(--ink);
+  width: 4px;
+}
+
+.text {
+  margin: 0;
+}
+
+.title {
+  margin: 0 0 var(--space-1);
+  font-weight: var(--weight-bold);
+}

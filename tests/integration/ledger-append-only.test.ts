@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { PrismaClient } from '@/db/generated/client'
 
 import { clientFor } from '../setup/prisma'
+import { uniqueRefCode } from '../setup/reference'
 
 /**
  * CLAUDE.md rule 3, at the layer that actually holds it.
@@ -40,6 +41,8 @@ beforeAll(async () => {
       slug: 'ledger-test-slug-aaaaaaaaaaaa',
       archetype: 'umngcwabo',
       archetypeGroup: 'bereavement',
+      refPrefix: 'TST',
+      refCode: uniqueRefCode(),
       title: 'Umngcwabo',
     },
   })

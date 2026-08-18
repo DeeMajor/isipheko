@@ -1,0 +1,53 @@
+.field {
+  display: block;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.help {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.wrap {
+  position: relative;
+}
+
+.select {
+  display: block;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 calc(var(--space-5) + var(--space-3)) 0 var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--text-control);
+  line-height: 1.4;
+  appearance: none;
+}
+
+/* Drawn in CSS rather than loaded as an icon — nothing extra to fetch. */
+.wrap::after {
+  content: '';
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -6px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: rotate(45deg);
+  pointer-events: none;
+}

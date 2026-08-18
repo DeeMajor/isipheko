@@ -1,9 +1,10 @@
 /*
- * Scaffold only (M1-01).
+ * The reset, and only the reset.
  *
- * The design system — tokens, the self-hosted Public Sans @font-face rules,
- * radii, focus rings, prefers-reduced-motion — lands in src/ui/tokens.css at
- * M1-05. Do not add design decisions here; they belong in one place.
+ * Every design decision — tokens, the self-hosted Public Sans @font-face rules,
+ * radii, the focus ring, prefers-reduced-motion — lives in src/ui/tokens.css,
+ * imported alongside this file by the root layout. Two files, one of which is
+ * three rules long, so there is never a question about where a value came from.
  */
 
 *,
@@ -12,6 +13,10 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
 }

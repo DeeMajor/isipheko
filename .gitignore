@@ -32,3 +32,7 @@ src/db/generated/
 .DS_Store
 Thumbs.db
 *.swp
+
+# generated-object cache (OG cards). Local stand-in until object storage
+# is chosen — architecture §15 item 6.
+.cache/

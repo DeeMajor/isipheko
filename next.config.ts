@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
   // CI gate that enforces it is M1-08; this is only the honest starting point.
   poweredByHeader: false,
 
+  // The OG card is drawn by Satori, which reads `.woff` and not the `.woff2`
+  // the page ships — so two font binaries live in src/assets/ and are read from
+  // disk at request time. Standalone output traces imports, not `readFile`
+  // paths, so they are named here. Without this the card renders as boxes in a
+  // container that passed every test on a machine where src/ happened to exist.
+  outputFileTracingIncludes: {
+    '/e/[slug]/og/[file]': ['./src/assets/fonts/**'],
+  },
+
   // `next dev` otherwise appends an agent-rules block to CLAUDE.md on every run.
   // CLAUDE.md is the behavioural contract for this project and its diffs have to
   // mean something; a framework editing it as a side effect of starting the dev

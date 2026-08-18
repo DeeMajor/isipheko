@@ -28,7 +28,13 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "archetype:sql": "node --experimental-strip-types scripts/archetype-constraint.ts",
+    "tokens:css": "node --experimental-strip-types scripts/generate-tokens-css.ts",
+    "gate:size": "node --experimental-strip-types scripts/size-gate.ts",
+    "verify:ledger": "node --experimental-strip-types scripts/verify-ledger.ts",
+    "expire": "node --experimental-strip-types scripts/expire.ts",
+    "notify": "node --experimental-strip-types scripts/notify.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -39,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^26.1.2",
@@ -47,6 +54,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.0",
     "eslint-config-prettier": "^10.1.8",
+    "fast-check": "^4.9.0",
     "prettier": "^3.9.6",
     "prisma": "^7.9.1",
     "testcontainers": "^12.1.0",

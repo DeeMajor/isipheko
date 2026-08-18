@@ -1,4 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
+
+const root = (path: string) => fileURLToPath(new URL(`../../${path}`, import.meta.url))
 
 import type { PrismaClient } from '@/db/generated/client'
 
@@ -227,5 +232,52 @@ describe('verification gates sharing', () => {
         },
       }),
     ).rejects.toThrow()
+  })
+})
+
+/**
+ * M2-09 added the code that creates, joins, claims for and hands over a
+ * collection. The absence has to survive that, and it has to survive it in the
+ * source as well as in the schema: a repository function called
+ * `payOutCollection` would pass every structural check above while being
+ * exactly the thing rule 12 forbids.
+ */
+describe('the code that works with collections has no money path either', () => {
+  const sources = [
+    'src/domain/collection/collection.ts',
+    'src/db/repositories/collection.ts',
+    'src/copy/collection.ts',
+  ]
+
+  it('names no payout, float, disbursement or balance', () => {
+    const forbidden = /payout|float|disburse|escrow|wallet|settle/i
+
+    for (const path of sources) {
+      const text = readFileSync(root(path), 'utf8')
+      // Comments say why there is no payout; the code must not reach for one.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
+      expect(code, path).not.toMatch(forbidden)
+    }
+  })
+
+  it('never reads or writes a bank account', () => {
+    for (const path of sources) {
+      const text = readFileSync(root(path), 'utf8')
+
+      expect(text, path).not.toContain('bankAccount')
+      expect(text, path).not.toContain('accountNumber')
+    }
+  })
+
+  it('keeps the hint free text in code as well as in the column', () => {
+    // "Nomsa's Capitec, ending 4471" is where members send money. Free text is
+    // the constraint, not a limitation: the moment it becomes an account we can
+    // verify or pay into, rule 12 is gone and the regulatory position goes with
+    // it (architecture §0.2, Part D2.2).
+    const repository = readFileSync(root('src/db/repositories/collection.ts'), 'utf8')
+
+    expect(repository).toContain('organiserBankHint')
+    expect(repository).not.toMatch(/verifyBankAccount|createDisbursement/)
   })
 })

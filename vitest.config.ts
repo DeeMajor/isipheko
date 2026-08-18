@@ -31,7 +31,8 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['tests/unit/**/*.test.ts'],
+          // `.tsx` because the Ledger Strand's render test renders it (M2-06).
+          include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
         },
       },
       {

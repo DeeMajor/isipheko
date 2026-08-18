@@ -9,6 +9,7 @@ const PRODUCTION = {
   MIGRATION_DATABASE_URL: 'postgresql://isipheko_owner:secret@db.internal:5432/isipheko',
   BANK_ACCOUNT_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
   ID_NUMBER_PEPPER: Buffer.alloc(32, 2).toString('base64'),
+  OTP_PEPPER: Buffer.alloc(32, 3).toString('base64'),
 }
 
 describe('parseEnv', () => {
@@ -74,7 +75,7 @@ describe('parseEnv', () => {
       parseEnv({ NODE_ENV: 'production' })
       expect.unreachable('should have thrown')
     } catch (error) {
-      expect((error as EnvironmentError).problems).toHaveLength(5)
+      expect((error as EnvironmentError).problems).toHaveLength(6)
     }
   })
 
@@ -190,6 +191,24 @@ describe('key material', () => {
         ID_NUMBER_PEPPER: 'ZGV2ZWxvcG1lbnQtb25seS1wZXBwZXItZG8tbm90ISE=',
       }),
     ).toThrow(/development pepper/)
+  })
+
+  it('refuses the published development OTP pepper in production', () => {
+    // The OTP pepper is what makes a stolen otp_challenges row useless. The
+    // published one makes it a lookup table again (M1-06).
+    expect(() =>
+      parseEnv({
+        NODE_ENV: 'production',
+        ...PRODUCTION,
+        OTP_PEPPER: 'ZGV2ZWxvcG1lbnQtb25seS1vdHAtcGVwcGVyLWRvISE=',
+      }),
+    ).toThrow(/development pepper/)
+  })
+
+  it('keeps the two peppers separate, so rotating one does not force the other', () => {
+    const env = parseEnv({ NODE_ENV: 'production', ...PRODUCTION })
+
+    expect(env.OTP_PEPPER).not.toBe(env.ID_NUMBER_PEPPER)
   })
 
   it('accepts the development key in development, so a clean clone runs', () => {
