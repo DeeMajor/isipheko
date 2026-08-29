@@ -66,19 +66,21 @@ function backToCode(error?: CodeError, next = ''): never {
   )
 }
 
-export async function requestCode(formData: FormData): Promise<void> {
-  const raw = formData.get('phone')
-  // Where they were going before they were sent here (M1-09). Allowlisted, so
-  // an unrecognised value is the default rather than an error and never reaches
-  // a Location header.
-  const next = destinationParam(formData.get('next'))
-  const parsed = normalisePhone(typeof raw === 'string' ? raw : '')
-
-  if (!parsed.ok) backToPhone(parsed.reason)
-
-  const phoneE164 = parsed.value
+/**
+ * One send, two callers (UX-14): the first ask carries the number in the
+ * form; a resend takes it from the pending cookie. The rate limit, the
+ * enumeration posture and the audit rows are identical, which is the point of
+ * one path — a resend is not a second kind of request, it is the same one
+ * asked again.
+ */
+async function sendCodeTo(
+  phoneE164: string,
+  next: string,
+  resent: boolean,
+): Promise<never> {
   const now = new Date()
   const fingerprint = await requestFingerprint()
+  const suffix = resent ? '&resent=1' : ''
 
   const counts = await countRecentOtpRequests(prisma, {
     phoneE164,
@@ -98,7 +100,7 @@ export async function requestCode(formData: FormData): Promise<void> {
     // Same destination, same words as a code that was actually sent. Telling
     // somebody they have hit a limit tells them the number is worth hammering.
     await setPendingPhone(phoneE164)
-    redirect(`/sign-in?step=code${next}`)
+    redirect(`/sign-in?step=code${next}${suffix}`)
   }
 
   const code = generateOtpCode()
@@ -115,7 +117,41 @@ export async function requestCode(formData: FormData): Promise<void> {
   await recordAuthEvent({ action: 'auth.otp.requested', phoneE164, fingerprint })
 
   await setPendingPhone(phoneE164)
-  redirect(`/sign-in?step=code${next}`)
+  redirect(`/sign-in?step=code${next}${suffix}`)
+}
+
+export async function requestCode(formData: FormData): Promise<void> {
+  const raw = formData.get('phone')
+  // Where they were going before they were sent here (M1-09). Allowlisted, so
+  // an unrecognised value is the default rather than an error and never reaches
+  // a Location header.
+  const next = destinationParam(formData.get('next'))
+  const parsed = normalisePhone(typeof raw === 'string' ? raw : '')
+
+  if (!parsed.ok) backToPhone(parsed.reason)
+
+  await sendCodeTo(parsed.value, next, false)
+}
+
+/**
+ * "Send a new code" — to the same number, from the code step (UX-14).
+ *
+ * The only recovery from a lost SMS used to be "Use a different number",
+ * which starts over and does not sound like a resend, while the wrong-code
+ * error said "ask for a new one" — naming a button that did not exist. This
+ * is that button. Same path, same limit (three per number per hour), same
+ * one-sentence answer whatever the number is; only the newest challenge is
+ * ever checked (M1-06 §8), so the old code stops working by construction.
+ */
+export async function resendCode(formData: FormData): Promise<void> {
+  const next = destinationParam(formData.get('next'))
+  const phoneE164 = await pendingPhone()
+
+  // No pending number is an expired cookie: start over rather than resending
+  // to a number this request cannot name.
+  if (phoneE164 === null) backToPhone()
+
+  await sendCodeTo(phoneE164, next, true)
 }
 
 export async function verifyCode(formData: FormData): Promise<void> {

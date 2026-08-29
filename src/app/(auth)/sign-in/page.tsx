@@ -4,7 +4,7 @@ import { authCopy } from '@/copy/auth'
 import { pendingPhone } from '@/lib/session'
 import { Button, Card, Field } from '@/ui/primitives'
 
-import { requestCode, startOver, verifyCode } from './actions'
+import { requestCode, resendCode, startOver, verifyCode } from './actions'
 import { signInDestination } from './destination'
 
 import styles from './page.module.css'
@@ -45,9 +45,9 @@ function codeError(value: string | undefined): string | undefined {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ step?: string; error?: string; next?: string }>
+  searchParams: Promise<{ step?: string; error?: string; next?: string; resent?: string }>
 }) {
-  const { step, error, next } = await searchParams
+  const { step, error, next, resent } = await searchParams
   const pending = await pendingPhone()
 
   /*
@@ -81,6 +81,13 @@ export default async function SignInPage({
 
         {onCodeStep ? (
           <>
+            {/* A resend answers with the same sentence whatever the number is
+                (M1-06 §8) — the confirmation must not become the oracle the
+                intro refuses to be. */}
+            {resent === '1' ? (
+              <p className={styles.intro}>{authCopy.code.resent}</p>
+            ) : null}
+
             <form action={verifyCode} className={styles.form}>
               <input type="hidden" name="next" value={destination} />
               <Field
@@ -98,9 +105,17 @@ export default async function SignInPage({
               <Button type="submit">{authCopy.code.submit}</Button>
             </form>
 
-            <form action={startOver} className={styles.secondary}>
+            {/* The button the wrong-code error has always named (UX-14). */}
+            <form action={resendCode} className={styles.secondary}>
+              <input type="hidden" name="next" value={destination} />
               <Button type="submit" variant="quiet">
                 {authCopy.code.resend}
+              </Button>
+            </form>
+
+            <form action={startOver} className={styles.secondary}>
+              <Button type="submit" variant="quiet">
+                {authCopy.code.differentNumber}
               </Button>
             </form>
           </>

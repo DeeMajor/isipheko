@@ -4249,3 +4249,30 @@ number. Today they are; if that changes, the validation loosens rather than
 the field going back to unchecked free text.
 
 E2E refuses garbage and reads back a real number.
+
+---
+
+## UX-14 · "Send a new code" exists, and the error stops naming a ghost
+
+The wrong-code error has said since M1-06: *"Ask for a new one and it will
+arrive in a few seconds."* The only button on the step was *"Use a different
+number"* — a restart wearing the wrong name, which cleared the pending number
+and sent somebody whose SMS never arrived back to retype the same number. The
+error named a button that did not exist.
+
+`resendCode` is that button. It reads the number from the pending cookie —
+never from the form — and runs **the same send path as the first ask**,
+extracted into one helper so the rate limit (three per number per hour), the
+enumeration posture and the audit rows cannot drift between the two. A resend
+for an unknown number answers with the same sentence as everything else on
+this page, and the confirmation line is as non-committal as the intro: the
+resend must not become the oracle the rest of the step refuses to be. An
+expired pending cookie goes back to the start rather than resending to a
+number the request cannot name.
+
+The old code stops working by construction — only the newest unconsumed
+challenge is checked (M1-06 §8) — and the confirmation says so, because the
+person holding two SMSes deserves to know which one is real. *"Use a
+different number"* stays, under its honest name.
+
+E2E sends, resends, proves the old code refused and the new one signs in.

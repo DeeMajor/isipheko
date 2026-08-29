@@ -176,3 +176,40 @@ test('has no axe violations on either step', async ({ page }) => {
   await requestCode(page, uniquePhone())
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
+
+/**
+ * The resend (UX-14). The only recovery from a lost SMS used to be "Use a
+ * different number" — a restart wearing the wrong name — while the wrong-code
+ * error said "ask for a new one", naming a button that did not exist. The new
+ * code is the one that works; only the newest challenge is ever checked
+ * (M1-06 §8), so the old one stops working by construction.
+ */
+test('a new code can be sent to the same number, and the old one stops working', async ({
+  page,
+  request,
+}) => {
+  await asFreshClient(page)
+  const phone = uniquePhone()
+
+  await page.goto('/sign-in')
+  await page.getByLabel('Your phone number').fill(phone)
+  await page.getByRole('button', { name: 'Send me a code' }).click()
+  await expect(page.getByRole('heading', { name: 'Enter the code' })).toBeVisible()
+
+  const first = await codeSentTo(request, phone)
+
+  await page.getByRole('button', { name: 'Send a new code' }).click()
+  await expect(page.getByText('The old one stops working.')).toBeVisible()
+
+  const second = await codeSentTo(request, phone)
+  expect(second).not.toBe(first)
+
+  // The old code is refused — the newest challenge is the only one checked.
+  await page.getByLabel('The six-digit code').fill(first)
+  await page.getByRole('button', { name: 'Sign me in' }).click()
+  await expect(page.getByText('That code is wrong or has expired')).toBeVisible()
+
+  await page.getByLabel('The six-digit code').fill(second)
+  await page.getByRole('button', { name: 'Sign me in' }).click()
+  await expect(page).toHaveURL(/\/account$/)
+})

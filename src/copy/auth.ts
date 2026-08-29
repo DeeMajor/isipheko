@@ -34,7 +34,18 @@ export const authCopy = {
     codeHelp:
       'It arrives by SMS. Isipheko will never phone or message you to ask for it.',
     submit: 'Sign me in',
-    resend: 'Use a different number',
+    /**
+     * A real resend (UX-14). The only recovery from a lost SMS used to be
+     * "Use a different number" — a restart wearing the wrong name — while the
+     * wrong-code error told people to "ask for a new one", naming a button
+     * that did not exist.
+     */
+    resend: 'Send a new code',
+    /** Said after a resend. The same non-committal sentence as the intro —
+     * a resend must not answer differently for a known number either. */
+    resent:
+      'If we can reach that number, a new code is on its way. The old one stops working.',
+    differentNumber: 'Use a different number',
     /** Sent by SMS. §10: every outbound message says we never ask for it. */
     sms: (code: string) =>
       `${code} is your Isipheko code. It lasts ten minutes. We will never phone or message you to ask for it.`,
