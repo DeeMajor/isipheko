@@ -21,6 +21,22 @@ import { TOKENS_CSS } from './tokens'
 
 export type ReportState = 'asking' | 'filed'
 
+/**
+ * What was typed, given back after a refusal (UX-06).
+ *
+ * A refused submit used to render an empty form: somebody who wrote a
+ * paragraph about being scammed and forgot the reason radio — which has no
+ * default and no `required`, so that is the ordinary miss — lost the
+ * paragraph. On the form built against people giving up, wiping their words
+ * was the one thing it must never do.
+ */
+export interface ReportDraft {
+  readonly reason: string
+  readonly detail: string
+  readonly about: string
+  readonly phone: string
+}
+
 export interface ReportPageProps {
   readonly state: ReportState
   /** What is being reported, when we know. */
@@ -29,6 +45,8 @@ export interface ReportPageProps {
   readonly eventSlug?: string | undefined
   readonly collectionSlug?: string | undefined
   readonly problem?: ReportRejection | undefined
+  /** On a refusal, everything they typed — rendered back into the form. */
+  readonly draft?: ReportDraft | undefined
   readonly reference?: string | undefined
   readonly respondBy?: string | undefined
   readonly reachable?: boolean | undefined
@@ -40,6 +58,7 @@ export function ReportPage({
   eventSlug,
   collectionSlug,
   problem,
+  draft,
   reference,
   respondBy,
   reachable,
@@ -117,6 +136,7 @@ export function ReportPage({
                         name="about"
                         autoComplete="off"
                         spellCheck={false}
+                        defaultValue={draft?.about ?? ''}
                       />
                     </div>
                   ) : (
@@ -139,6 +159,7 @@ export function ReportPage({
                           id={`reason-${reason}`}
                           name="reason"
                           value={reason}
+                          defaultChecked={draft?.reason === reason}
                         />
                         <span>{reportCopy.reasons[reason]}</span>
                       </label>
@@ -149,7 +170,13 @@ export function ReportPage({
                     <label className="claimLabel" htmlFor="detail">
                       {reportCopy.detailLabel}
                     </label>
-                    <textarea className="claimInput" id="detail" name="detail" rows={4} />
+                    <textarea
+                      className="claimInput"
+                      id="detail"
+                      name="detail"
+                      rows={4}
+                      defaultValue={draft?.detail ?? ''}
+                    />
                     <p className="claimHelp">{reportCopy.detailHelp}</p>
                   </div>
 
@@ -165,6 +192,7 @@ export function ReportPage({
                       inputMode="tel"
                       autoComplete="tel"
                       data-numeric=""
+                      defaultValue={draft?.phone ?? ''}
                     />
                     <p className="claimHelp">{reportCopy.phoneHelp}</p>
                     <p className="claimHelp">{reportCopy.phoneNone}</p>

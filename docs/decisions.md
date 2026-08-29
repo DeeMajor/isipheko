@@ -3994,3 +3994,24 @@ through it deliberately withheld while the control did not exist.
 
 Integration covers release, scoping, the delivered refusal and the group
 refusal; E2E releases Musa's tent and watches it become a gap again.
+
+---
+
+## UX-06 · A refused report hands back every word
+
+The reason radios deliberately have no default and no `required` — nothing
+pre-chosen for somebody upset (M3-06) — which makes forgetting one the
+ordinary miss, not the edge. A refused submit then rendered an empty form:
+the paragraph about being scammed, the pasted link and the phone number were
+all gone, on the form whose whole reason to exist is that 57% of people who
+report a scam hear nothing back. Wiping their words is that failure produced
+by our own hand, one screen earlier.
+
+The route now passes the typed draft back on every refusal (`no-reason`,
+`nothing-said`, `rate-limited`) and the form re-renders it — values, the
+chosen radio, the number. Nothing changes on a fresh GET: the draft exists
+only inside the refusal round-trip, so nothing is stored and nothing leaks
+into a shared cache (`/report` is `no-store` throughout).
+
+E2E types the paragraph, forgets the radio, and asserts every field survives
+the refusal — then picks the reason and files it.

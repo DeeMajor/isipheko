@@ -223,6 +223,46 @@ test('an empty form is refused, and says what to do', async ({ page }) => {
   await expect(page.getByText('Tell us something about it')).toBeVisible()
 })
 
+/**
+ * UX-06. The reason radios have no default and no `required` — deliberately,
+ * so nothing is pre-chosen for somebody upset — which makes forgetting one
+ * the ordinary miss. The refusal must hand back every word they typed: a
+ * wiped paragraph on this form is the 57% problem produced by our own hand.
+ */
+test('a refusal hands back everything that was typed', async ({ page }) => {
+  await asFreshClient(page)
+
+  await page.goto('/report')
+  await page
+    .getByLabel('The link or code you were sent')
+    .fill('https://isipheko.co.za/e/notrealnotreal11')
+  await page
+    .getByLabel('Anything you want to add')
+    .fill('My aunt sent money and the family never got it. The page looked real.')
+  await page
+    .getByLabel('Your number, if you want us to come back to you')
+    .fill('0821234567')
+
+  // No reason chosen — the ordinary miss.
+  await page.getByRole('button', { name: 'Send this report' }).click()
+  await expect(page.getByText('Choose what is wrong, and send it again')).toBeVisible()
+
+  await expect(page.getByLabel('Anything you want to add')).toHaveValue(
+    'My aunt sent money and the family never got it. The page looked real.',
+  )
+  await expect(page.getByLabel('The link or code you were sent')).toHaveValue(
+    'https://isipheko.co.za/e/notrealnotreal11',
+  )
+  await expect(
+    page.getByLabel('Your number, if you want us to come back to you'),
+  ).toHaveValue('0821234567')
+
+  // Choosing the reason is now the only thing left to do.
+  await page.getByText('I gave money and the family never got it').click()
+  await page.getByRole('button', { name: 'Send this report' }).click()
+  await expect(page.getByText(/Your reference is/)).toBeVisible()
+})
+
 test('the form works with JavaScript disabled', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false })
   const page = await context.newPage()

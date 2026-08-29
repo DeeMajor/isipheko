@@ -154,9 +154,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   if (!decision.ok) {
+    // Everything they typed goes back into the form (UX-06). A refusal used
+    // to render it empty — and `no-reason` is the ordinary miss, since the
+    // radios deliberately have no default — so somebody who had written a
+    // paragraph about being scammed lost the paragraph, on the form built
+    // against people giving up.
     return await page(
       request,
-      { ...asking, problem: decision.reason },
+      { ...asking, problem: decision.reason, draft },
       decision.reason === 'rate-limited' ? 429 : 400,
     )
   }
