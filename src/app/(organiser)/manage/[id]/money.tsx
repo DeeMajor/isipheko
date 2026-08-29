@@ -179,7 +179,10 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
                       formatMoney(balance.settling),
                       clears,
                     )
-                  : dashboardCopy.money.settlingNote(formatMoney(balance.settling), clears)
+                  : dashboardCopy.money.settlingNote(
+                      formatMoney(balance.settling),
+                      clears,
+                    )
             }
           />
 
@@ -189,7 +192,9 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
             (M5-08). The label names the one that is.
           */}
           <Figure
-            label={hosted ? dashboardCopy.money.availableHosted : dashboardCopy.money.available}
+            label={
+              hosted ? dashboardCopy.money.availableHosted : dashboardCopy.money.available
+            }
             amount={formatMoney(balance.available)}
             note={
               hosted

@@ -145,7 +145,8 @@ describe('what the panel says this page can do with money', () => {
     // When a settlement reaches the family is unanswered (remaining-work A1).
     // A page saying "within two days" would be inventing one, and it would be
     // read by the person with the least ability to check it.
-    const WHEN = /\b(within|in)\s+(a\s+few|one|two|three|\d+)\s+(second|minute|hour|working\s+day|day)/i
+    const WHEN =
+      /\b(within|in)\s+(a\s+few|one|two|three|\d+)\s+(second|minute|hour|working\s+day|day)/i
 
     for (const mode of ['ledger_only', 'hosted'] as const) {
       expect(eventCopy.trust.moneyBody, mode).not.toMatch(WHEN)

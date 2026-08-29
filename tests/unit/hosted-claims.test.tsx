@@ -116,8 +116,7 @@ function moneySection(): string {
 }
 
 /** The inlined stylesheet mentions every token and is not prose. */
-const withoutStyles = (markup: string) =>
-  markup.replace(/<style[\s\S]*?<\/style>/g, '')
+const withoutStyles = (markup: string) => markup.replace(/<style[\s\S]*?<\/style>/g, '')
 
 const SURFACES: readonly { name: string; markup: string }[] = [
   {

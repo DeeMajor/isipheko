@@ -3143,3 +3143,64 @@ name the schema knows. There are three today — `DATABASE_URL`,
 `NEXT_PUBLIC_APP_URL`, `OBJECT_STORE_DIR` — plus `NODE_ENV`, which every factory
 takes as an argument and the schema declares anyway. A fourth added without a
 declaration fails the suite.
+
+---
+
+## OPS-01 · The CI that rule 9 has claimed since M1-01
+
+### 1. There was none, and two documents said there was
+
+CLAUDE.md rule 9: *"CI fails the build on breach."* Part G restates it. There was
+no CI, no Dockerfile and no deployment of any kind — `pnpm gate:size` was a
+script somebody had to remember to run, and M3-02 §6 records two runs that
+reported numbers from a stale build because nothing forced one.
+
+A rule that names an enforcement mechanism that does not exist is worse than an
+unenforced rule, because everybody downstream reads it as enforced.
+
+### 2. Four jobs, split by what each needs rather than by tidiness
+
+`check` needs nothing and answers in about a minute, so it is the one a
+contributor watches. `integration` needs a container runtime, and Testcontainers
+starts and mounts its own Postgres — including `prisma/init/01-app-role.sql`, so
+the test database has the **two roles** without which
+`tests/integration/ledger.test.ts` proves nothing about production. `e2e` and
+`budget` each need a migrated database; `budget` additionally needs a production
+build, which is the slowest step here and the reason it is not folded into `e2e`.
+
+`e2e` and `budget` run `docker compose up -d --wait` against the same
+`compose.yaml` a developer runs, rather than a service container with an
+approximated setup. The two roles and the C locale are the point.
+
+**The build happens on every `budget` run.** The gate measures whatever is in
+`.next` and does not check that it is current, which is exactly how the stale
+numbers happened. Its secrets are generated per run with `openssl rand`, because
+the production schema refuses the published development keys by value (M1-02 §5).
+
+### 3. Two things are deliberately absent, and one of them is a gap
+
+**`pnpm check:payfast` is not a step and must not become one.** It posts a real
+form to PayFast's sandbox. M5-01 §4 is explicit: *"a gate that fails when the
+wifi does is a gate people learn to re-run rather than read."*
+
+**`pnpm format:check` is not a step, and that is a gap rather than a decision.**
+Twenty files, all from Milestone 4's album, photo and PDF work, are not
+Prettier-clean. Adding the step today would fail every run until somebody pays
+for a twenty-file reformat, and burying that reformat inside the commit that
+introduces CI is the twelve-task diff nobody reviews. The four files this session
+touched were formatted; the rest is named here and in docs/remaining-work.md so
+it is a known debt rather than an unexplained absence in a workflow file.
+
+### 4. Verified by running all four locally, not by reading the YAML
+
+A CI that fails on its first run teaches people to ignore it. Before this was
+committed: `pnpm typecheck && pnpm lint && pnpm test` (1149 unit), `pnpm
+test:integration` (358 across 24 files), `pnpm test:e2e` (160), and `pnpm build`
+followed by `pnpm gate:size` — which reports **36.0KB** first load against the
+150KB ceiling and 0.63s LCP against 2.5s.
+
+That last run mattered more than the others: OPS-09 had just made
+`objectStore()` throw in production, and the gate runs a production server. It
+passes because the album's lazy-loaded photographs are never fetched in the
+measurement — but nothing about that was obvious from reading the change, and it
+is the sort of thing a first CI run exists to find.

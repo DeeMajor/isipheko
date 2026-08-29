@@ -132,7 +132,11 @@ describe('the confirmation queue', () => {
     // Rule 5's posture on the organiser side: the two most important actions of
     // her day work with JavaScript switched off.
     const markup = renderToStaticMarkup(
-      <ConfirmationQueue eventId="e1" slug="mthembu" rows={buildQueue([report()], [arrival()])} />,
+      <ConfirmationQueue
+        eventId="e1"
+        slug="mthembu"
+        rows={buildQueue([report()], [arrival()])}
+      />,
     )
 
     expect(markup.match(/<form/g)).toHaveLength(2)
@@ -165,7 +169,9 @@ describe('the confirmation queue', () => {
   })
 
   it('invites nothing when there is nothing waiting', () => {
-    const markup = renderToStaticMarkup(<ConfirmationQueue eventId="e1" slug="mthembu" rows={[]} />)
+    const markup = renderToStaticMarkup(
+      <ConfirmationQueue eventId="e1" slug="mthembu" rows={[]} />,
+    )
 
     expect(markup).toContain(dashboardCopy.queue.empty.heading)
     expect(markup).toContain('put the phone down')
