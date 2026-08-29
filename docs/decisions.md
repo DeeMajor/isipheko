@@ -3589,6 +3589,18 @@ the public collection page would publish a photograph of a group at a graveside
 to everybody who has the link, which is the harm one step removed from the GPS
 this task exists to strip.
 
+**This is a standing decision, confirmed rather than pending.** A
+stored-but-unread image is an honest gap and can be closed at any time by the
+task that builds the reviewer's view. A published one is not recoverable: the
+link has already been forwarded, and there is no version of "we took it down"
+that reaches the people who saw it. The asymmetry is the whole argument, and it
+is the same one M4-01 §5 makes about never keeping the original.
+
+So: **do not add a public route for `handover_evidence_key`.** If a screen needs
+it, that screen is `/review/[id]`, behind the admin allowlist, and it arrives
+with its own audit entry for the reading — because looking at a photograph of
+somebody's family is an act worth a row (M3-07 §4).
+
 ### 4. A photograph that will not process does not stop the handover
 
 She is standing at a graveside. Refusing to close the record because a decoder
