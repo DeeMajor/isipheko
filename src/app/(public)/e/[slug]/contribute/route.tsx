@@ -16,7 +16,6 @@ import {
   isStep,
   isVisibility,
   nextStep,
-  requiresPayment,
   type ContributionRoute,
   type ContributionStep,
   type PaymentMode,
@@ -41,7 +40,12 @@ import { ContributePage } from '@/ui/contribute-page'
 import type { contributeCopy } from '@/copy/contribute'
 
 /**
- * The five steps, as a route handler.
+ * The contribution steps, as a route handler.
+ *
+ * **Money and money-toward-one-thing only.** Bringing something is the needs
+ * board's claim path (M2-04) and the choose step links there — this flow once
+ * carried its own item route and that path recorded nothing at all, while its
+ * done screen said otherwise. See `src/domain/contribution/flow.ts`.
  *
  * **No account, no login, no email.** A contributor arrives from a WhatsApp
  * link and leaves without being asked to become anything (CLAUDE.md rule 4).
@@ -428,40 +432,32 @@ export async function POST(
 
   if (step === 'who') {
     /*
-     * The photo is offered only where there is something to attach it to.
-     *
-     * "Bring something" has no pay step and therefore creates no row — it
-     * reserves through the claim path M2-04 already built. Taking a photo on
-     * that route would store an object and attach it to nothing. Checked here
-     * as well as in the markup, so a forged field cannot orphan one.
+     * The photo. Both routes through this flow create a row at the pay step
+     * (M2-05 §3), so there is always something for it to attach to — "bring
+     * something", which creates no row, is not a route here and takes its
+     * photo on the needs board's claim form (M4-02b).
      *
      * It is dealt with **before** the name is checked. The other way round,
      * somebody who left the name blank would be sent back to a step where the
      * file input has emptied itself — browsers do not repopulate one — and
      * would have to find the picture again to fix a different mistake.
      */
-    let digest: string | undefined
+    const eventId = await eventIdFor(slug)
+    if (eventId === null) return new Response(null, { status: 404 })
 
-    if (requiresPayment(route)) {
-      const eventId = await eventIdFor(slug)
-      if (eventId === null) return new Response(null, { status: 404 })
+    const rejection = await attachPhoto(form, eventId, carried)
+    const removing = text(form, 'removePhoto') === '1'
+    const digest = digestFromTicket(carried.photoTicket ?? '', eventId) ?? undefined
 
-      const rejection = await attachPhoto(form, eventId, carried)
-      const removing = text(form, 'removePhoto') === '1'
-      digest = digestFromTicket(carried.photoTicket ?? '', eventId) ?? undefined
-
-      if (rejection !== null || removing) {
-        return render(request, {
-          slug,
-          route,
-          step: 'who',
-          carried,
-          error: rejection ?? undefined,
-          photoDigest: digest,
-        })
-      }
-    } else {
-      delete carried.photoTicket
+    if (rejection !== null || removing) {
+      return render(request, {
+        slug,
+        route,
+        step: 'who',
+        carried,
+        error: rejection ?? undefined,
+        photoDigest: digest,
+      })
     }
 
     if ((carried.name ?? '') === '') {

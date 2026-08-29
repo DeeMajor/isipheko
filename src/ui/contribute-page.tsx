@@ -14,12 +14,7 @@ import type {
   PaymentMode,
   Visibility,
 } from '@/domain/contribution'
-import {
-  canReachPayStep,
-  requiresPayment,
-  stepNumber,
-  stepsFor,
-} from '@/domain/contribution'
+import { canReachPayStep, stepNumber, stepsFor } from '@/domain/contribution'
 import { formatMoney } from '@/domain/money'
 import type { Money } from '@/domain/money'
 
@@ -256,7 +251,9 @@ export function ContributePage(props: ContributePageProps) {
         </div>
       )}
 
-      {step === 'choose' ? <ChooseStep action={action} verb={archetype.verb} /> : null}
+      {step === 'choose' ? (
+        <ChooseStep action={action} slug={slug} verb={archetype.verb} />
+      ) : null}
       {step === 'amount' ? <AmountStep action={action} {...props} /> : null}
       {step === 'item' ? <ItemStep action={action} {...props} /> : null}
       {step === 'who' ? <WhoStep action={action} {...props} /> : null}
@@ -266,40 +263,54 @@ export function ContributePage(props: ContributePageProps) {
   )
 }
 
-function ChooseStep({ action, verb }: { action: string; verb: string }) {
-  const routes: { route: ContributionRoute; title: string; blurb: string }[] = [
-    {
-      route: 'money',
-      title: contributeCopy.choose.money(verb),
-      blurb: contributeCopy.choose.moneyBlurb,
-    },
-    {
-      route: 'item',
-      title: contributeCopy.choose.item,
-      blurb: contributeCopy.choose.itemBlurb,
-    },
-    {
-      route: 'earmark',
-      title: contributeCopy.choose.earmark(verb),
-      blurb: contributeCopy.choose.earmarkBlurb,
-    },
-  ]
-
+function ChooseStep({
+  action,
+  slug,
+  verb,
+}: {
+  action: string
+  slug: string
+  verb: string
+}) {
   return (
     <>
       <h1 className="title">{contributeCopy.choose.title}</h1>
       <p className="intro">{contributeCopy.choose.intro}</p>
 
-      {routes.map((option) => (
-        <form key={option.route} method="post" action={action} className="claimForm">
-          <input type="hidden" name="route" value={option.route} />
-          <input type="hidden" name="step" value="choose" />
-          <button type="submit" className="buttonPrimary">
-            {option.title}
-          </button>
-          <p className="claimHelp">{option.blurb}</p>
-        </form>
-      ))}
+      <form method="post" action={action} className="claimForm">
+        <input type="hidden" name="route" value="money" />
+        <input type="hidden" name="step" value="choose" />
+        <button type="submit" className="buttonPrimary">
+          {contributeCopy.choose.money(verb)}
+        </button>
+        <p className="claimHelp">{contributeCopy.choose.moneyBlurb}</p>
+      </form>
+
+      {/*
+        Bringing something happens on the needs board, not in this flow.
+
+        The board's claim form is the one reservation path there is (M2-03) and
+        it already takes the message and the photograph (M4-02b). This flow once
+        had its own item route — choose → item → who → done — and that path
+        recorded nothing at all: no claim, no row, nothing, while its done
+        screen said the family would confirm it. A link to the real thing
+        replaces it. The fragment lands on the list itself.
+      */}
+      <div className="claimForm">
+        <a href={`/e/${slug}#needs`} className="buttonPrimary">
+          {contributeCopy.choose.item}
+        </a>
+        <p className="claimHelp">{contributeCopy.choose.itemBlurb}</p>
+      </div>
+
+      <form method="post" action={action} className="claimForm">
+        <input type="hidden" name="route" value="earmark" />
+        <input type="hidden" name="step" value="choose" />
+        <button type="submit" className="buttonPrimary">
+          {contributeCopy.choose.earmark(verb)}
+        </button>
+        <p className="claimHelp">{contributeCopy.choose.earmarkBlurb}</p>
+      </form>
     </>
   )
 }
@@ -467,53 +478,36 @@ function WhoStep({
         />
 
         {/*
-          The photo, where `design/contribute.html` puts it — but only on the
-          routes that create a contribution row.
-
-          "Bring something" has no pay step, and the pay step is what creates
-          the row (M2-05); that route reserves through the claim path M2-04
-          already built. A file field there would take somebody's photo, store
-          it, and attach it to nothing — so it is not offered rather than
-          quietly discarded.
+          The photo, where `design/contribute.html` puts it. Both routes through
+          this flow create a contribution row at the pay step (M2-05 §3), so
+          there is always something for it to attach to — "bring something",
+          which creates no row, is not a route here and takes its photo on the
+          needs board's claim form instead (M4-02b).
 
           `accept` is a hint to the file picker and nothing more. What is
           actually allowed is decided by the magic bytes on the server, because
           a browser's idea of the type is whatever the client wrote there.
         */}
-        {!requiresPayment(route) ? null : (
-          <>
-            <label className="claimLabel" htmlFor="photo">
-              {contributeCopy.who.photoLabel}
-            </label>
-            <input
-              className="claimInput"
-              id="photo"
-              name="photo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-            />
-            <p className="claimHelp">{contributeCopy.who.photoHelp}</p>
-            <p className="claimHelp">{contributeCopy.who.photoSafety}</p>
+        <label className="claimLabel" htmlFor="photo">
+          {contributeCopy.who.photoLabel}
+        </label>
+        <input
+          className="claimInput"
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+        />
+        <p className="claimHelp">{contributeCopy.who.photoHelp}</p>
+        <p className="claimHelp">{contributeCopy.who.photoSafety}</p>
 
-            {photoDigest === undefined ? null : (
-              <>
-                <Photo
-                  slug={slug}
-                  digest={photoDigest}
-                  size="thumb"
-                  className="photoThumb"
-                />
-                <p className="claimHelp">{contributeCopy.who.photoAttached}</p>
-                <button
-                  type="submit"
-                  name="removePhoto"
-                  value="1"
-                  className="buttonQuiet"
-                >
-                  {contributeCopy.who.photoRemove}
-                </button>
-              </>
-            )}
+        {photoDigest === undefined ? null : (
+          <>
+            <Photo slug={slug} digest={photoDigest} size="thumb" className="photoThumb" />
+            <p className="claimHelp">{contributeCopy.who.photoAttached}</p>
+            <button type="submit" name="removePhoto" value="1" className="buttonQuiet">
+              {contributeCopy.who.photoRemove}
+            </button>
           </>
         )}
 

@@ -211,7 +211,10 @@ export function PublicEventPage({
               fails and which costs a screen-reader user the ability to jump
               straight to the content. */}
           <main>
-            <section className="section" aria-labelledby="needs-heading">
+            {/* The id is a landing point: the contribute flow's "bring
+                something" option links to `/e/<slug>#needs`, because claiming
+                happens here and only here (M2-03). */}
+            <section className="section" id="needs" aria-labelledby="needs-heading">
               <h2 className="heading" id="needs-heading">
                 {eventCopy.needs.heading}
               </h2>

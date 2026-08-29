@@ -192,6 +192,49 @@ test('works with JavaScript disabled, from first step to last', async ({ browser
   await context.close()
 })
 
+/**
+ * "Bring something" walks out of the flow and onto the board, and the claim it
+ * ends in is real.
+ *
+ * The absence of this walk is how the in-flow item route survived: it rendered
+ * choose → item → who → done, recorded nothing — no claim, no row — and told
+ * the person the family would confirm it. The choose step now links to the
+ * needs board, which is the one reservation path there is (M2-03), and this
+ * test is the proof that the whole journey ends in a held item rather than in
+ * a thank-you about nothing.
+ */
+test('bringing something goes from the flow to the board to a real claim', async ({
+  browser,
+}) => {
+  const fixture = await seedEvent({ withPayDetails: true })
+  const context = await browser.newContext({ extraHTTPHeaders: freshAddress() })
+  const page = await context.newPage()
+
+  await page.goto(`/e/${fixture.slug}/contribute`)
+
+  // A link, not a submit: nothing about bringing a tent belongs in this flow.
+  const bring = page.getByRole('link', { name: 'Bring something from the list' })
+  await expect(bring).toHaveAttribute('href', `/e/${fixture.slug}#needs`)
+  await bring.click()
+
+  // The board, on the event page, with the claim form the flow pointed at.
+  await expect(page).toHaveURL(new RegExp(`/e/${fixture.slug}#needs$`))
+  await page.locator('[data-item] input[name="name"]').fill('Thandi Ngcobo')
+  await page.locator('[data-item] [data-claim-button]').click()
+
+  // The server said so after the reservation, not before it (rule 5).
+  await expect(page.getByText("You've claimed the tent")).toBeVisible()
+  await expect(
+    page.getByText('It is held for you. Nobody else can claim it'),
+  ).toBeVisible()
+
+  // And it held: a fresh read of the page shows the tent taken.
+  await page.goto(`/e/${fixture.slug}`)
+  await expect(page.getByText('All of this is taken')).toBeVisible()
+
+  await context.close()
+})
+
 test('asks for no account, no password and no email, on any step', async ({
   browser,
 }) => {

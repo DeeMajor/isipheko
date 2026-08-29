@@ -8,26 +8,20 @@ import {
   isVisibility,
   nextStep,
   previousStep,
-  requiresPayment,
   stepNumber,
   stepsFor,
 } from '@/domain/contribution'
 
 /**
- * Three routes, not one path of five — exactly as design/contribute.html
- * branches at the first step.
+ * Two routes through the flow, and "bring something" deliberately not among
+ * them: it reserves through the needs board's claim path (M2-04), which is the
+ * only reservation path there is (M2-03). The in-flow item route it replaces
+ * recorded nothing at all while its done screen said otherwise.
  */
 
-describe('the three routes', () => {
+describe('the two routes', () => {
   it('takes money through five steps', () => {
     expect(stepsFor('money')).toEqual(['choose', 'amount', 'who', 'pay', 'done'])
-  })
-
-  it('takes an item through four, with no pay step', () => {
-    // Nothing is being paid, so there is nothing to pay. A pay step here would
-    // be a screen asking somebody to send money for a chair they are bringing.
-    expect(stepsFor('item')).toEqual(['choose', 'item', 'who', 'done'])
-    expect(requiresPayment('item')).toBe(false)
   })
 
   it('takes an earmarked amount through six', () => {
@@ -39,7 +33,6 @@ describe('the three routes', () => {
       'pay',
       'done',
     ])
-    expect(requiresPayment('earmark')).toBe(true)
   })
 
   it('numbers from one, for "Step N of M"', () => {
@@ -57,11 +50,6 @@ describe('the three routes', () => {
   it('walks backwards and stops at the start', () => {
     expect(previousStep('money', 'amount')).toBe('choose')
     expect(previousStep('money', 'choose')).toBeNull()
-  })
-
-  it('does not offer an amount step on the item route', () => {
-    expect(stepsFor('item')).not.toContain('amount')
-    expect(nextStep('item', 'item')).toBe('who')
   })
 })
 
@@ -140,11 +128,16 @@ describe('visibility', () => {
 })
 
 describe('what arrives from a form', () => {
-  it.each(['money', 'item', 'earmark'])('accepts the route %s', (value) => {
+  it.each(['money', 'earmark'])('accepts the route %s', (value) => {
     expect(isRoute(value)).toBe(true)
   })
 
-  it.each(['', 'cash', 'MONEY', 'donate'])('refuses %o as a route', (value) => {
+  /**
+   * 'item' is a step, never a route. The route it once named recorded nothing —
+   * no claim, no row — so a stale URL or an in-flight form carrying it must
+   * land on the default rather than resolve to a path that swallows the act.
+   */
+  it.each(['', 'cash', 'MONEY', 'donate', 'item'])('refuses %o as a route', (value) => {
     expect(isRoute(value)).toBe(false)
   })
 

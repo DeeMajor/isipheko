@@ -7,12 +7,13 @@ import type { ContributionRoute, Visibility } from '@/domain/contribution'
 import { ContributePage } from '@/ui/contribute-page'
 
 /**
- * Where the photo field appears, and where it deliberately does not.
+ * The photo field on the who step, and where "bring something" goes instead.
  *
- * The row a photo attaches to is created at the pay step, so a route with no
- * pay step has nothing to attach one to. "Bring something" is that route — it
- * reserves through the claim path M2-04 already built — and offering a file
- * field there would take somebody's photo, store it, and lose it.
+ * Both routes through the flow create a row at the pay step, so the who step
+ * always offers the photo. "Bring something" is not a route here at all: the
+ * choose step links to the needs board, whose claim form is the one
+ * reservation path there is (M2-03) and already takes a message and a photo
+ * (M4-02b). The in-flow item route this replaces recorded nothing.
  */
 
 function whoStep({
@@ -44,20 +45,13 @@ function whoStep({
 }
 
 describe('the photo field on the who step', () => {
-  it('is offered on the routes that create a contribution', () => {
+  it('is offered on both routes, which both create a contribution', () => {
     for (const route of ['money', 'earmark'] as const) {
       const markup = whoStep({ route })
 
       expect(markup).toContain('name="photo"')
       expect(markup).toContain('multipart/form-data')
     }
-  })
-
-  it('is not offered on "bring something", which creates no row to hold it', () => {
-    const markup = whoStep({ route: 'item' })
-
-    expect(markup).not.toContain('name="photo"')
-    expect(markup).not.toContain(contributeCopy.who.photoLabel)
   })
 
   /**
@@ -99,6 +93,49 @@ describe('the photo field on the who step', () => {
     expect(markup).toContain('value="Sisemuva kwenu."')
     // The amount has no input on this step, so it does travel hidden.
     expect(markup).toContain('<input type="hidden" name="amount" value="R450,00"/>')
+  })
+})
+
+describe('the choose step', () => {
+  function chooseStep(): string {
+    return renderToStaticMarkup(
+      <ContributePage
+        slug="AbCdEf0123456789"
+        eventTitle="Nokuthula Mthembu"
+        organiserName="Nomsa Mthembu"
+        archetype={ARCHETYPES.umngcwabo}
+        route="money"
+        step="choose"
+        amountsPublic={false}
+        carried={{}}
+        needs={[]}
+        payDetails={{ phone: '082 123 4567', name: 'Nomsa Mthembu' }}
+        mode="ledger_only"
+        defaultVisibility="name_only"
+      />,
+    )
+  }
+
+  /**
+   * "Bring something" must be a link to the board, never a post into this
+   * flow. The in-flow item route it replaces walked choose → item → who → done
+   * and recorded nothing — no claim, no row — while its done screen said the
+   * family would confirm it. The board's claim form is the one reservation
+   * path there is (M2-03).
+   */
+  it('sends "bring something" to the needs board rather than into the flow', () => {
+    const markup = chooseStep()
+
+    expect(markup).toContain(`href="/e/AbCdEf0123456789#needs"`)
+    expect(markup).toContain(contributeCopy.choose.item)
+    expect(markup).not.toContain('value="item"')
+  })
+
+  it('still posts the two money routes into the flow', () => {
+    const markup = chooseStep()
+
+    expect(markup).toContain('value="money"')
+    expect(markup).toContain('value="earmark"')
   })
 })
 

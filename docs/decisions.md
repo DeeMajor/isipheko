@@ -3754,3 +3754,58 @@ it named the file and exited 1, then passed again once the line was removed.
 `docs/decisions.md`, the architecture, the implementation plan — because
 reflowing them produces a large diff that says nothing, on the files most read
 by a human (M1-01 §13, M5-01 §17). This step gates source, not prose.
+
+---
+
+## UX-01 · "Bring something" leaves the flow, because its in-flow route recorded nothing
+
+The UX audit numbers its fixes UX-01 through UX-17, in the order the audit
+report ranked them; the numbering continues from here.
+
+### 1. The route was a black hole, and removal was chosen over repair
+
+The contribute flow carried an item route — `choose → item → who → done` —
+that called nothing: no `claimItem`, no contribution row, no ledger entry.
+Somebody chose the tent, gave their name, and was told *"Your contribution is
+with the family. It joins the record when they confirm it."* None of it was
+true. The tent stayed open on the board, the family never heard, and the next
+person could arrive with a second one — the exact failure rule 5 exists to
+prevent, produced by the flow built to prevent it.
+
+M2-05 §2 had already decided this route *"reserves through M2-04's claim path
+rather than growing a second one"*. The in-flow steps were built anyway and
+reserved through nothing. **Repairing them would have meant a second
+reservation path**, which M2-03's atomicity cannot survive — one conditional
+UPDATE deciding who got the last chair only works while it is the only one. So
+the route is gone rather than fixed: the choose step's *"Bring something from
+the list"* is now a plain link to `/e/<slug>#needs`, and the board's claim
+form — which since M4-02b takes the message and the photograph too — is where
+the act happens.
+
+### 2. `'item'` is a step, never a route, and a stale URL lands on the default
+
+`ContributionRoute` is `'money' | 'earmark'`. The `item` **step** stays,
+because earmarking money toward one thing still chooses the thing. `isRoute`
+refuses `'item'`, so an old URL or an in-flight form posted across the deploy
+resolves to the choose step rather than to a path that swallows the act — the
+same posture as any other unrecognised value.
+
+`requiresPayment` is deleted. Both remaining routes create a row at the pay
+step, so the predicate had become constant, and a guard that can never refuse
+is decoration (M2-05 §7). The forged-photo-field protection it powered guarded
+a route that no longer exists; the who step now always accepts a photo,
+because there is always a row coming for it to attach to.
+
+### 3. The E2E walks the whole journey, because its absence is how this survived
+
+No test ever walked choose → item → who → done; the only in-flow test touching
+the route asserted the *photo field's absence* on it. A completed path that
+recorded nothing therefore looked finished from every angle anybody checked.
+`tests/e2e/contribute.spec.ts` now walks choose → the board → a claimed tent —
+asserting the link's href, the server-rendered claimed panel, and that a fresh
+read of the page shows the tent taken. The unit half pins the choose step:
+bring-something is a link carrying `#needs`, and no form on that step posts
+`route=item`.
+
+The event page's needs section gained `id="needs"` as the landing point,
+with a comment saying who links to it.

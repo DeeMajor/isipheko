@@ -7,7 +7,6 @@ export {
   isVisibility,
   nextStep,
   previousStep,
-  requiresPayment,
   stepNumber,
   stepsFor,
   type ContributionRoute,

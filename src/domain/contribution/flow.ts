@@ -1,22 +1,26 @@
 /**
  * The contribution flow, as rules.
  *
- * Three routes rather than one path, exactly as `design/contribute.html`
- * branches at the first step:
+ * Two routes through this flow, and a third way to help that deliberately is
+ * not one:
  *
  *   money            choose → amount → who → pay → done
- *   bring something  choose → item   → who →       done
  *   money toward one choose → item   → amount → who → pay → done
+ *   bring something  → the needs board on the event page (M2-04)
  *
- * **"Bring something" has no pay step** because nothing is being paid, and it
- * reserves through the claim path M2-04 already built rather than growing a
- * second one. Two code paths reserving the same chair is how the last chair
- * gets taken twice.
+ * **"Bring something" is not a route here.** It once was — `choose → item →
+ * who → done` — and that path called nothing: no claim, no row, no ledger
+ * entry, while its done screen said the family would confirm it. M2-05 §2's
+ * decision was that bringing something reserves through the claim path M2-04
+ * built, because two code paths reserving the same chair is how the last chair
+ * gets taken twice (M2-03). So the choose step links to the board, which is
+ * the one place a reservation happens — and the board's claim form already
+ * takes the message and the photograph (M4-02b).
  *
  * Pure: no I/O, no framework, no Prisma types.
  */
 
-export type ContributionRoute = 'money' | 'item' | 'earmark'
+export type ContributionRoute = 'money' | 'earmark'
 
 export type ContributionStep = 'choose' | 'amount' | 'item' | 'who' | 'pay' | 'done'
 
@@ -24,7 +28,6 @@ export type Visibility = 'public' | 'name_only' | 'anonymous'
 
 const STEPS: Record<ContributionRoute, readonly ContributionStep[]> = {
   money: ['choose', 'amount', 'who', 'pay', 'done'],
-  item: ['choose', 'item', 'who', 'done'],
   earmark: ['choose', 'item', 'amount', 'who', 'pay', 'done'],
 }
 
@@ -56,13 +59,11 @@ export function previousStep(
   return index <= 0 ? null : (steps[index - 1] ?? null)
 }
 
-/** Whether this route ever reaches a payment. */
-export function requiresPayment(route: ContributionRoute): boolean {
-  return route !== 'item'
-}
-
 export function isRoute(value: string): value is ContributionRoute {
-  return value === 'money' || value === 'item' || value === 'earmark'
+  // 'item' is deliberately not a route (see the module comment). A stale URL
+  // or an in-flight form carrying it lands on the default rather than on a
+  // path that records nothing.
+  return value === 'money' || value === 'earmark'
 }
 
 export function isStep(value: string): value is ContributionStep {
