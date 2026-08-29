@@ -3017,3 +3017,70 @@ M5-02 built hosted mode. Each was found separately, by a person reading, months
 apart. **Nothing on this screen is now known to be untrue in either mode** — and
 M5-13 is the scan that stops the next one, written next and deliberately after
 this.
+
+---
+
+## M5-13 · The scan that stops the sixth one
+
+### 1. It scans the render, not `src/copy/`
+
+The forbidden sentences are not forbidden. *"People pay you directly, so this
+money is already in your own account"* is the plain truth of a ledger-only event
+and must stay exactly as written. **What is forbidden is rendering one of them on
+a hosted event**, which is what all five instances actually were.
+
+So `tests/unit/hosted-claims.test.tsx` renders seven hosted surfaces — the public
+event page, all five contribution steps, and the dashboard's money section — and
+reads what a person would see. A source scan over the copy files would have to
+permit every one of these strings to exist, which would leave it asserting
+nothing.
+
+The cost is that a surface nobody adds is a surface it cannot see, so
+`covers the surfaces it claims to` pins the count.
+
+### 2. Writing it caught two holes in itself, and that is the finding
+
+The task was written **after** M5-02b and M5-08 deliberately, so the scan could
+be authored against a codebase with all five instances fixed and then proved by
+reintroducing each one. Two of the five were not caught by the first draft:
+
+- **`available`'s *"Settled"* label** failed only the positive assertion at the
+  bottom of the file — an incidental catch that would have evaporated the moment
+  `availableNoteHosted` was reworded.
+- **`settlingNote`'s *"Everything older is settled"* failed nothing at all.**
+
+That is exactly the failure this file exists to prevent, in the file that exists
+to prevent it. It was found by running the reintroduction rather than by trusting
+the list of what to look for — which is the whole argument for proving a scan by
+mutation instead of by reading it.
+
+**All five now fail their own pattern**, each named in the test that catches it.
+
+### 3. The settled pattern is scoped by subject, and the timetable one by money
+
+Two false positives shaped these, and both are worth keeping in mind before
+widening either.
+
+**`board.intro` says *"3 of the 8 things on your list are settled"*** — a need
+item that arrived, nothing to do with money. So the pattern matches a subject
+list (*everything older*, *the rest*, *money*, *payment*, *amount*, *balance*)
+rather than the word, and the needs board can join `SURFACES` later without a
+rewrite.
+
+**`event.trust.wrongBody` promises *"a person will look at it within one working
+day"*** — M3-06's report SLA, a commitment about ourselves that we can keep. The
+first draft of the timetable patterns matched it. Every pattern is money-scoped
+now. The 72-hour hold is exempt for the same reason: a window in which a payment
+can still be reversed is a fact about our own record, not about a bank's
+timetable.
+
+### 4. What it does not do
+
+- **It does not run over collections.** `tests/unit/collection-page.test.tsx:110`
+  already scans those for custody claims and M5-12 widens the money-path tripwire
+  beside it. Two scans, two rules, no overlap.
+- **It does not assert anything about a ledger-only event.** Those strings have
+  their own tests, and duplicating them here would make this file fail for
+  reasons that are not its subject.
+- **It knows nothing about a provider.** Every surface renders from `mode`, so it
+  keeps working unchanged when M5-04 replaces the simulator.
