@@ -3454,3 +3454,84 @@ No payout, no beneficiary, no money path, no schema. Rules 12, 13, 14, 15 and 16
 are untouched. `contributions.collection_id` is still unused by design (M2-10 §9)
 and is now a live temptation with a column sitting there waiting for it — the
 entry that explains why still stands, and this task is where it gets pointed at.
+
+---
+
+## M1-10 · The copy layer's leaks, and one claim that had stopped being true
+
+### 1. The kickers moved, which M1-04 §7 said should happen when `src/copy/` landed
+
+Seven isiZulu ceremony names — `Umshado`, `Umembeso`, `Umngcwabo`, `Umbuyiso`,
+`Imbeleko`, `Umgidi`, `Itiye` — and every consequence sentence lived in
+`src/domain/archetype/archetypes.ts`. The file said so, and had since M1-04:
+
+> These are user-facing strings in `src/domain/`, which sits awkwardly against
+> rule 11 … see docs/decisions.md M1-04 for where they go when `src/copy/` lands.
+
+M1-04 §7 was more specific still: *"when `src/copy/` lands, they should move
+there and the config should reference them — the flags stay, the sentences go."*
+`src/copy/` landed at M2-05. They did not move.
+
+**The cost is not tidiness.** `src/copy/` is the i18n translation unit (Part D),
+so a string outside it is a string a translation pass never sees — and these are
+the words a bereaved family reads first. `src/copy/archetype.ts` holds them now,
+and it names the two that are open questions rather than settled words, because
+it is the file somebody doing that review will open: **`Umgidi` for a graduation**,
+which nothing in `docs/` justifies, and **`Itiye` for a gathering**, which two
+prototypes call `Umhlangano`.
+
+**The flags stayed.** `animate`, `allowsTarget` and `amountsPublic` are business
+rules and are asserted to still be in the domain — a bereavement guard that had
+to read the copy layer to know whether motion is allowed would be rule 1
+depending on a translation.
+
+### 2. The plan said two inlined strings. The scan found sixteen
+
+Two were found by reading — `"Abakhaphi"` on the dashboard and `"Set up your
+umcimbi"` on the account screen. `tests/unit/copy-layer.test.ts` found fourteen
+more the moment it was written: four field labels and a card title on the new-
+collection screen, two card titles and four toasts on the collection and
+dashboard screens.
+
+That ratio is the argument for the scan. Every one of the fourteen is a short,
+unremarkable string on a plain screen, which is exactly the kind nobody notices
+and a translator never receives.
+
+The scan is narrow on purpose — JSX sentences, and `title` / `label` /
+`placeholder` / `aria-label` attributes holding one. It does not try to catch
+every possible inlined string; it catches the shape all sixteen had.
+
+### 3. A comment said a sentence was not shipped. It had been for months
+
+`share.ts` carried this from M2-07:
+
+> The prototype's intro — *"Every person who opens it sees your verified name"* —
+> is not shipped. Nothing is verified until M3-02 … The verified wording is kept
+> below for the day it is true.
+
+**M3-02 built the badge**, and `src/app/(organiser)/create/[id]/share/page.tsx`
+has picked between `intro` and `introVerified` on `draft.organiserVerified` ever
+since. The note was false, in the file somebody would open to check whether the
+claim ships.
+
+`setupCopy.share` carried a **third** copy of the same sentence — unconditional,
+making the verified claim whether or not anybody was verified, and rendered
+nowhere. It never lied to anybody because nothing read it; it was one import away
+from doing so. Deleted, with the absence explained where it was.
+
+### 4. A value import from `@/copy/` broke four scripts, and only the E2E saw it
+
+`archetypes.ts` is reached by `scripts/render.ts` under plain Node with
+`--experimental-strip-types`, where the `@/` alias does not resolve. The first
+version imported `@/copy/archetype` and `pnpm render` died with
+`ERR_MODULE_NOT_FOUND` — caught by `tests/e2e/album-pdf.spec.ts`, which shells
+out to the real command, and by nothing else.
+
+**A type-only `@/` import is fine and a value import is not**, which is why
+`need-templates.ts` has got away with one for months. The import is relative with
+an explicit extension now, and says why — the same constraint as M2-01 §8 and
+M5-01 §16, reached from a third direction.
+
+All four runners were then run for real: `pnpm render`, `pnpm notify`,
+`pnpm expire` and `pnpm verify:ledger` — the last reporting 222 chains, 12 231
+entries, none with problems.

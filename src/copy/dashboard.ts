@@ -35,6 +35,15 @@ export const dashboardCopy = {
   /** The strip above the title, so a shared screenshot is not mistaken for the public page. */
   viewNote: 'Your view as organiser',
 
+  /**
+   * What just happened, after a redirect. Inlined in the dashboard component
+   * until M1-10 — a toast is as user-facing as anything on the page.
+   */
+  toasts: {
+    confirmed: 'Recorded on the ledger.',
+    listUpdated: 'Your list has been updated.',
+  },
+
   queue: {
     heading: 'Waiting for you',
     /** Counts read better as words at the low end, where most events live. */

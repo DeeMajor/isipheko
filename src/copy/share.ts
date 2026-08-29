@@ -64,12 +64,19 @@ export const archetypeShareCopy: Record<ArchetypeKey, ArchetypeShareCopy> = {
 
 export const shareCopy = {
   /**
-   * The share step's own words.
+   * The share step's own words, in two versions (M1-10 corrects this note).
    *
    * The prototype's intro — *"Every person who opens it sees your verified
-   * name"* — is not shipped. Nothing is verified until M3-02, and this is read
-   * by an organiser deciding whether to send the link to fifty people. The
-   * verified wording is kept below for the day it is true.
+   * name"* — was withheld at M2-07 because nothing was verified until M3-02 and
+   * this is read by an organiser deciding whether to send the link to fifty
+   * people. **M3-02 built the badge, and `introVerified` has shipped since**:
+   * the share step picks between them on `draft.organiserVerified`, so the
+   * claim is made only where it is true.
+   *
+   * The note above said it was *"not shipped"* until M1-10. It had been for
+   * months, from the screen one directory over — which is the kind of stale
+   * comment this codebase treats as worse than none, because it is where
+   * somebody goes to check.
    */
   intro:
     'Send it to one group and it spreads on its own. Anyone who opens it sees what is needed and who has already stood with you.',

@@ -19,21 +19,26 @@
  * the prototype's, and is authoritative.
  */
 
+// Relative with an explicit extension: `scripts/render.ts` and
+// `scripts/verify-ledger.ts` reach this file under plain Node with
+// `--experimental-strip-types`, where the `@/` alias does not resolve
+// (docs/decisions.md M2-01 §8, M5-01 §16). A **type-only** `@/` import is fine
+// because it strips — this one is a value and would not.
+import { archetypeWords, consequenceWords } from '../../copy/archetype.ts'
+
 import type { ArchetypeConfig, ArchetypeKey, Consequence } from './config'
 
 /**
- * The consequence lines shown at the kind step, taken verbatim from
- * `design/setup.html`.
+ * The consequence lines shown at the kind step.
  *
- * The prototype composes these from the archetype's own flags rather than
- * writing them per kind, and this does the same. Keying off the flags is not
- * the conditional rule 2 forbids — nothing here asks which archetype it is; it
- * asks what the archetype permits. Writing the same four sentences seven times
- * would add 28 chances to fix a typo in one place and not the other six.
+ * **Composed from the flags, and the sentences live in `src/copy/archetype.ts`**
+ * (M1-10). The prototype composes them the same way, and keying off the flags is
+ * not the conditional rule 2 forbids — nothing here asks which archetype it is;
+ * it asks what the archetype permits. Writing the same four sentences seven
+ * times would add 28 chances to fix a typo in one place and not the other six.
  *
- * These are user-facing strings in `src/domain/`, which sits awkwardly against
- * rule 11. Part C.1 puts `consequences` on the config, so that is where they
- * are; see docs/decisions.md M1-04 for where they go when `src/copy/` lands.
+ * The words moved out at M1-10, which is what M1-04 §7 said should happen when
+ * `src/copy/` landed: the flags stay, the sentences go.
  */
 function consequencesFor(flags: {
   amountsPublic: boolean
@@ -42,38 +47,15 @@ function consequencesFor(flags: {
 }): readonly Consequence[] {
   return [
     flags.amountsPublic
-      ? {
-          label: 'Amounts are shown.',
-          detail:
-            "Each person's name and what they gave appears on the strand, unless they choose to give quietly.",
-        }
-      : {
-          label: 'Amounts are hidden.',
-          detail: 'Only the family sees who gave what. Names are shown, amounts are not.',
-        },
-    flags.allowsTarget
-      ? {
-          label: 'A target is shown.',
-          detail: 'You can set a figure and people see how far along it is.',
-        }
-      : {
-          label: 'No target is shown.',
-          detail: 'There is no figure to fall short of. People give what they can.',
-        },
-    flags.animate
-      ? {
-          label: 'A little celebration.',
-          detail: 'A new bead settles onto the strand when someone contributes.',
-        }
-      : {
-          label: 'No animation.',
-          detail: 'Beads simply appear. Nothing on the page moves.',
-        },
+      ? consequenceWords.amounts.shown
+      : consequenceWords.amounts.hidden,
+    flags.allowsTarget ? consequenceWords.target.shown : consequenceWords.target.hidden,
+    flags.animate ? consequenceWords.motion.shown : consequenceWords.motion.hidden,
     {
-      label: 'The words change.',
+      label: consequenceWords.words.label,
       detail: flags.amountsPublic
-        ? '“Contribute”, and “who has contributed”.'
-        : '“Stand with them”, and “who has stood with the family”.',
+        ? consequenceWords.words.public
+        : consequenceWords.words.private,
     },
   ]
 }
@@ -83,8 +65,8 @@ export const ARCHETYPES = {
     key: 'umshado',
     group: 'union',
     accent: '#8C2F22',
-    kicker: 'Umshado',
-    verb: 'Contribute',
+    kicker: archetypeWords.umshado.kicker,
+    verb: archetypeWords.umshado.verb,
     amountsPublic: true,
     animate: true,
     allowsTarget: true,
@@ -107,8 +89,8 @@ export const ARCHETYPES = {
     key: 'umembeso',
     group: 'union',
     accent: '#8C2F22',
-    kicker: 'Umembeso',
-    verb: 'Contribute',
+    kicker: archetypeWords.umembeso.kicker,
+    verb: archetypeWords.umembeso.verb,
     amountsPublic: true,
     animate: true,
     allowsTarget: true,
@@ -133,8 +115,8 @@ export const ARCHETYPES = {
   umngcwabo: {
     key: 'umngcwabo',
     group: 'bereavement',
-    kicker: 'Umngcwabo',
-    verb: 'Stand with them',
+    kicker: archetypeWords.umngcwabo.kicker,
+    verb: archetypeWords.umngcwabo.verb,
     amountsPublic: false,
     animate: false,
     allowsTarget: false,
@@ -158,8 +140,8 @@ export const ARCHETYPES = {
     key: 'umbuyiso',
     group: 'remembrance',
     accent: '#2C4A7C',
-    kicker: 'Umbuyiso',
-    verb: 'Stand with them',
+    kicker: archetypeWords.umbuyiso.kicker,
+    verb: archetypeWords.umbuyiso.verb,
     amountsPublic: false,
     animate: false,
     allowsTarget: true,
@@ -178,8 +160,8 @@ export const ARCHETYPES = {
     key: 'imbeleko',
     group: 'arrival',
     accent: '#4A7C59',
-    kicker: 'Imbeleko',
-    verb: 'Contribute',
+    kicker: archetypeWords.imbeleko.kicker,
+    verb: archetypeWords.imbeleko.verb,
     amountsPublic: true,
     animate: true,
     allowsTarget: false,
@@ -197,8 +179,8 @@ export const ARCHETYPES = {
     key: 'graduation',
     group: 'achievement',
     accent: '#C89211',
-    kicker: 'Umgidi',
-    verb: 'Contribute',
+    kicker: archetypeWords.graduation.kicker,
+    verb: archetypeWords.graduation.verb,
     amountsPublic: true,
     animate: true,
     allowsTarget: true,
@@ -217,8 +199,8 @@ export const ARCHETYPES = {
     key: 'itiye',
     group: 'gathering',
     accent: '#A6742B',
-    kicker: 'Itiye',
-    verb: 'Contribute',
+    kicker: archetypeWords.itiye.kicker,
+    verb: archetypeWords.itiye.verb,
     amountsPublic: true,
     animate: false,
     allowsTarget: true,

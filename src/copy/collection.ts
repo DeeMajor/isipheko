@@ -162,6 +162,46 @@ export const collectionCopy = {
   },
 
   /** One bead, one act. Rule 14, said to whoever opens it. */
+  /**
+   * The organiser's two screens (M1-10).
+   *
+   * These were inlined in `collections/new/page.tsx` and
+   * `collections/[id]/page.tsx` — card titles, field labels and four toasts —
+   * and were found by the scan `tests/unit/copy-layer.test.ts` runs, not by
+   * reading. Fourteen strings across three screens, where the plan's entry for
+   * this task had named two.
+   *
+   * The organiser side of collections is deliberately plain (M2-10 §2), which
+   * is why these are short. Plain is not a reason to keep them out of the
+   * translation unit.
+   */
+  setup: {
+    title: 'Start a collection',
+    cardTitle: 'What you are putting together',
+    incomplete: 'It needs a name and an occasion before it can start.',
+
+    occasionLabel: 'The occasion',
+    nameLabel: 'What the group is called',
+    forWhomLabel: 'Who it is for',
+    /**
+     * Free text, and it must stay free text: the moment this is an account we
+     * hold, verify or pay into, rule 12 is gone and the regulatory position
+     * goes with it.
+     */
+    bankHintLabel: 'Where people should send it',
+  },
+
+  manage: {
+    linkTitle: 'The link to send round',
+    joinedTitle: 'Who has joined',
+    nobodyJoined: 'Nobody has joined yet.',
+
+    /** What just happened, after a redirect. */
+    markedArrived: 'Marked as arrived.',
+    linkReady: 'The link is ready.',
+    recordClosed: 'The record is closed.',
+  },
+
   members: {
     label: (people: number) =>
       people === 1 ? '1 person, one bead' : `${String(people)} people, one bead`,

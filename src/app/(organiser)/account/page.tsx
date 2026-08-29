@@ -36,12 +36,12 @@ export default async function AccountPage() {
 
   return (
     <main className={styles.page}>
-      <Card title="You are signed in" titleAs="h1" className={styles.card}>
-        <p className={styles.body}>Set up an umcimbi and share it when you are ready.</p>
+      <Card title={authCopy.signedIn.title} titleAs="h1" className={styles.card}>
+        <p className={styles.body}>{authCopy.signedIn.body}</p>
 
         <div className={styles.actions}>
           <form action="/create">
-            <Button type="submit">Set up your umcimbi</Button>
+            <Button type="submit">{authCopy.signedIn.setUp}</Button>
           </form>
 
           <form action={signOut}>

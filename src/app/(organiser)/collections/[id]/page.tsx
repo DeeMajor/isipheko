@@ -99,10 +99,10 @@ export default async function CollectionPage({
       <h1 className={styles.title}>{collection.title}</h1>
       <p className={styles.body}>{collectionCopy.holdsTheMoneyShort('You')}</p>
 
-      {confirmed === '1' ? <Toast>Marked as arrived.</Toast> : null}
-      {shared === '1' ? <Toast>The link is ready.</Toast> : null}
+      {confirmed === '1' ? <Toast>{collectionCopy.manage.markedArrived}</Toast> : null}
+      {shared === '1' ? <Toast>{collectionCopy.manage.linkReady}</Toast> : null}
 
-      <Card title="The link to send round" titleAs="h2" className={styles.card}>
+      <Card title={collectionCopy.manage.linkTitle} titleAs="h2" className={styles.card}>
         {collection.slug === null ? (
           <>
             {/*
@@ -141,7 +141,11 @@ export default async function CollectionPage({
         )}
       </Card>
 
-      <Card title="Who has joined" titleAs="h2" className={styles.card}>
+      <Card
+        title={collectionCopy.manage.joinedTitle}
+        titleAs="h2"
+        className={styles.card}
+      >
         <p className={styles.body}>
           Mark somebody off once their money has actually reached you. Only what you have
           marked counts toward what the family is told the group handed over.
@@ -182,7 +186,7 @@ export default async function CollectionPage({
       </Card>
 
       <Card title={collectionCopy.handover.heading} titleAs="h2" className={styles.card}>
-        {closed === '1' ? <Toast>The record is closed.</Toast> : null}
+        {closed === '1' ? <Toast>{collectionCopy.manage.recordClosed}</Toast> : null}
         {handover === undefined ? null : (
           <Toast tone="problem">
             {collectionCopy.handover.errors[
@@ -202,7 +206,7 @@ export default async function CollectionPage({
               nothing to do in here (rule 15).
             */}
             {members.length === 0 ? (
-              <p className={styles.body}>Nobody has joined yet.</p>
+              <p className={styles.body}>{collectionCopy.manage.nobodyJoined}</p>
             ) : (
               <ul className={styles.members}>
                 {members.map((person) => (

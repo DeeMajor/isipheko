@@ -41,6 +41,16 @@ export const authCopy = {
   },
 
   signedIn: {
+    /*
+     * The three strings on `/account` that were inlined in the component until
+     * M1-10. Every one is user-facing, so every one belongs in the translation
+     * unit — a string in a `.tsx` is a string a translation pass keyed on
+     * `src/copy/` never sees (rule 11).
+     */
+    title: 'You are signed in',
+    body: 'Set up an umcimbi and share it when you are ready.',
+    setUp: 'Set up your umcimbi',
+
     signOut: 'Sign out',
     signOutEverywhere: 'Sign out on every device',
   },

@@ -179,6 +179,11 @@ export const setupCopy = {
     add: 'Ask someone else too',
     addThird: 'Ask a third person',
     remove: 'Remove',
+    /** The dashboard's card title, inlined in that component until M1-10. */
+    heading: 'Abakhaphi',
+    /** Its empty state, inlined in the same place. */
+    noneAsked: 'Nobody has been asked yet.',
+
     askTitle: 'What they will be asked',
     /**
      * **The quote is verbatim from `design/setup.html` and is the invite page's
@@ -244,8 +249,18 @@ export const setupCopy = {
 
   share: {
     title: "It's ready. Send it.",
-    intro:
-      'Send it to one group and it spreads on its own. Every person who opens it sees your verified name.',
+    /*
+     * **There is no `intro` here, and its absence is the point** (M1-10).
+     *
+     * This block used to carry one, word for word the verified sentence
+     * `shareCopy` withholds until an organiser actually is verified — and it
+     * said it unconditionally, with nothing reading `organiserVerified`. It was
+     * never rendered, so it never lied to anybody; it was one import away from
+     * doing so, in the file somebody would reach for first.
+     *
+     * The share step's words are `shareCopy.intro` and `shareCopy.introVerified`,
+     * chosen on the badge. One sentence, one place, one condition.
+     */
     publish: 'Publish and get the link',
     linkLabel: 'The link to your page',
     copy: 'Copy link',

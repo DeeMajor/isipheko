@@ -44,21 +44,21 @@ export default async function NewCollectionPage({
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>Start a collection</h1>
+      <h1 className={styles.title}>{collectionCopy.setup.title}</h1>
       <p className={styles.body}>
         For when a group of you want to give together and hand over one thing.
       </p>
 
       {error === undefined ? null : (
-        <Toast tone="problem">It needs a name and an occasion before it can start.</Toast>
+        <Toast tone="problem">{collectionCopy.setup.incomplete}</Toast>
       )}
 
-      <Card title="What you are putting together" titleAs="h2" className={styles.card}>
+      <Card title={collectionCopy.setup.cardTitle} titleAs="h2" className={styles.card}>
         <form action={startCollection} className={styles.form}>
           <Select
             id="archetype"
             name="archetype"
-            label="The occasion"
+            label={collectionCopy.setup.occasionLabel}
             help="A collection always names one — it drives the words and the tone."
             defaultValue={chosen}
             options={ARCHETYPE_KEYS.map((key) => ({
@@ -70,7 +70,7 @@ export default async function NewCollectionPage({
           <Field
             id="title"
             name="title"
-            label="What the group is called"
+            label={collectionCopy.setup.nameLabel}
             help="e.g. The Ngcobo cousins, or the office collection."
             required
           />
@@ -78,14 +78,14 @@ export default async function NewCollectionPage({
           <Field
             id="purpose"
             name="purpose"
-            label="Who it is for"
+            label={collectionCopy.setup.forWhomLabel}
             help={archetypeCollectionCopy[chosen].purposeLead}
           />
 
           <Field
             id="bankHint"
             name="bankHint"
-            label="Where people should send it"
+            label={collectionCopy.setup.bankHintLabel}
             help="In your words — e.g. “Nomsa's Capitec, ending 4471”. Isipheko never holds this money, so this is only so the group knows where to pay you."
           />
 

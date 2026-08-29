@@ -165,8 +165,8 @@ export default async function ManagePage({
         )}
 
         {saved === '1' ? <Toast>{payDetailsCopy.saved}</Toast> : null}
-        {confirmed === '1' ? <Toast>Recorded on the ledger.</Toast> : null}
-        {listed === '1' ? <Toast>Your list has been updated.</Toast> : null}
+        {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
+        {listed === '1' ? <Toast>{dashboardCopy.toasts.listUpdated}</Toast> : null}
         {error === undefined ? null : (
           <Toast tone="problem">That did not go through. Nothing was changed.</Toast>
         )}
@@ -263,11 +263,11 @@ export default async function ManagePage({
         them; this is where she is when somebody has not answered yet, or when a
         phone was lost and the link needs issuing again.
       */}
-        <Card title="Abakhaphi" titleAs="h2" className={styles.card}>
+        <Card title={setupCopy.witnesses.heading} titleAs="h2" className={styles.card}>
           <p className={styles.body}>{setupCopy.witnesses.foot}</p>
 
           {witnesses.length === 0 ? (
-            <p className={styles.body}>Nobody has been asked yet.</p>
+            <p className={styles.body}>{setupCopy.witnesses.noneAsked}</p>
           ) : (
             <ul className={styles.boardRows}>
               {witnesses.map((person) => (
