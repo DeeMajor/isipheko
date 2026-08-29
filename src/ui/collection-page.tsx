@@ -124,6 +124,12 @@ export function CollectionPublicPage({
                   {copy.custodyTitle(organiser)}
                 </p>
                 <p className="custodyBody">{copy.custodyBody}</p>
+                {/*
+                  Why there is no card here when an event page may have one
+                  (M5-12). Unasked before M5-02 built a checkout; unavoidable
+                  after it, and silence would read as broken rather than honest.
+                */}
+                <p className="custodyBody">{copy.custodyNoCard(organiser)}</p>
                 <p className="custodyBody">
                   <a className="safetyLink" href="#trust">
                     {copy.custodyLink}

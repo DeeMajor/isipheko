@@ -3385,3 +3385,72 @@ number the SLA is about; the list is everything not yet decided, which is the
 work. Making them agree would mean either dropping in-progress reports off the
 screen or counting them as waiting, and both are worse than two honest numbers.
 Recorded here because it looks like a bug on first reading and is not.
+
+---
+
+## M5-12 · The collections asymmetry, said plainly, and the tripwire widened
+
+### 1. The question a contributor did not have until M5-02
+
+M5-02 built a checkout on event pages. Once somebody has paid with a card on
+one, *"why can't I do that here?"* is a question the collection page has to
+answer — and **silence reads as a page that is broken rather than a page that is
+honest**, on the one screen in the product whose entire job is being believed.
+
+The asymmetry is real and correct, so it is explained rather than hidden. A card
+on an event page settles to the family's own account through a licensed provider.
+A card here would mean us collecting money to pass on to her — the activity rule
+12 forbids, the question docs/paystack-analysis.md §0.2 puts to a lawyer, and the
+thing that would put a private individual inside the card-scheme aggregation
+clause in §1.8.
+
+One sentence, in the custody panel beside `custodyTitle`, in the *protects*
+voice: it says what the arrangement protects rather than what it blocks, and it
+does not apologise or promise a later. A test asserts the absence of *sorry*,
+*not supported* and *coming soon* — the three shapes this sentence would take if
+somebody rewrote it as a missing feature.
+
+`collection-page.test.tsx`'s custody scan passes unchanged, which was the
+done-criterion. The pressure on it goes up the moment the event page can take
+money, and that is exactly when it earns its keep.
+
+### 2. The tripwire is widened before the temptation exists, not after
+
+Giving a collection organiser a beneficiary so members can pay on her page is the
+obvious next idea. `createCollectionSubaccount` is a plausible-sounding function
+for somebody to write on the day this question is asked, and it would pass every
+structural check the file had.
+
+Added to both halves: `subaccount`, `paystack`, `payfast`, `split_code`,
+`beneficiary`, `merchant`, `checkout`, `psp`. A provider's name is in the list
+for the same reason rule 10 keeps one out of `src/domain/` — the first appearance
+of `paystack` in a collection file is the moment this stopped being true.
+
+**And a check on the seam rather than the vocabulary.** M5-01 put every payment
+verb behind `PaymentProvider` and `HeldBalanceProvider`, so an import of either
+from anything working with collections is the whole of rule 12 going, whatever
+the function is called. A creative name gets past a word list; an import does
+not.
+
+### 3. The tripwire now trips itself, in the suite
+
+M2-09 §7 verified the original by adding the forbidden thing and watching the
+test fail — and that verification lived in a decisions entry rather than in the
+suite. **A tripwire nobody has seen trip is a tripwire nobody knows is
+connected.**
+
+So it adds six columns to `collections` in turn — `subaccount_code`,
+`beneficiary_reference`, `paystack_split_code`, `payout_account_id`,
+`held_balance_cents`, `checkout_url` — asserts each is caught, and drops it again
+in a `finally`. The names are the ones a migration would plausibly use.
+
+Proved to matter rather than assumed: narrowing the pattern back to its
+pre-M5-12 form fails on `subaccount_code`, which is precisely the column this
+task was widened to catch.
+
+### 4. Nothing else about collections changed
+
+No payout, no beneficiary, no money path, no schema. Rules 12, 13, 14, 15 and 16
+are untouched. `contributions.collection_id` is still unused by design (M2-10 §9)
+and is now a live temptation with a column sitting there waiting for it — the
+entry that explains why still stands, and this task is where it gets pointed at.

@@ -52,10 +52,63 @@ describe('the collections table has no money path', () => {
   // `float_balance`, `disbursement_id` or `payout_account` should fail this test
   // on the day it is written, whatever it is named.
   it('has no column suggesting a balance, payout, float or disbursement', async () => {
-    const forbidden = /payout|float|disburse|settle|escrow|balance|wallet|ledger_account/i
+    /*
+     * **Widened at M5-12, before the temptation exists.** M5-02 built a hosted
+     * checkout on event pages, so the obvious next idea is a beneficiary on a
+     * collection so members can pay there too.
+     *
+     * That is precisely us collecting money for on-payment to a third person —
+     * the activity docs/paystack-analysis.md §0.2 is asking a lawyer about — and
+     * it would put a private individual inside the card-scheme aggregation
+     * clause in §1.8, which is the clause that ruled PayFast out. It has to be
+     * refused by a failing test before somebody has the idea, not after.
+     */
+    const forbidden =
+      /payout|float|disburse|settle|escrow|balance|wallet|ledger_account|subaccount|paystack|payfast|split_code|beneficiary|merchant|checkout|psp/i
 
     expect(
       (await columnsOf('collections')).filter((column) => forbidden.test(column)),
+    ).toEqual([])
+  })
+
+  it('catches the column it exists to catch, proved by adding one', async () => {
+    /*
+     * A tripwire nobody has seen trip is a tripwire nobody knows is connected.
+     * M2-09 §7 verified the original the same way — by adding the forbidden
+     * thing and watching the test fail — and that verification was a note in a
+     * decisions entry rather than something the suite does.
+     *
+     * It does it here. Each name is added to `collections`, the filter is run,
+     * and the column is dropped again. Every one of them must be caught: these
+     * are the names a migration would plausibly use on the day somebody gives a
+     * collection organiser a beneficiary so members can pay on her page.
+     */
+    const forbidden =
+      /payout|float|disburse|settle|escrow|balance|wallet|ledger_account|subaccount|paystack|payfast|split_code|beneficiary|merchant|checkout|psp/i
+
+    for (const column of [
+      'subaccount_code',
+      'beneficiary_reference',
+      'paystack_split_code',
+      'payout_account_id',
+      'held_balance_cents',
+      'checkout_url',
+    ]) {
+      await owner.$executeRawUnsafe(`ALTER TABLE collections ADD COLUMN "${column}" text`)
+
+      try {
+        expect(
+          (await columnsOf('collections')).filter((name) => forbidden.test(name)),
+          `${column} was added to collections and the tripwire did not fire`,
+        ).toEqual([column])
+      } finally {
+        await owner.$executeRawUnsafe(`ALTER TABLE collections DROP COLUMN "${column}"`)
+      }
+    }
+
+    // And the table is exactly as it was.
+    expect(
+      (await columnsOf('collections')).filter((name) => forbidden.test(name)),
     ).toEqual([])
   })
 
@@ -105,7 +158,9 @@ describe('no other table routes money to a collection', () => {
        INTERSECT
        SELECT table_name FROM information_schema.columns
        WHERE table_schema = 'public'
-         AND (column_name LIKE '%payout%' OR column_name LIKE '%disburse%')`,
+         AND (column_name LIKE '%payout%' OR column_name LIKE '%disburse%'
+              OR column_name LIKE '%subaccount%' OR column_name LIKE '%beneficiary%'
+              OR column_name LIKE '%split_code%')`,
     )
 
     expect(rows).toEqual([])
@@ -116,7 +171,8 @@ describe('no other table routes money to a collection', () => {
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public'
          AND (table_name LIKE '%float%' OR table_name LIKE '%escrow%'
-              OR table_name LIKE '%settlement%' OR table_name LIKE '%wallet%')`,
+              OR table_name LIKE '%settlement%' OR table_name LIKE '%wallet%'
+              OR table_name LIKE '%subaccount%' OR table_name LIKE '%beneficiar%')`,
     )
 
     expect(rows).toEqual([])
@@ -250,7 +306,18 @@ describe('the code that works with collections has no money path either', () => 
   ]
 
   it('names no payout, float, disbursement or balance', () => {
-    const forbidden = /payout|float|disburse|escrow|wallet|settle/i
+    /*
+     * Widened at M5-12 alongside the column pattern. `createCollectionSubaccount`
+     * would pass every structural check in this file while being exactly the
+     * thing rule 12 forbids — and it is a plausible-sounding function to write
+     * on the day somebody asks why a card works on an event page and not here.
+     *
+     * A provider's name is in the list for the same reason rule 10 keeps one out
+     * of `src/domain/`: the first appearance of `paystack` in a collection file
+     * is the moment this stopped being true.
+     */
+    const forbidden =
+      /payout|float|disburse|escrow|wallet|settle|subaccount|paystack|payfast|split_?code|beneficiary|checkout/i
 
     for (const path of sources) {
       const text = readFileSync(root(path), 'utf8')
@@ -278,6 +345,29 @@ describe('the code that works with collections has no money path either', () => 
     const repository = readFileSync(root('src/db/repositories/collection.ts'), 'utf8')
 
     expect(repository).toContain('organiserBankHint')
-    expect(repository).not.toMatch(/verifyBankAccount|createDisbursement/)
+    expect(repository).not.toMatch(
+      /verifyBankAccount|createDisbursement|createBeneficiary|requestWithdrawal|balanceFor/,
+    )
+  })
+
+  it('no collection file reaches for the payment provider at all', () => {
+    /*
+     * The seam, rather than a vocabulary. M5-01 put every payment verb behind
+     * `PaymentProvider` and `HeldBalanceProvider`, so an import of either from
+     * anything that works with collections is the whole of rule 12 going,
+     * whatever the function is called.
+     *
+     * Checked as an import so a creative name cannot get past the word list
+     * above.
+     */
+    for (const path of [...sources, 'src/app/(organiser)/collections/actions.ts']) {
+      const text = readFileSync(root(path), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+
+      expect(text, path).not.toMatch(/from '@\/(domain|adapters)\/payments/)
+      expect(text, path).not.toMatch(/from '@\/lib\/payments'/)
+      expect(text, path).not.toMatch(/HeldBalanceProvider|PaymentProvider/)
+    }
   })
 })

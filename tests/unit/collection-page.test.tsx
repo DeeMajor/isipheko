@@ -115,6 +115,28 @@ describe('who holds the money', () => {
     expect(text).not.toMatch(/\bwe (can )?refund/)
   })
 
+  it('answers why there is no card here, now that an umcimbi may have one', () => {
+    /*
+     * M5-12. M5-02 built a checkout on event pages, so *"why can't I do that
+     * here?"* is a question this page now has to answer — and silence would read
+     * as a page that is broken rather than a page that is honest, on the one
+     * screen whose whole job is being believed.
+     *
+     * The asymmetry is real and correct: a card on an event page settles to the
+     * family's own account; a card here would be us collecting money to pass on
+     * to somebody else, which is what rule 12 forbids.
+     */
+    const text = textOf(render())
+
+    expect(text).toContain('There is no card payment on this page')
+    expect(text).toContain('we would be holding your money for somebody else')
+
+    // It explains the arrangement rather than apologising for a missing feature.
+    expect(text.toLowerCase()).not.toContain('sorry')
+    expect(text.toLowerCase()).not.toContain('not supported')
+    expect(text.toLowerCase()).not.toMatch(/coming soon|not yet available/)
+  })
+
   it('names what we do give, which is a record and not a promise', () => {
     const text = textOf(render())
 

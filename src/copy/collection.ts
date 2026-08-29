@@ -186,6 +186,29 @@ export const collectionCopy = {
       'It goes into her own account and she hands it over on the day. We check that she is who she says she is, and we keep the record of who gave. We do not hold the money and we cannot get it back for you. You are trusting her, the way you would if she collected it in an envelope.',
     custodyLink: 'What that means for you',
 
+    /**
+     * **Why there is no button here, when there is one on an umcimbi** (M5-12).
+     *
+     * M5-02 built a checkout on event pages. Once a contributor has paid with a
+     * card on one, *"why can't I do that here?"* is a question this page has to
+     * answer — and if it does not, the silence reads as a page that is broken
+     * rather than a page that is honest. That is the worst possible outcome for
+     * the one screen whose entire job is being believed.
+     *
+     * **The asymmetry is real and correct, so it is explained rather than
+     * hidden.** A card on an event page settles to the family's own account
+     * through a licensed provider. A card here would mean us collecting money to
+     * pass on to her — which is the activity rule 12 forbids, the question
+     * docs/paystack-analysis.md §0.2 puts to a lawyer, and the thing that would
+     * put a private individual inside a card-scheme aggregation clause.
+     *
+     * It says what the arrangement protects rather than what it blocks, and it
+     * does not apologise: she holds it, which is the whole point, and it is why
+     * nothing can be taken from anybody on this page.
+     */
+    custodyNoCard: (organiser: string) =>
+      `There is no card payment on this page, and there will not be one. Money given here goes straight to ${organiser} — if it came through Isipheko first, we would be holding your money for somebody else, and that is exactly what we do not do. On a family's own umcimbi page you may see a card option, because there the money goes to the family's own account and never to ours.`,
+
     givingHeading: "What we're giving",
     claimedHeldByUs: 'Held by us',
     /** From the design: "Taken off the family's list as one item, by all eight
