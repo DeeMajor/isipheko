@@ -101,9 +101,7 @@ const many = (count: number): readonly AlbumEntry[] =>
       description: index % 4 === 0 ? 'Chairs × 10' : null,
       message: index % 3 === 0 ? 'Sisemuva kwenu.' : null,
       photo:
-        index % 5 === 0
-          ? { digest: 'a'.repeat(32), width: 2400, height: 1600 }
-          : null,
+        index % 5 === 0 ? { digest: 'a'.repeat(32), width: 2400, height: 1600 } : null,
     }),
   )
 

@@ -73,9 +73,7 @@ export function woffToTtf(woff: Uint8Array): Uint8Array {
     // Equal lengths mean the table was stored uncompressed, which the spec
     // allows for tables zlib would have made bigger.
     const bytes =
-      compressedLength === originalLength
-        ? stored
-        : new Uint8Array(inflateSync(stored))
+      compressedLength === originalLength ? stored : new Uint8Array(inflateSync(stored))
 
     if (bytes.byteLength !== originalLength) {
       throw new WoffError('A WOFF table did not inflate to its declared length')

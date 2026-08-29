@@ -102,12 +102,7 @@ export function isAcceptedFormat(format: SniffedFormat): format is PhotoFormat {
  * Why a photo was refused. Each one maps to a sentence that says what to do
  * next — `src/copy/contribute.ts`, `photoErrors`.
  */
-export type PhotoRejection =
-  | 'empty'
-  | 'too-big'
-  | 'heic'
-  | 'not-an-image'
-  | 'unreadable'
+export type PhotoRejection = 'empty' | 'too-big' | 'heic' | 'not-an-image' | 'unreadable'
 
 /**
  * The name a photo is served under: 32 hex characters of SHA-256 over the

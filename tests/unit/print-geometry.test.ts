@@ -101,10 +101,13 @@ describe('photographs on paper', () => {
   })
 
   it('keeps the shape of the photograph', () => {
-    const fitted = fitWithinDpi({ width: 1600, height: 2400 }, {
-      width: mm(116),
-      height: mm(90),
-    })
+    const fitted = fitWithinDpi(
+      { width: 1600, height: 2400 },
+      {
+        width: mm(116),
+        height: mm(90),
+      },
+    )
 
     expect(fitted.width / fitted.height).toBeCloseTo(1600 / 2400, 6)
     expect(fitted.height).toBeLessThanOrEqual(mm(90))

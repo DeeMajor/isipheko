@@ -48,8 +48,7 @@ async function phonePhoto({
   // Orientation is not an ordinary EXIF tag to sharp — it reads and rewrites it
   // itself — so it is set separately, after the rest, which is the order that
   // keeps both.
-  const oriented =
-    orientation === undefined ? image : image.withMetadata({ orientation })
+  const oriented = orientation === undefined ? image : image.withMetadata({ orientation })
 
   return new Uint8Array(await oriented.jpeg().toBuffer())
 }

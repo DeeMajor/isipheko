@@ -76,9 +76,7 @@ async function printablePhoto(
   eventId: string,
   photo: NonNullable<AlbumEntry['photo']>,
 ): Promise<PhotoBytes | null> {
-  const stored = await objectStore().get(
-    photoKey(eventId, photo.digest, 'full', 'avif'),
-  )
+  const stored = await objectStore().get(photoKey(eventId, photo.digest, 'full', 'avif'))
 
   if (stored === null) return null
 
@@ -182,9 +180,7 @@ export async function printableAlbum(
       message: entry.message,
       members: entry.members ?? [],
       membersLabel:
-        groupSize(entry) === 0
-          ? null
-          : eventCopy.strand.membersLabel(groupSize(entry)),
+        groupSize(entry) === 0 ? null : eventCopy.strand.membersLabel(groupSize(entry)),
       when: formatDayMonthYear(entry.at) ?? '',
       photo,
     })

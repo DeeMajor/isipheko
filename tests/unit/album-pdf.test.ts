@@ -61,9 +61,7 @@ function entry(index: number, withPhoto: boolean): PrintableEntry {
     membersLabel: null,
     when: '15 August 2026',
     photo:
-      withPhoto && index % 5 === 0
-        ? { jpeg: photo, width: 1200, height: 800 }
-        : null,
+      withPhoto && index % 5 === 0 ? { jpeg: photo, width: 1200, height: 800 } : null,
   }
 }
 
@@ -344,7 +342,10 @@ describe('the version a file is named after', () => {
   it.each<[string, AlbumVersionSubject]>([
     ['a new entry', { ...subject, entries: [one, { ...one, id: 'b' }] }],
     ['a changed message', { ...subject, entries: [{ ...one, message: 'Ngiyabonga.' }] }],
-    ['an added photo', { ...subject, entries: [{ ...one, photoDigest: 'a'.repeat(32) }] }],
+    [
+      'an added photo',
+      { ...subject, entries: [{ ...one, photoDigest: 'a'.repeat(32) }] },
+    ],
     ['a renamed umcimbi', { ...subject, title: 'Somebody Else' }],
     ['a quiet giver becoming named', { ...subject, entries: [{ ...one, name: null }] }],
   ])('changes on %s', (_what, changed) => {

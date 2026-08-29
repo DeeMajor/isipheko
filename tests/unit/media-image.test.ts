@@ -195,9 +195,9 @@ describe('the ticket that carries a photo to the pay step', () => {
   it('does not verify edited dimensions', () => {
     const token = photoToken('event-1', CLAIM, PEPPER)
 
-    expect(
-      photoTokenMatches('event-1', { ...CLAIM, height: 9999 }, PEPPER, token),
-    ).toBe(false)
+    expect(photoTokenMatches('event-1', { ...CLAIM, height: 9999 }, PEPPER, token)).toBe(
+      false,
+    )
     expect(photoTokenMatches('event-1', { ...CLAIM, width: 1 }, PEPPER, token)).toBe(
       false,
     )
@@ -249,7 +249,10 @@ describe('the independent metadata reader', () => {
   it('finds a PNG text chunk, a timestamp and an EXIF chunk', () => {
     const image = png(
       pngChunk('IHDR', zeros(13)),
-      pngChunk('tEXt', [...'Comment'].map((c) => c.charCodeAt(0))),
+      pngChunk(
+        'tEXt',
+        [...'Comment'].map((c) => c.charCodeAt(0)),
+      ),
       pngChunk('tIME', zeros(7)),
       pngChunk('eXIf', [0x49, 0x49, 0x2a, 0x00]),
       pngChunk('IEND'),
@@ -263,9 +266,9 @@ describe('the independent metadata reader', () => {
   })
 
   it('finds nothing in a PNG that carries nothing', () => {
-    expect(
-      scanImageMetadata(png(pngChunk('IHDR', zeros(13)), pngChunk('IEND'))),
-    ).toEqual([])
+    expect(scanImageMetadata(png(pngChunk('IHDR', zeros(13)), pngChunk('IEND')))).toEqual(
+      [],
+    )
   })
 
   it('finds EXIF, XMP and an ICC profile in a WebP', () => {
@@ -304,8 +307,14 @@ describe('the independent metadata reader', () => {
     const image = bytes(
       0xff,
       0xd8,
-      ...segment(0xe1, [...'Exif\0\0'].map((c) => c.charCodeAt(0))),
-      ...segment(0xfe, [...'taken at home'].map((c) => c.charCodeAt(0))),
+      ...segment(
+        0xe1,
+        [...'Exif\0\0'].map((c) => c.charCodeAt(0)),
+      ),
+      ...segment(
+        0xfe,
+        [...'taken at home'].map((c) => c.charCodeAt(0)),
+      ),
       // Entropy data follows SOS and is not scanned: marker bytes appear in it
       // by coincidence, and a reader that kept going would report them.
       0xff,

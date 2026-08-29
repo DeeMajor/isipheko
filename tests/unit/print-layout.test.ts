@@ -21,7 +21,10 @@ describe('pagination', () => {
     })
 
     // 100 + 20 + 100 = 220 fits; adding a third would be 340.
-    expect(pages).toEqual([['e0', 'e1'], ['e2', 'e3']])
+    expect(pages).toEqual([
+      ['e0', 'e1'],
+      ['e2', 'e3'],
+    ])
   })
 
   it('adds no gap before the first entry on a page', () => {
@@ -69,9 +72,7 @@ describe('pagination', () => {
     const heights = Array.from({ length: 200 }, (_, index) => 40 + (index % 11) * 30)
     const pages = paginate(measured(heights), { usableHeight: 520, gap: 20 })
 
-    const heightOf = new Map(
-      measured(heights).map((entry) => [entry.item, entry.height]),
-    )
+    const heightOf = new Map(measured(heights).map((entry) => [entry.item, entry.height]))
 
     for (const page of pages) {
       const used = page.reduce(
@@ -104,10 +105,7 @@ describe('wrapping', () => {
   it('breaks greedily at word boundaries', () => {
     // "three four" measures exactly 100 and therefore fits: the rule is
     // "wider than the line", not "as wide as".
-    expect(wrapText('one two three four', 100, width)).toEqual([
-      'one two',
-      'three four',
-    ])
+    expect(wrapText('one two three four', 100, width)).toEqual(['one two', 'three four'])
     expect(wrapText('one two three four', 95, width)).toEqual([
       'one two',
       'three',

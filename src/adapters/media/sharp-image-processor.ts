@@ -96,9 +96,10 @@ export class SharpImageProcessor implements ImageProcessor {
       })
 
       for (const output of DERIVATIVE_FORMATS) {
-        const encoded = await (output === 'avif'
-          ? resized.clone().avif({ quality: AVIF_QUALITY, effort: 4 })
-          : resized.clone().webp({ quality: WEBP_QUALITY, effort: 4 })
+        const encoded = await (
+          output === 'avif'
+            ? resized.clone().avif({ quality: AVIF_QUALITY, effort: 4 })
+            : resized.clone().webp({ quality: WEBP_QUALITY, effort: 4 })
         ).toBuffer({ resolveWithObject: true })
 
         derivatives.push({

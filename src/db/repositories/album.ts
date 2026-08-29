@@ -1,5 +1,9 @@
 import type { PrismaClient } from '../generated/client.ts'
-import { memberAmount, visibleMembers, type MemberState } from '../../domain/collection/index.ts'
+import {
+  memberAmount,
+  visibleMembers,
+  type MemberState,
+} from '../../domain/collection/index.ts'
 import { fromCents } from '../../domain/money/index.ts'
 import type { BeadForm } from '../../domain/strand/index.ts'
 import type { StrandBead } from './strand.ts'
@@ -102,10 +106,7 @@ export interface Album {
   readonly entries: readonly AlbumEntry[]
 }
 
-export async function albumForEvent(
-  db: PrismaClient,
-  eventId: string,
-): Promise<Album> {
+export async function albumForEvent(db: PrismaClient, eventId: string): Promise<Album> {
   const [entries, reversals] = await Promise.all([
     db.ledgerEntry.findMany({
       where: { eventId, entryType: { in: ['contribution', 'collection'] } },

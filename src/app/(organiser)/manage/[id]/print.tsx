@@ -52,9 +52,7 @@ export function PrintSection({
 
       {render?.status === 'pending' || render?.status === 'rendering' ? (
         <p className={styles.printNote}>
-          {justRequested || render.status === 'pending'
-            ? copy.queued
-            : copy.rendering}
+          {justRequested || render.status === 'pending' ? copy.queued : copy.rendering}
         </p>
       ) : null}
 

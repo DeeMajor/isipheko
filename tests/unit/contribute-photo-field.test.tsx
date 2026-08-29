@@ -116,7 +116,7 @@ describe('the done step', () => {
         carried={{}}
         needs={[]}
         mode="ledger_only"
-      defaultVisibility="name_only"
+        defaultVisibility="name_only"
         photoDigest={photoDigest}
         visibility={visibility}
       />,
@@ -127,7 +127,9 @@ describe('the done step', () => {
     const digest = 'b'.repeat(32)
     const markup = doneStep(digest)
 
-    expect(markup).toContain(`<source srcSet="/e/AbCdEf0123456789/photo/${digest}-thumb.avif" type="image/avif"/>`)
+    expect(markup).toContain(
+      `<source srcSet="/e/AbCdEf0123456789/photo/${digest}-thumb.avif" type="image/avif"/>`,
+    )
     expect(markup).toContain(`src="/e/AbCdEf0123456789/photo/${digest}-thumb.webp"`)
   })
 

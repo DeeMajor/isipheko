@@ -33,15 +33,18 @@ import type { ArchetypeKey } from '@/domain/archetype'
  * neither.
  */
 export const archetypeAlbumIntro: Record<ArchetypeKey, string> = {
-  umshado: 'Everything that was brought and everything that was said, in the order it came.',
+  umshado:
+    'Everything that was brought and everything that was said, in the order it came.',
   umembeso:
     'Everything that was brought and everything that was said, in the order it came.',
   umngcwabo: 'Everyone who stood with the family, in the order they came.',
   umbuyiso: 'Everyone who stood with the family, in the order they came.',
-  imbeleko: 'Everything that was brought and everything that was said, in the order it came.',
+  imbeleko:
+    'Everything that was brought and everything that was said, in the order it came.',
   graduation:
     'Everything that was brought and everything that was said, in the order it came.',
-  itiye: 'Everything that was brought and everything that was said, in the order it came.',
+  itiye:
+    'Everything that was brought and everything that was said, in the order it came.',
 }
 
 export const albumCopy = {
@@ -105,8 +108,7 @@ export const albumCopy = {
     failed:
       'That did not come together. Press the button again — if it fails a second time, the record itself is still safe and nothing has been lost from it.',
     /** Under the download, so somebody printing it knows before the counter. */
-    readyNote:
-      'A5, 3mm bleed, RGB. Most print shops will convert the colour themselves.',
+    readyNote: 'A5, 3mm bleed, RGB. Most print shops will convert the colour themselves.',
     /** Offered only once there is something to print. */
     empty: 'There is nothing to print yet.',
   },

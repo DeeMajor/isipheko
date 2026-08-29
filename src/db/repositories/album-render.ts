@@ -67,11 +67,7 @@ const SELECT = {
  */
 export async function requestRender(
   db: PrismaClient,
-  {
-    eventId,
-    version,
-    now,
-  }: { eventId: string; version: string; now: Date },
+  { eventId, version, now }: { eventId: string; version: string; now: Date },
 ): Promise<AlbumRenderRow> {
   const existing = await db.albumRender.findUnique({
     where: { eventId_version: { eventId, version } },

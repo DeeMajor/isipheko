@@ -214,12 +214,7 @@ export class PdfLibAlbumRenderer implements AlbumRenderer {
     const memberLines =
       entry.members.length === 0
         ? []
-        : this.measureLines(
-            entry.members.join(' · '),
-            fonts.regular,
-            SIZE.meta,
-            width,
-          )
+        : this.measureLines(entry.members.join(' · '), fonts.regular, SIZE.meta, width)
 
     /*
      * The photograph's box, capped so the image is never printed below 300dpi.

@@ -97,9 +97,7 @@ function Entry({ entry, slug }: { entry: AlbumEntry; slug: string }) {
       <p className="entryName">{nameOf(entry)}</p>
       <p className="entryWhat">{whatOf(entry)}</p>
 
-      {entry.message === null ? null : (
-        <p className="entryMessage">{entry.message}</p>
-      )}
+      {entry.message === null ? null : <p className="entryMessage">{entry.message}</p>}
 
       {entry.photo === null ? null : (
         <Photo slug={slug} photo={entry.photo} from={nameOf(entry)} />
@@ -157,14 +155,20 @@ export function Album({
       </head>
 
       <body>
-        <main className="album" data-archetype={archetype.key} {...accentStyle(archetype)}>
+        <main
+          className="album"
+          data-archetype={archetype.key}
+          {...accentStyle(archetype)}
+        >
           <header className="cover">
             <p className="coverLabel">{albumCopy.coverLabel}</p>
             <h1 className="coverTitle">{title}</h1>
 
             {organiserName === null && meta === '' ? null : (
               <p className="coverMeta" data-numeric="">
-                {[organiserName, meta].filter((part) => part !== null && part !== '').join(' · ')}
+                {[organiserName, meta]
+                  .filter((part) => part !== null && part !== '')
+                  .join(' · ')}
               </p>
             )}
 
