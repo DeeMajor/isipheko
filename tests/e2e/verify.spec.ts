@@ -302,7 +302,15 @@ test('verifying opens the collection share gate', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Carry on' }).click()
   await expect(page).toHaveURL(collectionUrl)
 
-  await page.getByRole('button', { name: 'Try to get the link' }).click()
+  /*
+   * The card reads her status now (UX-10): done is said as done, the verify
+   * button is gone, and the one thing left is the one button. She used to
+   * come back to "once your identity has been checked" — already done — and
+   * a quiet "Try to get the link" she had to guess was now the real one.
+   */
+  await expect(page.getByText('Your name is confirmed')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirm it is you' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Get the link' }).click()
   await expect(page.locator('main')).toContainText('/c/')
 })
 

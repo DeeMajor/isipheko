@@ -72,6 +72,20 @@ export const collectionCopy = {
     'This cannot be shared yet. A collection asks people you know for money in your name, so the link only exists once your identity has been checked. It takes under a minute and you only do it once.',
 
   /**
+   * The same card, read against her actual status (UX-10). A verified
+   * organiser used to come back from the check to the sentence above — "once
+   * your identity has been checked", already done — beside a "Confirm it is
+   * you" button she had already used, and had to guess that the quiet "try"
+   * button was now the real one. The card branches on the status instead:
+   * done is said as done, and one button does the one thing left.
+   */
+  shareReady:
+    'Your name is confirmed. Nothing else stands between this group and a link.',
+  shareGet: 'Get the link',
+  /** The unverified card's honest ask — the button M2-10 §10 refused to hide. */
+  shareTry: 'Try to get the link',
+
+  /**
    * The handover (M2-11), from `design/collection.html`.
    *
    * The lines about who confirms it are verbatim. They carry the whole of Part

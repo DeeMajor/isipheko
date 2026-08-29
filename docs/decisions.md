@@ -4135,3 +4135,28 @@ is not rendered at all on a closed record; the toast exists for the race.
 
 Integration covers the correction, the stranger's refusal and the
 closed-record refusal.
+
+---
+
+## UX-10 · The share card reads her status, and done is said as done
+
+A verified collection organiser returning from `/verify` landed back on a
+card still reading *"the link only exists once your identity has been
+checked"* — already done — beside a **Confirm it is you** button she had
+already used, and had to guess that the quiet *"Try to get the link"* was now
+the real one. The card branched on `slug === null` only; her verification
+status was never read.
+
+It branches on both now. Unverified: the refusal, the way through, and the
+un-hidden try button, exactly as M2-10 §10 designed them. Verified with no
+link yet: *"Your name is confirmed. Nothing else stands between this group
+and a link"* and one primary **Get the link**.
+
+Minting the link automatically on her return was considered and refused: the
+return is a GET, and a state change on a GET is a posture this product does
+not have — one deliberate tap is the honest shape, it is just no longer a
+guess. The two inline button strings on this card moved into
+`collectionCopy` on the way past.
+
+The share-gate E2E now walks the whole loop: refusal, check, return to a card
+that says done, one tap, link.

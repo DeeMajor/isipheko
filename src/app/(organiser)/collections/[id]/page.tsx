@@ -88,6 +88,16 @@ export default async function CollectionPage({
     organiserId: session.organiserId,
   })
 
+  // Her verification status, so the link card can say done as done (UX-10)
+  // instead of showing a verified organiser the ask she has already answered.
+  const verified =
+    (
+      await prisma.organiser.findUnique({
+        where: { id: session.organiserId },
+        select: { idVerificationStatus: true },
+      })
+    )?.idVerificationStatus === 'verified'
+
   const members = await prisma.collectionMember.findMany({
     where: { collectionId: id },
     orderBy: { joinedAt: 'asc' },
@@ -167,36 +177,56 @@ export default async function CollectionPage({
 
       <Card title={collectionCopy.manage.linkTitle} titleAs="h2" className={styles.card}>
         {collection.slug === null ? (
-          <>
-            {/*
-              No bypass exists, deliberately. A flag that made this work for a
-              demo would spend the one piece of leverage this product has over
-              somebody who is already holding the money.
-            */}
-            <p className={styles.body}>{collectionCopy.shareBlocked}</p>
+          verified ? (
+            <>
+              {/*
+                Read against her actual status (UX-10). She used to come back
+                from the check to "once your identity has been checked" —
+                already done — beside a verify button she had already used,
+                and had to guess that the quiet button was now the real one.
+              */}
+              <p className={styles.body}>{collectionCopy.shareReady}</p>
 
-            {/*
-              The way through, added in M3-01. Until it existed this screen was a
-              refusal with no route out of it — the gap M2-10 §10 left open
-              deliberately, because there was nothing to point at. Verification
-              belongs to the person, so one check here unlocks every collection
-              she runs and every event she sets up.
-            */}
-            <form method="get" action="/verify">
-              <input type="hidden" name="returnTo" value={`/collections/${id}`} />
-              <Button type="submit">{verifyCopy.fromCollection}</Button>
-            </form>
+              <form action={requestShareLink}>
+                <input type="hidden" name="id" value={id} />
+                <Button type="submit">{collectionCopy.shareGet}</Button>
+              </form>
+              {blocked === undefined ? null : (
+                <Toast tone="problem">{collectionCopy.shareBlocked}</Toast>
+              )}
+            </>
+          ) : (
+            <>
+              {/*
+                No bypass exists, deliberately. A flag that made this work for
+                a demo would spend the one piece of leverage this product has
+                over somebody who is already holding the money.
+              */}
+              <p className={styles.body}>{collectionCopy.shareBlocked}</p>
 
-            <form action={requestShareLink}>
-              <input type="hidden" name="id" value={id} />
-              <Button type="submit" variant="secondary">
-                Try to get the link
-              </Button>
-            </form>
-            {blocked === undefined ? null : (
-              <Toast tone="problem">{collectionCopy.shareBlocked}</Toast>
-            )}
-          </>
+              {/*
+                The way through, added in M3-01. Verification belongs to the
+                person, so one check here unlocks every collection she runs
+                and every event she sets up.
+              */}
+              <form method="get" action="/verify">
+                <input type="hidden" name="returnTo" value={`/collections/${id}`} />
+                <Button type="submit">{verifyCopy.fromCollection}</Button>
+              </form>
+
+              {/* Not hidden, deliberately (M2-10 §10): she may ask, and the
+                  answer is honest. */}
+              <form action={requestShareLink}>
+                <input type="hidden" name="id" value={id} />
+                <Button type="submit" variant="secondary">
+                  {collectionCopy.shareTry}
+                </Button>
+              </form>
+              {blocked === undefined ? null : (
+                <Toast tone="problem">{collectionCopy.shareBlocked}</Toast>
+              )}
+            </>
+          )
         ) : (
           <p
             className={styles.link}
