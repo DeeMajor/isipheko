@@ -724,6 +724,17 @@ So the outgoing half was settled against their server instead. **`pnpm check:pay
 
 **Nothing is wired into any flow.** No hosted mode, no tip, no copy changed, no collection touched. The handler seam records the event and credits nothing — the ledger append is M5-03, and a handler writing to the chain now would be writing entries no flow can produce and no screen can read.
 
+**M5-02 · The hosted pay step**
+*Deps:* M5-01, M2-05
+`events.mode` decides what the pay step is. `canReachPayStep` answers for both modes; the hosted step shows what is about to be sent and one button; the submit starts a pay-in and `303`s to the provider; the contributor returns to the done step. Beneficiary is the organiser's id and `mode` is flipped by SQL — **both stand-ins for M5-04, not designs.**
+*Done:* a contributor walks the whole path with JavaScript disabled; the ledger-only flow is unchanged; a hosted event with nowhere to settle says so and creates no row; no provider is named in any string.
+
+**Built.** Three E2E tests walk it: the full path, the same path with scripts off, and somebody backing out at the checkout — who comes back to the pay step with their amount still on it rather than to the start.
+
+**The done step says "going through", not "went through", and that is correct here.** Nothing confirms a contribution until M5-03, so the screen reads the row's status rather than assuming, and the E2E asserts the clearing wording. M5-03 flips it. That is what makes the two commits reviewable in sequence.
+
+**Two things were refused rather than half-built.** A provider answering with a form to post needs a screen saying where somebody is about to be sent, in reviewed words; none exists and PayFast is unreachable, so the flow shows `checkout-unavailable` instead. And the hosted step shows no reference, because nobody types one — which closes one route into `/check` for hosted contributors, recorded in docs/decisions.md M5-02 §5.
+
 **M5-01b · A real ITN from PayFast** *(NEW — outstanding)*
 *Deps:* M5-01
 Where M5-01's first criterion lands. Expose a development server on a public URL, complete a payment in PayFast's sandbox, and let PayFast post a real Instant Transaction Notification to `/api/payments/payfast`. What nobody has checked is whether our incoming parameter string matches what their server signed — the outgoing direction is confirmed, this one is reasoned.

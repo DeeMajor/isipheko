@@ -77,6 +77,12 @@ interface PendingPayIn {
   readonly amount: Money
   readonly beneficiary: BeneficiaryReference | null
   readonly notifyUrl: string
+  /**
+   * Where the payer goes afterwards. A real provider sends them there itself;
+   * the control surface stands in for that, which is why it has to know.
+   */
+  readonly returnUrl: string
+  readonly cancelUrl: string
   settled: boolean
 }
 
@@ -170,6 +176,8 @@ export class SimulatedPaymentProvider implements HeldBalanceProvider {
       amount: request.amount,
       beneficiary: request.beneficiary,
       notifyUrl: request.notifyUrl,
+      returnUrl: request.returnUrl,
+      cancelUrl: request.cancelUrl,
       settled: false,
     })
 
@@ -428,7 +436,13 @@ export function clearPaymentSimulator(): void {
 
 /** Development and test only — what `/dev/payments` and the E2E suite read. */
 export function simulatorState(): {
-  payIns: { reference: string; amountCents: string; settled: boolean }[]
+  payIns: {
+    reference: string
+    amountCents: string
+    settled: boolean
+    returnUrl: string
+    cancelUrl: string
+  }[]
   balances: { beneficiary: string; heldCents: string; paidOutCents: string }[]
   withdrawals: { reference: string; amountCents: string; state: string }[]
 } {
@@ -437,6 +451,8 @@ export function simulatorState(): {
       reference: payIn.reference,
       amountCents: toCents(payIn.amount).toString(),
       settled: payIn.settled,
+      returnUrl: payIn.returnUrl,
+      cancelUrl: payIn.cancelUrl,
     })),
     balances: [...store.balances.entries()].map(([beneficiary, balance]) => ({
       beneficiary,

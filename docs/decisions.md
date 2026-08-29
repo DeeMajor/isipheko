@@ -2741,3 +2741,83 @@ M1-01 §13 put the authored prose documents there because reflowing them produce
 - **The simulator simulates no fees, no reversals, no settlement delay and no partial payment.** Each is a real behaviour with real copy consequences, and a half-simulated one teaches something false. They arrive with the flow that needs them.
 - **No `releaseSettlement` on a real provider.** How a Paystack manual settlement is released is undocumented in both directions (docs/paystack-analysis.md §1.3) and is the first of the three written answers M5-00 is waiting on.
 - **No ITN received from PayFast, ever.** §4. The receiver route exists, is tested against bodies we sign ourselves, and has never seen a real one.
+
+---
+
+## M5-02 · The hosted pay step
+
+### 1. `events.mode` finally decides something, and two stand-ins hold it up
+
+M1-02 shipped the column and M3-08 §1 noted that gating anything behind `mode: 'hosted'` would render it nowhere, because no event is hosted. One is now, and the flow branches on it: `ledger_only` shows the organiser's number and takes the contributor's word, `hosted` sends them to a checkout and the payment confirms itself.
+
+**Two things are stand-ins and neither is a design.** They are here so the model can be walked end to end before the questions that gate a real provider have been answered (docs/paystack-analysis.md §6):
+
+- **`mode` is flipped by SQL.** No screen sets it. A real one belongs with bank-account onboarding, because the moment an organiser is payable is the moment the event can be hosted — the two are one decision, not two.
+- **The beneficiary reference is the organiser's id.** The simulator creates a balance for whatever it is handed, so this is enough to move money through the model. A real one is a provider's own beneficiary — a Paystack subaccount code — created from bank details that have been resolved, compared to a Home Affairs-verified name, and reviewed by a person before a first settlement (§1.4 of the analysis). That is M5-04.
+
+`beneficiaryFor` is one function in the route, so replacing it is one function. Nothing else in the flow knows what a beneficiary is.
+
+### 2. Every step before the pay step is identical, and so is the row
+
+The reference, the photo claim, the rate limit and the row itself do not care which mode they are in. `startPayStep` is unchanged apart from its guard. What differs is one render and one branch on submit.
+
+That is worth stating because the obvious alternative — a second flow for hosted events — would have meant two paths creating contributions, and M2-05 §2 already refused that shape once for claiming: two code paths reserving the same chair is how the last chair gets taken twice.
+
+**`canReachPayStep` now answers for both modes**, in the domain, and the markup and the route both call it. Ledger-only needs the organiser's number; hosted needs somewhere to settle. Neither answer is "render a broken screen": each refusal has copy of its own, because *"the family has not added their number"* and *"the family has not finished setting up where contributions are paid"* are different facts with different remedies.
+
+**No row is created when the step cannot be reached**, in either mode. M2-05 §7 found that the ledger-only version of this guard was untested because a second check in the page component hid it; the test there asserts no row is created, and the same property now has to hold for a checkout that cannot settle.
+
+### 3. The contribution id travels in the return URL — and this is the third entry on tokens in URLs
+
+M2-04 §3 put undo in a cookie and never in a URL. M2-11 §1 put a witness capability in one and explained why that was different. This is the third, and the three should be read together.
+
+**What is in the URL:** a contribution id, on the return from the provider, as `?c=`. **What it can do:** nothing. The done step reads the photo, the visibility and the payment status off that row and writes nothing at all. It is scoped to the slug, so an id lifted from one umcimbi cannot be read through another's URL — without that, somebody's photograph would render on a page it does not belong to.
+
+**Why it cannot be a cookie:** there is no cookie that survives a round trip through a provider on another origin. `SameSite=Lax` survives a top-level GET redirect back, but the flow has no session and the id has to be in the redirect the *provider* was handed, before any of this happens.
+
+So the position across the three is: **a token in a URL is acceptable when it authorises nothing.** Undo changes state, so it is a cookie. A witness link acts once and is spent, so it is a single-use column with M2-11 §2's read/spend split. This reads one row that the person holding the link just created.
+
+### 4. A provider that wants a form posted to it is refused, not half-built
+
+`PayInRedirect` has two shapes because providers genuinely differ: a URL to follow, or a form to post. The simulator answers `follow`. PayFast answers `post`, and honouring it means a screen saying where somebody is about to be sent, in words somebody has reviewed against a real flow.
+
+No such flow exists — PayFast is checkout-only and nothing routes to it — so the copy would be invented and unreviewable. The flow refuses instead, with `checkout-unavailable`: *"That payment page would not open, and nothing has been taken from you. Tell the family, and give the way you normally would."* It says what happened and what to do next, and it does not apologise.
+
+Building it properly is about half a session, and belongs to the task that first has a `post` provider somebody can reach.
+
+### 5. No reference on the hosted pay step
+
+Mode A shows the reference because it **is** the mechanism: the contributor types it into a banking app and the organiser reconciles against it. Here nobody types anything. A code on screen with nothing to do with it invites somebody to think they have missed a step.
+
+**One thing is lost and is worth naming.** M3-04's *"is this real?"* panel tells people to type `isipheko.co.za/check` and enter their code, and `/check` accepts a contribution reference (M3-05). A hosted contributor never sees one, so that route into `/check` is closed to them — the event's own code on the public page still works, which is the more useful lookup anyway. If it turns out people want their own, the done screen is where it goes.
+
+### 6. The done step reads the row rather than assuming
+
+The contributor returns through a redirect and the notification arrives on its own path. Usually it has landed first. Sometimes it has not.
+
+So the screen says which: *"Your payment went through, and it is on the record"* when the row is confirmed, and *"Your payment is going through. It joins the record the moment it clears"* when it is not. Telling somebody their bead is on the strand before it is would be M4-02 §4's mistake again, on the screen where they are looking for exactly that.
+
+**At M5-02 it always says the second one**, because nothing confirms a contribution yet — that is M5-03. The E2E asserts the clearing wording and M5-03 flips it, which is what makes the two commits reviewable in sequence rather than only together.
+
+Mode A's two sentences are untouched and unreachable from a hosted event: *"The family will confirm it against their own bank notification"* describes a step that does not happen when the payment confirms itself. `done.hostedBody` is `done.body` without its tail — the same words where they are still true, and none where they are not.
+
+### 7. `src/lib/payments.ts`, and the one `instanceof`
+
+The wiring layer, beside `src/lib/notify.ts` and `src/lib/identity.ts`: the one place allowed to know both which provider is in use and what our routes are called.
+
+`notifyUrlFor` is an `instanceof`, deliberately. Each provider has a receiver of its own — PayFast's four security checks are not the simulator's, and a shared route would have to work out who sent a body before it could verify it, which is backwards (M5-01 §12). The mapping has to live somewhere, and a `notifyPath` on the domain interface would have put a URL of ours inside a contract about money.
+
+### 8. The control surface grew a checkout, and the tests found out why
+
+`/dev/payments` listed every pay-in in the store with a Pay button each. A contributor arriving from the flow had to find their own row among everybody else's — and the first E2E run clicked a **disabled button belonging to a settled payment from an earlier test**.
+
+A real provider's checkout shows one payment: the one you were sent to pay. So arriving with `?reference=` renders that payment and its two buttons above the tables. The tables stay, because the page is also where a developer inspects the whole store.
+
+**The `back` field is checked against our own origin.** It is a URL the simulator was handed by a caller, echoed into a `Location` header, on a route anybody in development can post a form to. Dev-only is a reason to keep the habit rather than to drop it.
+
+### 9. What this does not do
+
+- **Nothing confirms a payment.** The notification reaches the receiver and the handler records it. The contribution stays pending, no ledger entry is written, and the organiser's dashboard shows nothing. That is M5-03, and it is the next commit.
+- **No tip.** M5-07.
+- **No screen sets `mode`, and none sets a beneficiary.** §1.
+- **Nothing touches collections.** Rules 12, 13 and 16 are untouched, and the asymmetry a contributor may now notice — a card on an event page, none on a collection — is M5-12's sentence to write.

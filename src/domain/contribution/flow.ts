@@ -86,14 +86,46 @@ export function isVisibility(value: string): value is Visibility {
 }
 
 /**
- * Whether the pay step can be shown at all.
+ * How an event takes money. `events.mode`, and today it finally decides
+ * something (M5-02).
  *
- * Mode A means the contributor pays the organiser directly, so without the
- * organiser's number there is nothing to show — and a blank where a payment
- * number should be is how somebody pays the wrong account.
+ * `ledger_only` is Mode A: the contributor pays the organiser directly from
+ * their own banking app and comes back to say so. `hosted` is a checkout on
+ * the page, settled to the organiser through a provider.
+ */
+export type PaymentMode = 'ledger_only' | 'hosted'
+
+export function isPaymentMode(value: string): value is PaymentMode {
+  return value === 'ledger_only' || value === 'hosted'
+}
+
+/**
+ * Whether the pay step has anything to show, and the answer differs by mode.
+ *
+ * **Ledger-only** needs the organiser's number. Without it there is nothing to
+ * show, and a blank where a payment number belongs is how somebody pays the
+ * wrong account.
+ *
+ * **Hosted** needs a beneficiary — somewhere for the provider to settle to.
+ * Without one the checkout would take money with nowhere to send it, which is
+ * the same failure wearing a worse hat: in Mode A a contributor pays nobody, in
+ * hosted mode they pay us.
+ *
+ * Neither answer is "show a broken screen". The refusal has copy of its own,
+ * per mode, because *"the family has not added their number"* and *"this page
+ * cannot take card payments yet"* are different facts with different remedies.
  */
 export function canReachPayStep(
-  payDetails: { phone: string; name: string } | null,
+  mode: PaymentMode,
+  destination: {
+    payDetails: { phone: string; name: string } | null
+    beneficiary: string | null
+  },
 ): boolean {
-  return payDetails !== null && payDetails.phone !== '' && payDetails.name !== ''
+  if (mode === 'hosted') {
+    return destination.beneficiary !== null && destination.beneficiary !== ''
+  }
+
+  const details = destination.payDetails
+  return details !== null && details.phone !== '' && details.name !== ''
 }

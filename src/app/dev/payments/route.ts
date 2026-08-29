@@ -49,7 +49,43 @@ function text(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function page(): string {
+/**
+ * The focused view a payer actually arrives on.
+ *
+ * A real provider's checkout shows **one** payment — the one you were sent to
+ * pay. The tables below it are the operator's view and exist because this page
+ * is also where a developer inspects the whole store; without this block a
+ * contributor arriving from a flow would have to find their own row among
+ * everybody else's, and click a button belonging to somebody else's payment.
+ */
+function checkout(reference: string): string {
+  const payIn = simulatorState().payIns.find((row) => row.reference === reference)
+  if (payIn === undefined) return ''
+
+  if (payIn.settled) {
+    return `<section><h2>Payment ${payIn.reference}</h2>
+      <p>Already settled. Nothing more to do here.</p></section>`
+  }
+
+  return `<section>
+    <h2>Payment ${payIn.reference}</h2>
+    <p>${payIn.amountCents}c</p>
+    <form method="post" style="display:inline">
+      <input type="hidden" name="op" value="complete-pay-in">
+      <input type="hidden" name="reference" value="${payIn.reference}">
+      <input type="hidden" name="back" value="${payIn.returnUrl}">
+      <button>Pay now</button>
+    </form>
+    <form method="post" style="display:inline">
+      <input type="hidden" name="op" value="cancel-pay-in">
+      <input type="hidden" name="reference" value="${payIn.reference}">
+      <input type="hidden" name="back" value="${payIn.cancelUrl}">
+      <button>Cancel payment</button>
+    </form>
+  </section>`
+}
+
+function page(reference: string): string {
   const state = simulatorState()
 
   const rows = state.payIns
@@ -61,9 +97,11 @@ function page(): string {
         <td>
           <form method="post"><input type="hidden" name="op" value="complete-pay-in">
           <input type="hidden" name="reference" value="${payIn.reference}">
+          <input type="hidden" name="back" value="${payIn.returnUrl}">
           <button ${payIn.settled ? 'disabled' : ''}>Pay</button></form>
           <form method="post"><input type="hidden" name="op" value="cancel-pay-in">
           <input type="hidden" name="reference" value="${payIn.reference}">
+          <input type="hidden" name="back" value="${payIn.cancelUrl}">
           <button ${payIn.settled ? 'disabled' : ''}>Cancel</button></form>
         </td>
       </tr>`,
@@ -104,6 +142,7 @@ function page(): string {
   return `<!doctype html><meta charset="utf-8"><title>Payment simulator</title>
 <h1>Payment simulator</h1>
 <p>Development only. Nothing here touches a contribution or the ledger.</p>
+${checkout(reference)}
 <h2>Start a pay-in</h2>
 <form method="post">
   <input type="hidden" name="op" value="start-pay-in">
@@ -117,10 +156,15 @@ function page(): string {
 <h2>Withdrawals</h2><table>${withdrawals}</table>`
 }
 
-export function GET(): Response {
+export function GET(request: NextRequest): Response {
   if (process.env.NODE_ENV === 'production') notFound()
 
-  return new Response(page(), {
+  // Somebody sent here by a flow arrives with the payment they were sent to
+  // make. Somebody opening the page by hand arrives with nothing and sees the
+  // whole store.
+  const reference = new URL(request.url).searchParams.get('reference') ?? ''
+
+  return new Response(page(reference), {
     headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
   })
 }
@@ -132,6 +176,19 @@ export async function POST(request: NextRequest): Promise<Response> {
   const op = text(form.get('op'))
   const reference = text(form.get('reference'))
   const provider = simulator()
+
+  /*
+   * Where the payer is sent afterwards, standing in for what a real provider
+   * does with `return_url` and `cancel_url`.
+   *
+   * **Only our own origin.** The value is a URL the simulator was handed by the
+   * caller, and this route is a `<form>` anybody in development can post to —
+   * echoing an arbitrary one back as a `Location` would make the dev surface an
+   * open redirect. It is dev-only, and that is a reason to keep the habit
+   * rather than to drop it.
+   */
+  const back = text(form.get('back'))
+  const local = back.startsWith(`${env.NEXT_PUBLIC_APP_URL}/`) ? back : '/dev/payments'
 
   switch (op) {
     case 'start-pay-in': {
@@ -177,6 +234,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       return new Response('unknown op', { status: 400 })
   }
 
-  // POST-redirect-GET, so a refresh does not pay twice.
-  return new Response(null, { status: 303, headers: { location: '/dev/payments' } })
+  // POST-redirect-GET, so a refresh does not pay twice. Paying or cancelling
+  // sends the payer onward; everything else stays on the control surface.
+  const location =
+    op === 'complete-pay-in' || op === 'cancel-pay-in' ? local : '/dev/payments'
+
+  return new Response(null, { status: 303, headers: { location } })
 }

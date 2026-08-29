@@ -66,16 +66,60 @@ describe('the three routes', () => {
 })
 
 describe('the pay step', () => {
-  it('cannot be reached without the organiser’s number', () => {
+  const NUMBER = { phone: '0821234567', name: 'N. Dlamini' }
+
+  it('cannot be reached without the organiser’s number, on a ledger-only event', () => {
     // Mode A has no payment rail: this number is the payment path. A blank
     // where it belongs is how somebody pays the wrong account.
-    expect(canReachPayStep(null)).toBe(false)
-    expect(canReachPayStep({ phone: '', name: 'N. Dlamini' })).toBe(false)
-    expect(canReachPayStep({ phone: '0821234567', name: '' })).toBe(false)
+    expect(canReachPayStep('ledger_only', { payDetails: null, beneficiary: null })).toBe(
+      false,
+    )
+    expect(
+      canReachPayStep('ledger_only', {
+        payDetails: { phone: '', name: 'N. Dlamini' },
+        beneficiary: null,
+      }),
+    ).toBe(false)
+    expect(
+      canReachPayStep('ledger_only', {
+        payDetails: { phone: '0821234567', name: '' },
+        beneficiary: null,
+      }),
+    ).toBe(false)
   })
 
   it('is reachable once both are there', () => {
-    expect(canReachPayStep({ phone: '0821234567', name: 'N. Dlamini' })).toBe(true)
+    expect(
+      canReachPayStep('ledger_only', { payDetails: NUMBER, beneficiary: null }),
+    ).toBe(true)
+  })
+
+  it('cannot be reached without a beneficiary, on a hosted event', () => {
+    // A checkout with nowhere to settle takes money and keeps it. That is the
+    // ledger-only failure wearing a worse hat: there a contributor pays nobody,
+    // here they pay us.
+    expect(canReachPayStep('hosted', { payDetails: NUMBER, beneficiary: null })).toBe(
+      false,
+    )
+    expect(canReachPayStep('hosted', { payDetails: NUMBER, beneficiary: '' })).toBe(false)
+  })
+
+  it('does not accept the organiser’s number in place of a beneficiary', () => {
+    // The two are not interchangeable and the mode decides which is being
+    // asked for. A hosted event with a PayShap number and no beneficiary is an
+    // event that cannot take money, however complete it looks.
+    expect(canReachPayStep('hosted', { payDetails: NUMBER, beneficiary: null })).toBe(
+      false,
+    )
+    expect(
+      canReachPayStep('ledger_only', { payDetails: null, beneficiary: 'BEN-1' }),
+    ).toBe(false)
+  })
+
+  it('is reachable on a hosted event once there is somewhere to settle', () => {
+    expect(canReachPayStep('hosted', { payDetails: null, beneficiary: 'BEN-1' })).toBe(
+      true,
+    )
   })
 })
 

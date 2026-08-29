@@ -100,6 +100,11 @@ const PRODUCTION_ENV = {
   OTP_PEPPER: 'cHJvZHVjdGlvbi1vdHAhISEhISEhISEhISEhISEhISE=',
 }
 
+/** The control surface reads its query string, so it needs a request. */
+function devRequest(): never {
+  return new Request('https://isipheko.co.za/dev/payments') as never
+}
+
 async function routesUnder(nodeEnv: 'development' | 'production') {
   // `env` is parsed once at module load, so the registry has to be cleared or
   // the second import would answer with the first one's environment.
@@ -133,7 +138,7 @@ describe('the simulator is unreachable in production', () => {
   it('404s the control surface', async () => {
     const { controls } = await routesUnder('production')
 
-    expect(() => controls.GET()).toThrow()
+    expect(() => controls.GET(devRequest())).toThrow()
   })
 
   it('serves both outside production', async () => {
@@ -142,6 +147,6 @@ describe('the simulator is unreachable in production', () => {
     const { receiver, controls } = await routesUnder('development')
 
     expect(receiver.GET().status).toBe(200)
-    expect(controls.GET().status).toBe(200)
+    expect(controls.GET(devRequest()).status).toBe(200)
   })
 })

@@ -98,6 +98,45 @@ export const contributeCopy = {
     noNumberTitle: 'This page cannot take money yet',
     noNumberBody:
       'The family has not added the number people should pay into. Nothing is wrong with the page — it is simply not finished. You can still bring something from the list.',
+
+    /**
+     * The hosted variant (M5-02), where the payment happens on the page rather
+     * than in the contributor's own banking app.
+     *
+     * **The action keeps its name.** "Send my contribution" is the Voice
+     * table's own example, and it is what the person is doing — not
+     * "Continue", not "Pay now". They come back to a screen that says the same
+     * thing happened.
+     *
+     * **No provider is named**, here or anywhere in `src/copy/` (rule 10). Which
+     * company moves the money is ours to change and none of a contributor's
+     * business; what they need to know is that the details are entered
+     * somewhere that is not us, and that the money does not land in an Isipheko
+     * account.
+     */
+    hostedTitle: 'Send your contribution',
+    hostedIntro:
+      'The next screen takes the payment. It is not this page — your card or banking details are entered there and never reach us.',
+    hostedAmountStep: 'What you are sending',
+    hostedSubmit: 'Send my contribution',
+    /**
+     * True as written, and narrowly. The money settles to the family's own bank
+     * account; it does not pass through an account of ours. That is the whole
+     * of what a contributor needs before they hand over a card, and it is the
+     * sentence that has to stay true if the provider ever changes.
+     */
+    hostedFoot:
+      'It goes to the family’s own bank account, never to an Isipheko one. You come straight back here when it is done.',
+
+    /**
+     * The hosted equivalent of `noNumberBody`, and a different fact with a
+     * different remedy: there is nowhere for the provider to settle to. Said as
+     * "not ready" rather than "broken", because it is the family's setup that
+     * is unfinished and the contributor has done nothing wrong.
+     */
+    noBeneficiaryTitle: 'This page cannot take money yet',
+    noBeneficiaryBody:
+      'The family has not finished setting up where contributions are paid. Nothing is wrong with the page — it is simply not ready. You can still bring something from the list.',
   },
 
   done: {
@@ -115,6 +154,24 @@ export const contributeCopy = {
     foot: 'You can close this page. Nothing else is needed from you.',
     pending:
       'The family will confirm it against their own bank notification. Nothing else is needed from you.',
+
+    /**
+     * The hosted variants (M5-02). Nobody confirms a hosted contribution by
+     * hand — the payment confirms itself — so the two sentences above would be
+     * describing a step that does not happen.
+     *
+     * **Which of the two shows is read from the row, not assumed.** The
+     * contributor comes back through a redirect and the notification arrives on
+     * its own path; usually it has landed first, and sometimes it has not.
+     * Telling somebody their bead is on the strand before it is would be the
+     * M4-02 §4 mistake again, on the screen where they are looking for exactly
+     * that.
+     */
+    hostedBody: 'Your contribution is with the family.',
+    hostedConfirmed:
+      'Your payment went through, and it is on the record. Nothing else is needed from you.',
+    hostedClearing:
+      'Your payment is going through. It joins the record the moment it clears, which is usually a few seconds.',
     photoCaption: 'Your photo joins the record with it.',
     photoAnonymous:
       'You chose to give quietly, and your photo still shows. Your name and what you gave are the parts that stay off the page.',
@@ -128,17 +185,29 @@ export const contributeCopy = {
     'too-many-address':
       'That is a lot of reports from one place. Wait a few minutes and try again.',
     'cross-site': 'That request did not come from this page.',
-    'photo-empty': 'No photo came through. Choose the file again, or carry on without one.',
+    'photo-empty':
+      'No photo came through. Choose the file again, or carry on without one.',
     'photo-too-big':
       'That photo is over 8MB. Choose a smaller one, or carry on without a photo \u2014 everything else you typed is still here.',
     'photo-heic':
       'That is an iPhone photo in a format we cannot read. Send it through WhatsApp or Photos first, which turns it into a JPEG, or carry on without a photo.',
     'photo-not-an-image':
       'That file is not a photo we can read. JPEG, PNG and WebP work.',
-    'photo-unreadable':
-      'That photo did not come through in one piece. Choose it again.',
+    'photo-unreadable': 'That photo did not come through in one piece. Choose it again.',
     'photo-too-large-request':
       'That was too large to send. Choose a smaller photo, or carry on without one.',
+    /**
+     * A provider that wants a form posted to it rather than a link followed
+     * needs a screen of its own, saying where somebody is about to be sent in
+     * words somebody has reviewed. None exists, and inventing copy for a
+     * provider nobody can reach would be words nobody could check against a
+     * real flow. So the flow refuses visibly rather than half-rendering.
+     * See docs/decisions.md M5-02 §4.
+     *
+     * It says what happened and what to do next, and it does not apologise.
+     */
+    'checkout-unavailable':
+      'That payment page would not open, and nothing has been taken from you. Tell the family, and give the way you normally would.',
     generic: 'That did not go through. Nothing was sent from your account.',
   },
 } as const

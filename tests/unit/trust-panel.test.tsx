@@ -63,6 +63,7 @@ function contributePage(step: 'choose' | 'pay' = 'pay'): string {
       needs={[]}
       reference="MTH-4K7B2X"
       payDetails={{ phone: '082 123 4567', name: 'Nomsa Mthembu' }}
+      mode="ledger_only"
       defaultVisibility="name_only"
     />,
   )

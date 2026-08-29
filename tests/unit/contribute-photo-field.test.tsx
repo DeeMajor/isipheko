@@ -36,6 +36,7 @@ function whoStep({
       carried={carried}
       needs={[]}
       payDetails={{ phone: '082 123 4567', name: 'Nomsa Mthembu' }}
+      mode="ledger_only"
       defaultVisibility="name_only"
       photoDigest={photoDigest}
     />,
@@ -114,7 +115,8 @@ describe('the done step', () => {
         amountsPublic={false}
         carried={{}}
         needs={[]}
-        defaultVisibility="name_only"
+        mode="ledger_only"
+      defaultVisibility="name_only"
         photoDigest={photoDigest}
         visibility={visibility}
       />,

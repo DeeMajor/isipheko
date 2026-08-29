@@ -11,6 +11,7 @@ import {
 } from '@/db/repositories/contribution'
 import { ARCHETYPES } from '@/domain/archetype'
 import {
+  canReachPayStep,
   isRoute,
   isStep,
   isVisibility,
@@ -18,10 +19,11 @@ import {
   requiresPayment,
   type ContributionRoute,
   type ContributionStep,
+  type PaymentMode,
   type Visibility,
 } from '@/domain/contribution'
 import { MAX_BODY_BYTES, type PhotoRejection } from '@/domain/media'
-import { parseMoney } from '@/domain/money'
+import { formatMoney, fromCents, parseMoney } from '@/domain/money'
 import { normalisePhone } from '@/domain/auth'
 import { formatReference } from '@/domain/reference'
 import { requestFingerprint } from '@/lib/audit'
@@ -33,6 +35,7 @@ import {
   fullPhotoKey,
 } from '@/lib/contribution-photo'
 import { compressFor } from '@/lib/http-compress'
+import { checkoutUrls, notifyUrlFor, provider } from '@/lib/payments'
 import { isSameSite } from '@/lib/same-site'
 import { ContributePage } from '@/ui/contribute-page'
 import type { contributeCopy } from '@/copy/contribute'
@@ -49,8 +52,11 @@ import type { contributeCopy } from '@/copy/contribute'
  * Router page would put 174KB of framework runtime back on the path a stranger
  * walks on a prepaid bundle, and this is the path that matters most.
  *
- * **Mode A.** Nothing here touches money. The contributor pays the organiser
- * from their own banking app against a reference code, comes back, and says so.
+ * **Two modes, one flow** (M5-02). `events.mode` decides what the pay step is:
+ * `ledger_only` shows the organiser's number and takes the contributor's word
+ * for it, `hosted` sends them to a checkout and the payment confirms itself.
+ * Every step before the pay step is identical, and so is the row — the
+ * reference, the photo claim and the rate limit do not care which it is.
  */
 
 type ErrorKey = keyof typeof contributeCopy.errors
@@ -84,6 +90,21 @@ function text(form: FormData | URLSearchParams, key: string): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+/**
+ * Where a hosted payment settles.
+ *
+ * **A stand-in, and not a design.** The organiser's id is used as the
+ * beneficiary reference because the simulator creates a balance for whatever it
+ * is handed, and that is enough to walk the model. A real one is a provider's
+ * own beneficiary — a Paystack subaccount code — created from bank details that
+ * have been resolved, compared to a Home Affairs-verified name and reviewed.
+ * That is M5-04, and it is gated on the three written answers in
+ * docs/paystack-analysis.md §6. See docs/decisions.md M5-02 §2.
+ */
+function beneficiaryFor(row: { organiserId: string; mode: PaymentMode }): string | null {
+  return row.mode === 'hosted' ? row.organiserId : null
+}
+
 /** Pay details live in `events.direct_pay_details`, written by the organiser. */
 function payDetailsOf(value: unknown): { phone: string; name: string } | null {
   if (typeof value !== 'object' || value === null) return null
@@ -107,6 +128,7 @@ async function render(
     contributionId,
     photoDigest,
     visibility,
+    paymentConfirmed,
     status,
   }: {
     slug: string
@@ -118,6 +140,7 @@ async function render(
     contributionId?: string | undefined
     photoDigest?: string | undefined
     visibility?: Visibility | undefined
+    paymentConfirmed?: boolean | undefined
     status?: number | undefined
   },
 ): Promise<Response> {
@@ -126,7 +149,13 @@ async function render(
 
   const row = await prisma.event.findFirstOrThrow({
     where: { slug, status: 'published' },
-    select: { id: true, directPayDetails: true, visibilityDefault: true },
+    select: {
+      id: true,
+      directPayDetails: true,
+      visibilityDefault: true,
+      mode: true,
+      organiserId: true,
+    },
   })
 
   const archetype = ARCHETYPES[event.archetype]
@@ -157,6 +186,9 @@ async function render(
       amount={amount?.ok === true ? amount.value : undefined}
       reference={reference}
       payDetails={payDetailsOf(row.directPayDetails)}
+      mode={row.mode}
+      beneficiary={beneficiaryFor(row)}
+      paymentConfirmed={paymentConfirmed}
       defaultVisibility={row.visibilityDefault}
       photoDigest={photoDigest}
       visibility={visibility}
@@ -181,7 +213,83 @@ export async function GET(
     ? (query.get('step') as ContributionStep)
     : 'choose'
 
+  /*
+   * The hosted return path. A contributor comes back from the provider through
+   * a redirect, so the row cannot travel in a hidden field — `c` is how the
+   * done step knows which contribution it is describing.
+   *
+   * It carries no authority: what is read is the photo, the visibility and
+   * whether the payment has landed, and nothing is written. Scoped to the slug,
+   * so a contribution id from one umcimbi cannot be read through another's URL.
+   * The divergence from M2-04 §3 is recorded in docs/decisions.md M5-02 §3.
+   */
+  const returning = query.get('c') ?? ''
+
+  if (returning !== '' && (step === 'done' || step === 'pay')) {
+    const stored = await contributionForReturn(slug, returning)
+
+    if (stored !== null) {
+      /*
+       * Somebody who backed out at the provider comes back to the pay step, not
+       * to the start — and with their amount still on it. The row already
+       * carries it, so it is read from there rather than asked for again.
+       * Hesitating is not a mistake and retyping is a punishment for it.
+       */
+      const carried =
+        step === 'pay'
+          ? {
+              contribution: returning,
+              ...(stored.amountCents === null
+                ? {}
+                : { amount: formatMoney(fromCents(stored.amountCents)) }),
+            }
+          : {}
+
+      return render(request, {
+        slug,
+        route,
+        step,
+        carried,
+        photoDigest: digestFromKey(stored.photoKey) ?? undefined,
+        visibility: stored.visibility,
+        paymentConfirmed: stored.status === 'confirmed',
+      })
+    }
+  }
+
   return render(request, { slug, route, step, carried: {} })
+}
+
+/**
+ * One contribution, by id, **only if it belongs to this slug**.
+ *
+ * The scoping is the whole of the check. Without it, an id lifted from one
+ * umcimbi's URL would render that contribution's photo on another's done
+ * screen — small, but it is somebody's photograph on a page it does not belong
+ * to.
+ */
+async function contributionForReturn(
+  slug: string,
+  contributionId: string,
+): Promise<{
+  photoKey: string | null
+  visibility: Visibility
+  status: string
+  amountCents: bigint | null
+} | null> {
+  const row = await prisma.contribution.findFirst({
+    where: { id: contributionId, event: { slug, status: 'published' } },
+    select: { photoKey: true, visibility: true, status: true, amountCents: true },
+  })
+
+  return row === null
+    ? null
+    : {
+        photoKey: row.photoKey,
+        visibility: row.visibility,
+        status: row.status,
+        amountCents: row.amountCents,
+      }
 }
 
 /**
@@ -374,9 +482,23 @@ export async function POST(
     return startPayStep(request, { slug, route, carried })
   }
 
-  // "I've paid" — the only thing that puts this in front of an organiser.
   if (step === 'pay') {
     const contributionId = carried.contribution ?? ''
+
+    const event = await prisma.event.findFirst({
+      where: { slug, status: 'published' },
+      select: { id: true, title: true, mode: true, organiserId: true },
+    })
+    if (event === null) return new Response(null, { status: 404 })
+
+    // Hosted: this submit starts a checkout and leaves the site. Ledger-only:
+    // it is the contributor's word that they already paid. Same button, same
+    // form, and the difference is entirely on this side of it.
+    if (event.mode === 'hosted') {
+      return startCheckout(request, { slug, route, carried, event, contributionId })
+    }
+
+    // "I've paid" — the only thing that puts this in front of an organiser.
     if (contributionId !== '') await selfReport(prisma, { contributionId })
 
     /*
@@ -416,14 +538,32 @@ async function startPayStep(
 ): Promise<Response> {
   const event = await prisma.event.findFirst({
     where: { slug, status: 'published' },
-    select: { id: true, title: true, directPayDetails: true },
+    select: {
+      id: true,
+      title: true,
+      directPayDetails: true,
+      mode: true,
+      organiserId: true,
+    },
   })
 
   if (event === null) return new Response(null, { status: 404 })
 
-  // No number, no pay step. A blank where a payment number belongs is how
-  // somebody pays the wrong account.
-  if (payDetailsOf(event.directPayDetails) === null) {
+  /*
+   * Nowhere for the money to go, so no row is created.
+   *
+   * The render still happens — the step says honestly what is missing, per
+   * mode — but nothing is written. Creating a contribution and issuing a
+   * reference for a page that cannot take money leaves the organiser a queue of
+   * payments nobody could have made (M2-05 §7), and the same is true of a
+   * checkout that cannot settle.
+   */
+  if (
+    !canReachPayStep(event.mode, {
+      payDetails: payDetailsOf(event.directPayDetails),
+      beneficiary: beneficiaryFor(event),
+    })
+  ) {
     return render(request, { slug, route, step: 'pay', carried })
   }
 
@@ -489,5 +629,97 @@ async function startPayStep(
     contributionId: started.id,
     reference: formatReference({ prefix: started.refPrefix, code: started.refCode }),
     photoDigest: claim?.digest,
+  })
+}
+
+/**
+ * The hosted submit: start a pay-in and send the contributor to it.
+ *
+ * The row already exists — it was created when the pay step was reached, for
+ * the reason M2-05 §3 gives — so this reads it back rather than trusting the
+ * form. What the provider is told is the amount **on the row**, never the
+ * amount in a hidden field somebody could have edited between the two screens.
+ *
+ * `303`, so the browser follows with a GET and a refresh does not start a
+ * second checkout. The whole path is `<form method="post">` and a redirect;
+ * nothing here needs JavaScript.
+ */
+async function startCheckout(
+  request: NextRequest,
+  {
+    slug,
+    route,
+    carried,
+    event,
+    contributionId,
+  }: {
+    slug: string
+    route: ContributionRoute
+    carried: Record<string, string>
+    event: { id: string; title: string; mode: PaymentMode; organiserId: string }
+    contributionId: string
+  },
+): Promise<Response> {
+  const unavailable = () =>
+    render(request, {
+      slug,
+      route,
+      step: 'pay',
+      carried,
+      error: 'checkout-unavailable',
+    })
+
+  if (contributionId === '') return unavailable()
+
+  const contribution = await prisma.contribution.findFirst({
+    where: { id: contributionId, eventId: event.id, status: 'pending' },
+    select: { amountCents: true, refPrefix: true, refCode: true },
+  })
+
+  if (
+    contribution === null ||
+    contribution.amountCents === null ||
+    contribution.refPrefix === null ||
+    contribution.refCode === null
+  ) {
+    return unavailable()
+  }
+
+  const beneficiary = beneficiaryFor(event)
+  if (beneficiary === null) return unavailable()
+
+  const instance = provider()
+  const urls = checkoutUrls(slug, route, contributionId)
+
+  let handle
+  try {
+    handle = await instance.startPayIn({
+      reference: formatReference({
+        prefix: contribution.refPrefix,
+        code: contribution.refCode,
+      }),
+      amount: fromCents(contribution.amountCents),
+      // What the payer sees named on their statement: the umcimbi, never the
+      // contributor and never the amount.
+      description: event.title,
+      beneficiary,
+      returnUrl: urls.returnUrl,
+      cancelUrl: urls.cancelUrl,
+      notifyUrl: notifyUrlFor(instance),
+    })
+  } catch {
+    return unavailable()
+  }
+
+  /*
+   * A provider answering with a form to post rather than a link to follow needs
+   * a screen of its own, and none exists — see the copy note on
+   * `checkout-unavailable`. Refused rather than half-rendered.
+   */
+  if (handle.redirect.kind !== 'follow') return unavailable()
+
+  return new Response(null, {
+    status: 303,
+    headers: { location: handle.redirect.url, 'cache-control': 'no-store' },
   })
 }

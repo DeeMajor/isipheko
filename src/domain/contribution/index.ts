@@ -1,6 +1,7 @@
 export {
   canReachPayStep,
   defaultVisibility,
+  isPaymentMode,
   isRoute,
   isStep,
   isVisibility,
@@ -11,5 +12,6 @@ export {
   stepsFor,
   type ContributionRoute,
   type ContributionStep,
+  type PaymentMode,
   type Visibility,
 } from './flow.ts'

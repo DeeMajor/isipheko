@@ -11,9 +11,15 @@ import type { ArchetypeConfig } from '@/domain/archetype'
 import type {
   ContributionRoute,
   ContributionStep,
+  PaymentMode,
   Visibility,
 } from '@/domain/contribution'
-import { requiresPayment, stepNumber, stepsFor } from '@/domain/contribution'
+import {
+  canReachPayStep,
+  requiresPayment,
+  stepNumber,
+  stepsFor,
+} from '@/domain/contribution'
 import { formatMoney } from '@/domain/money'
 import type { Money } from '@/domain/money'
 
@@ -46,6 +52,23 @@ export interface ContributePageProps {
   readonly amount?: Money | undefined
   readonly reference?: string | undefined
   readonly payDetails?: { phone: string; name: string } | null | undefined
+  /**
+   * How this event takes money (M5-02). `ledger_only` shows the organiser's
+   * number and takes the contributor's word; `hosted` sends them to a checkout.
+   */
+  readonly mode: PaymentMode
+  /**
+   * Where a hosted payment settles. Opaque, and the page never renders it —
+   * it is here only so the pay step can refuse honestly when there is nowhere
+   * for the money to go.
+   */
+  readonly beneficiary?: string | null | undefined
+  /**
+   * Whether the payment has been confirmed by the time the done step renders.
+   * `undefined` on the ledger-only path, where nothing is confirmed yet by
+   * construction.
+   */
+  readonly paymentConfirmed?: boolean | undefined
   readonly defaultVisibility: Visibility
   readonly error?: keyof typeof contributeCopy.errors | undefined
   /** The organiser's verification date, so the badge follows them (M3-04). */
@@ -85,7 +108,13 @@ function Photo({
   return (
     <picture>
       <source srcSet={`${base}.avif`} type="image/avif" />
-      <img className={className} src={`${base}.webp`} alt="" loading="lazy" decoding="async" />
+      <img
+        className={className}
+        src={`${base}.webp`}
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
     </picture>
   )
 }
@@ -452,40 +481,40 @@ function WhoStep({
           a browser's idea of the type is whatever the client wrote there.
         */}
         {!requiresPayment(route) ? null : (
-        <>
-        <label className="claimLabel" htmlFor="photo">
-          {contributeCopy.who.photoLabel}
-        </label>
-        <input
-          className="claimInput"
-          id="photo"
-          name="photo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-        />
-        <p className="claimHelp">{contributeCopy.who.photoHelp}</p>
-        <p className="claimHelp">{contributeCopy.who.photoSafety}</p>
-
-        {photoDigest === undefined ? null : (
           <>
-            <Photo
-              slug={slug}
-              digest={photoDigest}
-              size="thumb"
-              className="photoThumb"
+            <label className="claimLabel" htmlFor="photo">
+              {contributeCopy.who.photoLabel}
+            </label>
+            <input
+              className="claimInput"
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
             />
-            <p className="claimHelp">{contributeCopy.who.photoAttached}</p>
-            <button
-              type="submit"
-              name="removePhoto"
-              value="1"
-              className="buttonQuiet"
-            >
-              {contributeCopy.who.photoRemove}
-            </button>
+            <p className="claimHelp">{contributeCopy.who.photoHelp}</p>
+            <p className="claimHelp">{contributeCopy.who.photoSafety}</p>
+
+            {photoDigest === undefined ? null : (
+              <>
+                <Photo
+                  slug={slug}
+                  digest={photoDigest}
+                  size="thumb"
+                  className="photoThumb"
+                />
+                <p className="claimHelp">{contributeCopy.who.photoAttached}</p>
+                <button
+                  type="submit"
+                  name="removePhoto"
+                  value="1"
+                  className="buttonQuiet"
+                >
+                  {contributeCopy.who.photoRemove}
+                </button>
+              </>
+            )}
           </>
-        )}
-        </>
         )}
 
         <fieldset className="claimQuantity">
@@ -516,21 +545,33 @@ function WhoStep({
   )
 }
 
-function PayStep({
-  action,
-  carried,
-  payDetails,
-  reference,
-  amount,
-}: ContributePageProps & { action: string }) {
-  if (payDetails === null || payDetails === undefined) {
-    return (
+function PayStep(props: ContributePageProps & { action: string }) {
+  const { action, carried, payDetails, reference, amount, mode, beneficiary } = props
+
+  // One decision point, in the domain, for both modes — so a screen cannot be
+  // reachable for a reason the rules do not agree with.
+  if (
+    !canReachPayStep(mode, {
+      payDetails: payDetails ?? null,
+      beneficiary: beneficiary ?? null,
+    })
+  ) {
+    return mode === 'hosted' ? (
+      <>
+        <h1 className="title">{contributeCopy.pay.noBeneficiaryTitle}</h1>
+        <p className="intro">{contributeCopy.pay.noBeneficiaryBody}</p>
+      </>
+    ) : (
       <>
         <h1 className="title">{contributeCopy.pay.noNumberTitle}</h1>
         <p className="intro">{contributeCopy.pay.noNumberBody}</p>
       </>
     )
   }
+
+  if (mode === 'hosted') return <HostedPayStep {...props} />
+
+  if (payDetails === null || payDetails === undefined) return null
 
   return (
     <>
@@ -579,11 +620,65 @@ function PayStep({
   )
 }
 
-function DoneStep({ slug, photoDigest, visibility }: ContributePageProps) {
+/**
+ * The hosted pay step: what is about to be sent, and one button that sends it.
+ *
+ * **No reference is shown**, unlike the ledger-only step. There it is the whole
+ * mechanism — the contributor types it into a banking app and it is what the
+ * organiser reconciles against. Here nobody types anything, and a code on
+ * screen with no use invites somebody to think they have to do something with
+ * it. See docs/decisions.md M5-02 §5.
+ *
+ * The form posts to the same handler as the ledger-only step, with the same
+ * `step=pay`. What differs is on the server: there it is *"I've paid"*, here it
+ * starts a checkout and redirects. `<form method="post">`, so the whole thing
+ * works with JavaScript off.
+ */
+function HostedPayStep({
+  action,
+  carried,
+  amount,
+}: ContributePageProps & { action: string }) {
+  return (
+    <>
+      <h1 className="title">{contributeCopy.pay.hostedTitle}</h1>
+      <p className="intro">{contributeCopy.pay.hostedIntro}</p>
+
+      <div className="notice">
+        <p className="noticeTitle">{contributeCopy.pay.hostedAmountStep}</p>
+        <p className="payValue" data-numeric="">
+          {amount === undefined ? '' : formatMoney(amount)}
+        </p>
+      </div>
+
+      <form method="post" action={action} className="claimForm">
+        <Carried values={carried} />
+        <input type="hidden" name="step" value="pay" />
+        <button type="submit" className="buttonPrimary">
+          {contributeCopy.pay.hostedSubmit}
+        </button>
+      </form>
+
+      <p className="claimHelp">{contributeCopy.pay.hostedFoot}</p>
+    </>
+  )
+}
+
+function DoneStep({
+  slug,
+  photoDigest,
+  visibility,
+  mode,
+  paymentConfirmed,
+}: ContributePageProps) {
+  const hosted = mode === 'hosted'
+
   return (
     <>
       <h1 className="title">{contributeCopy.done.title}</h1>
-      <p className="intro">{contributeCopy.done.body}</p>
+      <p className="intro">
+        {hosted ? contributeCopy.done.hostedBody : contributeCopy.done.body}
+      </p>
 
       {photoDigest === undefined ? null : (
         <>
@@ -601,8 +696,19 @@ function DoneStep({ slug, photoDigest, visibility }: ContributePageProps) {
         </>
       )}
 
-      <p className="claimHelp">{contributeCopy.done.pending}</p>
-      <p className="claimHelp">{contributeCopy.done.foot}</p>
+      {/*
+        Read from the row rather than assumed. The contributor comes back
+        through a redirect and the notification arrives on its own path — it has
+        usually landed first, and sometimes it has not.
+      */}
+      <p className="claimHelp">
+        {hosted
+          ? paymentConfirmed === true
+            ? contributeCopy.done.hostedConfirmed
+            : contributeCopy.done.hostedClearing
+          : contributeCopy.done.pending}
+      </p>
+      {hosted ? null : <p className="claimHelp">{contributeCopy.done.foot}</p>}
     </>
   )
 }
