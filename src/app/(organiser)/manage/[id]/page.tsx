@@ -187,7 +187,9 @@ export default async function ManagePage({
           <a href={`/create/${id}/details`}>{dashboardCopy.links.editDetails}</a>
         </p>
 
-        {saved === '1' ? <Toast>{payDetailsCopy.saved}</Toast> : null}
+        {saved === '1' ? (
+          <Toast>{payDetailsCopy.saved(details?.phone ?? '')}</Toast>
+        ) : null}
         {detailsSaved === '1' ? <Toast>{dashboardCopy.toasts.detailsSaved}</Toast> : null}
         {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
         {released === '1' ? <Toast>{dashboardCopy.toasts.released}</Toast> : null}

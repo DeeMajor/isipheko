@@ -488,3 +488,34 @@ test('the details of a published umcimbi can be corrected', async ({ page }) => 
     await prisma.$disconnect()
   }
 })
+
+/**
+ * The payment path is validated and read back (UX-13). This field is what
+ * every contributor is told to pay — Mode A has no rail — and nothing checked
+ * it: any string at all became the number on the pay screen, and a typo was
+ * money to a stranger (M2-05 §1's unrecoverable failure).
+ */
+test('a pay number nobody could pay is refused, and a saved one is read back', async ({
+  page,
+}) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  // Garbage is refused, and the message says the old number still shows.
+  await page.getByLabel('Your PayShap number or cellphone number').fill('not a number')
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(
+    page.getByText('does not look like a South African cellphone number'),
+  ).toBeVisible()
+
+  // A real number saves, and the confirmation reads it back with the one
+  // check that matters: her own banking app.
+  await page.getByLabel('Your PayShap number or cellphone number').fill('083 555 1234')
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(
+    page.getByText('Contributors will be told to pay 083 555 1234'),
+  ).toBeVisible()
+})

@@ -222,7 +222,13 @@ export const payDetailsCopy = {
   nameHelp:
     'Shown beside the number so a contributor can check it matches before they send anything.',
   submit: 'Save',
-  saved: 'Saved. Your page can take contributions now.',
+  /**
+   * A read-back, not a receipt (UX-13). This number is the payment path, so
+   * the confirmation repeats it and says who to check it against — her own
+   * banking app, the one source the screen cannot be wrong about.
+   */
+  saved: (number: string) =>
+    `Saved. Contributors will be told to pay ${number} — check that against your own banking app before you share the page.`,
   missing:
     'Until this is filled in, the pay step tells contributors the page is not finished.',
 } as const

@@ -11,6 +11,7 @@ import {
   releaseClaimForOrganiser,
 } from '@/db/repositories/needs'
 import { issueWitnessInvite } from '@/db/repositories/witness'
+import { normalisePhone } from '@/domain/auth'
 import { requestAlbumPdf } from '@/lib/album-pdf'
 import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
 import { currentSession } from '@/lib/session'
@@ -44,6 +45,21 @@ export async function savePayDetails(formData: FormData): Promise<void> {
 
   if (phone === '' || name === '') {
     redirect(`/manage/${id}?error=incomplete`)
+  }
+
+  /*
+   * The number is validated before it becomes the payment path (UX-13).
+   *
+   * This field is what every contributor is told to pay — Mode A has no rail,
+   * so a stored typo is money sent to a stranger or to nowhere, which M2-05
+   * §1 calls the unrecoverable failure. Nothing checked it: any string at all
+   * became the number on the pay screen. `normalisePhone` is the same parse
+   * sign-in trusts, and a PayShap proxy is a cellphone number, so the shapes
+   * agree. What is stored is what she typed, as she typed it — the format is
+   * hers; the parse only proves it is a number somebody can pay.
+   */
+  if (!normalisePhone(phone).ok) {
+    redirect(`/manage/${id}?error=pay-phone`)
   }
 
   await prisma.event.updateMany({

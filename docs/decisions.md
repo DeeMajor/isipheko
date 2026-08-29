@@ -4223,3 +4223,29 @@ informational toast in the album's own words.
 The one-list mapping (`errors[key] ?? errors.generic`) means a new redirect
 reason added without copy degrades to the generic sentence rather than to a
 blank toast — vague is the floor now, not the ceiling.
+
+---
+
+## UX-13 · The pay number is validated, and read back
+
+`savePayDetails` stored whatever was typed. The field is the payment path —
+Mode A has no rail, so this string is what every contributor is told to pay
+from their own banking app — and a stored typo was money sent to a stranger
+or to nowhere, M2-05 §1's unrecoverable failure with no check in front of it.
+
+The number now has to parse under `normalisePhone` — the same parse sign-in
+trusts, and a PayShap proxy is a cellphone number, so the shapes agree. What
+is stored is what she typed, as she typed it: the format is hers, the parse
+only proves it is a number somebody can pay. The refusal says the old number
+still shows, because it does.
+
+The saved toast became a read-back: *"Contributors will be told to pay 083
+555 1234 — check that against your own banking app before you share the
+page."* The screen cannot know her account; her banking app can, and pointing
+the check there is the same posture as the confirmation queue's.
+
+**What would make the parse wrong:** a PayShap proxy that is not a cellphone
+number. Today they are; if that changes, the validation loosens rather than
+the field going back to unchecked free text.
+
+E2E refuses garbage and reads back a real number.

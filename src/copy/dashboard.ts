@@ -80,6 +80,13 @@ export const dashboardCopy = {
    */
   errors: {
     incomplete: 'The number and the name both need filling in. Nothing was saved.',
+    /**
+     * The payment path refused a shape nobody can pay (UX-13). The stored
+     * number is untouched, and the message says so — a contributor is still
+     * being shown whatever was saved last.
+     */
+    'pay-phone':
+      'That does not look like a South African cellphone number, so it was not saved. Contributors are still shown the number you saved before. Check it and save again.',
     confirm:
       'That one is already settled, or is no longer there to confirm. Nothing was changed — check the queue, which shows what is still waiting.',
     release:
