@@ -46,6 +46,9 @@ export const dashboardCopy = {
     publicPage: 'Open the public page',
     shareAgain: 'Send the link again',
     finishSetup: 'Carry on setting it up',
+    /** The screen UX-07 built — the "change any of them later" the setup flow
+     *  always promised. */
+    editDetails: 'Change the details',
   },
 
   /**
@@ -57,6 +60,8 @@ export const dashboardCopy = {
     listUpdated: 'Your list has been updated.',
     /** Echoes the contributor side's own words (`needsCopy.undoneBody`). */
     released: 'Put back on the list. Somebody else can take it now.',
+    /** After the details edit (UX-07). The card versioning does the rest. */
+    detailsSaved: 'Saved. The page shows it now.',
   },
 
   queue: {

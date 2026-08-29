@@ -90,12 +90,31 @@ export async function createFromDetails(formData: FormData): Promise<void> {
   redirect(`/create/${draft.id}/needs`)
 }
 
+/**
+ * Editing the details of an event that exists (UX-07).
+ *
+ * This action was written with the flow and had no caller for four
+ * milestones — its error redirect pointed at `/create/[id]/details`, which
+ * did not exist, so the copy's "you can change any of them later" was a
+ * promise with nothing behind it. `/create/[id]/details` is that screen now.
+ *
+ * A published event returns to the dashboard, where she came from; a draft
+ * carries on into the flow, which walks forward from the needs step.
+ */
 export async function saveDetails(formData: FormData): Promise<void> {
   const organiserId = await requireOrganiser()
   const id = text(formData.get('id'))
   const title = text(formData.get('title'))
+  const organiserName = text(formData.get('organiserName'))
 
   if (title === '') redirect(`/create/${id}/details?error=no-title`)
+
+  const draft = await draftForOrganiser(prisma, { id, organiserId })
+  if (draft === null) redirect('/account')
+
+  // The same correction path her event's details get: the name on the page is
+  // hers, and a typo in it is no more permanent than one in the title.
+  if (organiserName !== '') await setOrganiserName(prisma, organiserId, organiserName)
 
   await updateDetails(
     prisma,
@@ -108,6 +127,7 @@ export async function saveDetails(formData: FormData): Promise<void> {
     },
   )
 
+  if (draft.isPublished) redirect(`/manage/${id}?details=1`)
   redirect(`/create/${id}/needs`)
 }
 

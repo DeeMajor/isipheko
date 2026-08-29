@@ -56,6 +56,7 @@ const ROUTES = [
   '/verify',
   '/create',
   '/create/details',
+  '/create/aaaaaaaaaaaaaaaa/details',
   '/create/aaaaaaaaaaaaaaaa/needs',
   '/create/aaaaaaaaaaaaaaaa/witnesses',
   '/create/aaaaaaaaaaaaaaaa/verify',

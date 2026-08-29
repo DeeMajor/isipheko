@@ -70,6 +70,7 @@ export default async function ManagePage({
   params: Promise<{ id: string }>
   searchParams: Promise<{
     saved?: string
+    details?: string
     confirmed?: string
     released?: string
     error?: string
@@ -85,6 +86,7 @@ export default async function ManagePage({
   const { id } = await params
   const {
     saved,
+    details: detailsSaved,
     confirmed,
     released,
     error,
@@ -181,9 +183,12 @@ export default async function ManagePage({
           ) : (
             <a href={`/create/${id}/needs`}>{dashboardCopy.links.finishSetup}</a>
           )}
+          {' · '}
+          <a href={`/create/${id}/details`}>{dashboardCopy.links.editDetails}</a>
         </p>
 
         {saved === '1' ? <Toast>{payDetailsCopy.saved}</Toast> : null}
+        {detailsSaved === '1' ? <Toast>{dashboardCopy.toasts.detailsSaved}</Toast> : null}
         {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
         {released === '1' ? <Toast>{dashboardCopy.toasts.released}</Toast> : null}
         {listed === '1' ? <Toast>{dashboardCopy.toasts.listUpdated}</Toast> : null}

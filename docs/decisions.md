@@ -4015,3 +4015,56 @@ into a shared cache (`/report` is `no-store` throughout).
 
 E2E types the paragraph, forgets the radio, and asserts every field survives
 the refusal — then picks the reason and files it.
+
+---
+
+## UX-07 · The edit the setup flow promised, and the promise that had to change instead
+
+### 1. "Change any of them later" had no screen behind it
+
+Three sentences in the setup copy promised edits: *"Three things, and you can
+change any of them later"* on the details step, *"put your best guess and
+change it later"* on the funeral's date field — said to a family that has not
+settled the day of the burial — and *"You can change this later"* on the kind
+step. **No screen offered any of it.** `saveDetails` was written with the flow
+and had no caller for four milestones, and its own error redirect pointed at
+`/create/[id]/details`, an address the catch-all answered with a 404.
+
+The cost was concrete: a misspelled name of the deceased on a published
+funeral page was uncorrectable through the product. M2-07 §2 designed the OG
+card versioning around exactly this correction — *"before the family fixed
+the spelling of their mother's name"* — and the fix it was built to survive
+could never be made.
+
+### 2. `/create/[id]/details` — prefilled, and honest per state
+
+The screen renders the same fields as the creation step, prefilled from the
+draft, wired to `saveDetails` — which now also updates the organiser's own
+display name, because the name on the page is hers and a typo in it is no
+more permanent than one in the title. A published event returns to the
+dashboard with *"Saved. The page shows it now"*; a draft carries on into the
+flow. The dashboard's links row gains *Change the details* in both states.
+The published foot says what the card versioning does, because the machinery
+that has waited since M2-07 finally has a caller.
+
+The empty-title refusal gets its own sentence at last: both details screens
+rendered `needs.empty` — *"Add at least one thing to carry on"* — under the
+title field, the needs step's words about a different problem.
+
+### 3. The kind is the promise that had to be withdrawn, not built
+
+`kind.foot` said the kind could be changed later. It cannot, anywhere, and
+building it was refused rather than deferred: changing the archetype of a
+live event re-keys its copy, its accent, its visibility default and the
+bereavement guards — a wedding flipped to a funeral mid-flight is not an
+edit, it is a different page wearing the same ledger. The sentence now says
+the opposite, where the choice is made: everything else can be changed later,
+this one cannot. The consequence preview under it is what makes choosing
+carefully possible, which is the job that step always had.
+
+The sweep the audit asked for found no other screenless promises: the needs
+step's *"you can add to this list any time"* is true (and safe since UX-03).
+
+E2E corrects a published funeral's title from the dashboard and reads it back
+on the public page. The new route joins the catch-all walk in
+`routes.spec.ts`, which failed until it did — the M1-09 §4 tripwire working.

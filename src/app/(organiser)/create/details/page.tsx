@@ -56,7 +56,9 @@ export default async function DetailsPage({
           label={copy.nameLabel}
           help={copy.nameHelp}
           placeholder={copy.namePlaceholder}
-          error={error === 'no-title' ? setupCopy.needs.empty : undefined}
+          // Its own sentence, not the needs step's (UX-07): this used to
+          // render "Add at least one thing to carry on" under the title field.
+          error={error === 'no-title' ? setupCopy.details.noTitle : undefined}
           required
         />
 

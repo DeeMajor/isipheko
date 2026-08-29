@@ -127,7 +127,15 @@ export const setupCopy = {
     title: 'What are you setting up?',
     intro:
       'The page changes to suit it — the words, the colour, and what it does and does not show.',
-    foot: 'You can change this later, but it will re-set the tone of the page.',
+    /**
+     * This said "You can change this later" for four milestones, and no screen
+     * ever offered the change (UX-07). Changing the kind of a live event
+     * re-keys its copy, its colour, its visibility default and the bereavement
+     * guards, and is deliberately not offered — so the honest sentence is that
+     * this is the one choice that stays, said where the choice is made. The
+     * consequence preview below it is what makes choosing carefully possible.
+     */
+    foot: 'Everything else can be changed later. This one choice cannot, so take a moment with it.',
     submit: (title: string) => `Continue with ${title.toLowerCase()}`,
     submitEmpty: 'Choose one to continue',
     consequenceTitle: 'What this means',
@@ -145,8 +153,23 @@ export const setupCopy = {
     placePlaceholder: 'e.g. KwaMashu, KwaZulu-Natal',
     placeHelp: 'The area is enough. You do not have to put the street on a public page.',
     submit: 'Continue',
+    /** The edit screen's own button (UX-07): the action names what it does. */
+    saveChanges: 'Save the changes',
+    /**
+     * The refusal of an empty name, in this step's own words (UX-07). The
+     * first version of the details screen rendered `needs.empty` — "Add at
+     * least one thing to carry on" — under the title field, which is the
+     * needs step's sentence about a different problem.
+     */
+    noTitle: 'It needs a name to carry on. Nothing else is required yet.',
     footNamed: 'Nothing is public yet.',
     footUnnamed: 'The name is the only thing needed to carry on.',
+    /**
+     * The edit screen on a published page (UX-07). The link preview minting a
+     * new card is M2-07 §2's machinery finally doing the job it was built for.
+     */
+    footPublished:
+      'This page is live. What you change here shows the moment you save it, and the link preview updates itself for the next person to receive it.',
   },
 
   needs: {

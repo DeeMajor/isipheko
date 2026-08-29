@@ -443,3 +443,48 @@ test('a claim that is no longer coming can be released back to the list', async 
   expect(await board.count()).toBeGreaterThan(0)
   await expect(page.getByText('Nobody has taken this yet').first()).toBeVisible()
 })
+
+/**
+ * The edit the setup flow always promised (UX-07). "Three things, and you can
+ * change any of them later" shipped with no screen behind it, so a misspelled
+ * name of the deceased on a published funeral page was uncorrectable — the
+ * exact fix M2-07 §2's card versioning was built to survive and then waited
+ * four milestones to receive.
+ */
+test('the details of a published umcimbi can be corrected', async ({ page }) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+  await page.getByRole('link', { name: 'Change the details' }).click()
+
+  // Prefilled with what stands, so a correction is an edit rather than a
+  // retype.
+  const title = page.getByLabel('Her name, or his name')
+  await expect(title).toHaveValue('Nokuthula Mthembu')
+  await title.fill('Nokuthula MaZondi Mthembu')
+  await page.getByRole('button', { name: 'Save the changes' }).click()
+
+  // Back where she came from, told it took.
+  await expect(page).toHaveURL(new RegExp(`/manage/${seeded.eventId}\\?details=1$`))
+  await expect(page.getByText('Saved. The page shows it now.')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Nokuthula MaZondi Mthembu' }),
+  ).toBeVisible()
+
+  // And the public page says it too.
+  const prisma = prismaClient()
+  try {
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: seeded.eventId },
+      select: { slug: true },
+    })
+    await page.goto(`/e/${event.slug}`)
+    await expect(
+      page.getByRole('heading', { name: 'Nokuthula MaZondi Mthembu' }),
+    ).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
