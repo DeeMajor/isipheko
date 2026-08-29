@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { PrismaClient } from '@/db/generated/client'
 import { organiserForPhone } from '@/db/repositories/auth'
 import { check, parseLookup } from '@/db/repositories/check'
-import { createDraft, publishDraft, replaceNeeds } from '@/db/repositories/event'
+import { createDraft, publishDraft, reconcileNeeds } from '@/db/repositories/event'
 import { allocateContributionReference } from '@/db/repositories/reference'
 import { allowCheck, clearCheckLimits } from '@/lib/check-rate-limit'
 
@@ -55,7 +55,9 @@ async function published(): Promise<{ id: string; slug: string; reference: strin
     eventDate: null,
   })
 
-  await replaceNeeds(prisma, draft.id, [{ label: 'Tent', note: 'Around R1 200' }])
+  await reconcileNeeds(prisma, draft.id, [
+    { id: null, label: 'Tent', note: 'Around R1 200' },
+  ])
   await prisma.witness.create({
     data: { eventId: draft.id, name: 'Thandi', phoneE164: nextPhone() },
   })

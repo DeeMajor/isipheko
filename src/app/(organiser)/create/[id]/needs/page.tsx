@@ -34,10 +34,10 @@ export default async function NeedsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ add?: string; error?: string }>
+  searchParams: Promise<{ add?: string; error?: string; held?: string }>
 }) {
   const { id } = await params
-  const { add, error } = await searchParams
+  const { add, error, held } = await searchParams
   const { draft, archetype } = await loadDraft(id)
 
   const saved = await needsForEvent(prisma, draft.id)
@@ -65,12 +65,28 @@ export default async function NeedsPage({
         </div>
       ) : null}
 
+      {/*
+        A removed row with a live claim stayed (UX-03). Removing it would take
+        somebody's promise off the record — the claim, its message and its
+        photograph cascade with the row — so the row is kept and the screen
+        says why rather than deleting it silently.
+      */}
+      {error === 'claimed' ? (
+        <div className={styles.form}>
+          <Toast tone="problem">{setupCopy.needs.claimed(held ?? '')}</Toast>
+        </div>
+      ) : null}
+
       <form action={saveNeeds} className={styles.form}>
         <input type="hidden" name="id" value={draft.id} />
 
         <div className={styles.stack}>
           {rows.map((row, index) => (
             <div key={row.id} className={styles.card}>
+              {/* The row's identity, so saving reconciles rather than replaces
+                  (UX-03): a row that keeps its id keeps its claims. The blank
+                  added row has none and arrives as a new one. */}
+              <input type="hidden" name="itemId" value={row.id === 'new' ? '' : row.id} />
               <div className={styles.row}>
                 <div className={styles.rowMain}>
                   <Field

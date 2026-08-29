@@ -3844,3 +3844,61 @@ assertion that fails on the old code, where the second submit looped. The unit
 half asserts the mechanism on both steps: no hidden copy of the field the step
 edits, the typed value repopulated, and the rest of the flow's state still
 travelling.
+
+---
+
+## UX-03 · The needs list reconciles, and a claimed row cannot be deleted
+
+### 1. One revisit of the needs step deleted every claim on the umcimbi
+
+`replaceNeeds` was delete-everything-and-recreate, and
+`need_claims.need_item_id` is `onDelete: Cascade`. Harmless while a need item
+was only a label; the moment M2-03 hung claims off the rows, a single save of
+`/create/[id]/needs` — which stays reachable after publishing, sits in the
+organiser's browser history from setup, and is where
+`dashboardCopy.board.emptyList` sends her — cascade-deleted every claim on the
+event. "I'll bring the tent", its message and its photograph, gone silently.
+This is the M3-03 §1 class exactly ("harmless until a witness had an
+acceptance and a live invite link"), one table over, found by the audit rather
+than by a person losing a tent.
+
+It also deleted `suggested` and `declined` rows on every save, because the
+screen shows only `active` rows and the delete took everything.
+
+### 2. Reconcile by id, and a removed-but-claimed row stays
+
+Rows now travel with their ids (`itemId` hidden field beside each row) and
+`reconcileNeeds` updates kept rows, creates new ones, and deletes only what
+was actually removed — scoped to `status: 'active'` throughout, so
+suggestions were never "absent from the form" and are untouched. An id the
+event does not own counts as a new row: an id in a form is not a permission.
+
+**A removed row with a live claim (`claimed` or `delivered`) is kept, not
+deleted.** The stricter option was chosen deliberately over
+reconcile-plus-cascade: reconciliation alone still lets a claimed row vanish
+when the organiser removes it on purpose, and a cascade that eats the message
+and photograph attached to somebody's promise is not recoverable. The row
+stays, sorts after the ones she kept, and the redirect carries its label so
+the screen says why — `setupCopy.needs.claimed`, which promises no release
+control, because none exists yet (that is UX-05).
+
+Everything else in the save still lands. Rolling the whole transaction back
+was considered and rejected: it would throw away her other edits to protect
+one row, which is the data-loss failure this audit keeps finding, arriving
+from the opposite direction.
+
+**The mechanism is the conditional delete** (`claims: { none: … }` on the
+`deleteMany`), not the pre-read: a claim landing between the read and the
+delete still survives, and the short count re-reads the survivor's label.
+
+### 3. A quiet correction that fell out of it
+
+The old delete-and-recreate cleared `category` on every row on every save, so
+the "Suggested — edit or remove it" marker died the first time the step was
+saved, touched or not. Reconciled rows keep their category until their label
+or note actually changes — which is what the marker's own comment says it
+means.
+
+Integration tests: a claim survives a re-save of its row; removing a claimed
+row keeps it and returns its label while the unclaimed row beside it goes;
+suggested rows survive a save that never showed them.

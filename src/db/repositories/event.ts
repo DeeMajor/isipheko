@@ -176,21 +176,139 @@ export async function needsForEvent(
   }))
 }
 
-export async function replaceNeeds(
+/** A claim that still holds its quantity (M2-03 §4): the row it is on is
+ *  somebody's promise or somebody's delivery, and must not disappear. */
+const LIVE_CLAIM_STATUSES = ['claimed', 'delivered'] as const
+
+export interface ReconcileNeedsResult {
+  /**
+   * Labels of rows the organiser removed that stayed anyway, because a live
+   * claim stands on them. Everything else she did was saved.
+   */
+  readonly kept: readonly string[]
+}
+
+/**
+ * Saves the needs list by identity, and refuses to delete a claimed row.
+ *
+ * **This replaced a delete-everything-and-recreate** (UX-03). That shape was
+ * harmless while a need item was only a label — and stopped being harmless the
+ * moment M2-03 hung claims off the rows: `need_claims.need_item_id` cascades,
+ * so one revisit of the needs step after publishing deleted every claim on the
+ * umcimbi — "I'll bring the tent", message and photograph included — silently.
+ * The exact class M3-03 §1 fixed for witnesses, one table over.
+ *
+ * So rows are reconciled on their ids: a row still on screen keeps its id and
+ * its claims, only rows actually removed are deleted, and **a removed row with
+ * a live claim is kept rather than deleted** — taking it off the list would
+ * take somebody's promise off the record, and a cascade that eats a message
+ * and a photo attached to "I'll bring the tent" is not recoverable. The kept
+ * labels come back so the screen can say why the row is still there.
+ *
+ * The refusal's mechanism is the conditional delete (`claims: none`), not the
+ * pre-read: a claim landing between the read and the delete still survives,
+ * and the re-read after a short count is what names it.
+ *
+ * Scoped to `status: 'active'` throughout — the setup screen shows only those,
+ * so suggested and declined rows are not "absent from the form", they were
+ * never on it. The old delete-everything erased them too.
+ *
+ * An untouched row keeps its `category`, so a template row the organiser has
+ * not edited stays marked "Suggested — edit or remove it"; editing one clears
+ * the marker, which is what the marker means.
+ */
+export async function reconcileNeeds(
   db: PrismaClient,
   eventId: string,
-  items: readonly { label: string; note: string }[],
-): Promise<void> {
-  await db.$transaction(async (tx) => {
-    await tx.needItem.deleteMany({ where: { eventId } })
-    await tx.needItem.createMany({
-      data: items.map((item, index) => ({
-        eventId,
-        label: item.label,
-        note: item.note === '' ? null : item.note,
-        sortOrder: index,
-      })),
+  items: readonly { id: string | null; label: string; note: string }[],
+): Promise<ReconcileNeedsResult> {
+  return db.$transaction(async (tx) => {
+    const existing = await tx.needItem.findMany({
+      where: { eventId, status: 'active' },
+      select: {
+        id: true,
+        label: true,
+        note: true,
+        claims: {
+          where: { status: { in: [...LIVE_CLAIM_STATUSES] } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     })
+
+    const byId = new Map(existing.map((row) => [row.id, row]))
+    const submittedIds = new Set(
+      items.map((item) => item.id).filter((id): id is string => id !== null),
+    )
+
+    const removed = existing.filter((row) => !submittedIds.has(row.id))
+    const kept = removed.filter((row) => row.claims.length > 0).map((row) => row.label)
+    const removable = removed.filter((row) => row.claims.length === 0)
+
+    if (removable.length > 0) {
+      const { count } = await tx.needItem.deleteMany({
+        where: {
+          id: { in: removable.map((row) => row.id) },
+          eventId,
+          claims: { none: { status: { in: [...LIVE_CLAIM_STATUSES] } } },
+        },
+      })
+
+      if (count !== removable.length) {
+        // A claim landed between the read and the delete. The conditional
+        // delete held; the survivor is named like the ones the read caught.
+        const survivors = await tx.needItem.findMany({
+          where: { id: { in: removable.map((row) => row.id) } },
+          select: { label: true },
+        })
+        kept.push(...survivors.map((row) => row.label))
+      }
+    }
+
+    let sortOrder = 0
+    for (const item of items) {
+      const row = item.id === null ? undefined : byId.get(item.id)
+
+      if (row === undefined) {
+        // A new row — or an id this event does not own, which counts as one:
+        // an id in a form is not a permission to edit somebody else's row.
+        await tx.needItem.create({
+          data: {
+            eventId,
+            label: item.label,
+            note: item.note === '' ? null : item.note,
+            sortOrder,
+          },
+        })
+      } else {
+        const touched = row.label !== item.label || (row.note ?? '') !== item.note
+
+        await tx.needItem.update({
+          where: { id: row.id },
+          data: {
+            label: item.label,
+            note: item.note === '' ? null : item.note,
+            sortOrder,
+            ...(touched ? { category: null } : {}),
+          },
+        })
+      }
+
+      sortOrder += 1
+    }
+
+    // Rows that stayed against the organiser's removal render after the ones
+    // she kept on purpose, in a stable order.
+    for (const label of kept) {
+      const row = existing.find((candidate) => candidate.label === label)
+      if (row !== undefined) {
+        await tx.needItem.update({ where: { id: row.id }, data: { sortOrder } })
+        sortOrder += 1
+      }
+    }
+
+    return { kept }
   })
 }
 

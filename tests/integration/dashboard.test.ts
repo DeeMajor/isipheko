@@ -6,7 +6,7 @@ import {
   selfReport,
   startContribution,
 } from '@/db/repositories/contribution'
-import { createDraft, publishDraft, replaceNeeds } from '@/db/repositories/event'
+import { createDraft, publishDraft, reconcileNeeds } from '@/db/repositories/event'
 import type { PrismaClient } from '@/db/generated/client'
 import {
   approveSuggestion,
@@ -86,10 +86,10 @@ async function publishedEvent(
   })
 
   if (needs.length > 0) {
-    await replaceNeeds(
+    await reconcileNeeds(
       app,
       draft.id,
-      needs.map((need) => ({ label: need.label, note: need.note })),
+      needs.map((need) => ({ id: null, label: need.label, note: need.note })),
     )
   }
 

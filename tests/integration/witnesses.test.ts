@@ -6,7 +6,7 @@ import {
   createDraft,
   publicEventBySlug,
   publishDraft,
-  replaceNeeds,
+  reconcileNeeds,
   replaceWitnesses,
   witnessesForEvent,
 } from '@/db/repositories/event'
@@ -68,7 +68,9 @@ async function eventWith(
     eventDate: null,
   })
 
-  await replaceNeeds(prisma, draft.id, [{ label: 'Tent', note: 'Around R1 200' }])
+  await reconcileNeeds(prisma, draft.id, [
+    { id: null, label: 'Tent', note: 'Around R1 200' },
+  ])
   await replaceWitnesses(prisma, draft.id, people)
 
   return draft

@@ -165,6 +165,15 @@ export const setupCopy = {
     foot: 'People can bring the thing itself or put money toward it. You do not choose that for them.',
     footNote: 'Nothing is public yet. You can add to this list any time.',
     empty: 'Add at least one thing to carry on.',
+    /**
+     * A removed row with a live claim stays (UX-03). Taking it off the list
+     * would take somebody's promise off the record — the claim, with its
+     * message and photograph, is deleted with the row and cannot be got back.
+     * Says what stands in the way and what was saved; promises no control that
+     * does not exist yet.
+     */
+    claimed: (label: string) =>
+      `${label} stays on the list — somebody has claimed it or already brought it, and taking it off would take their name off the record. Everything else you changed has been saved.`,
   },
 
   witnesses: {

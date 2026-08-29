@@ -8,11 +8,12 @@ import {
   needsForEvent,
   publicEventBySlug,
   publishDraft,
-  replaceNeeds,
+  reconcileNeeds,
   replaceWitnesses,
   witnessesForEvent,
 } from '@/db/repositories/event'
 import { organiserForPhone } from '@/db/repositories/auth'
+import { claimItem } from '@/db/repositories/needs'
 import { ARCHETYPES } from '@/domain/archetype'
 import { canPublish, isValidSlug } from '@/domain/event'
 import { needTemplate } from '@/copy/need-templates'
@@ -140,9 +141,9 @@ describe('editing the draft', () => {
   it('replaces the needs list with what the organiser left on screen', async () => {
     const { id } = await draftFor('umngcwabo')
 
-    await replaceNeeds(prisma, id, [
-      { label: 'Tent', note: 'Around R1 200 to hire' },
-      { label: 'Chairs', note: '' },
+    await reconcileNeeds(prisma, id, [
+      { id: null, label: 'Tent', note: 'Around R1 200 to hire' },
+      { id: null, label: 'Chairs', note: '' },
     ])
 
     const needs = await needsForEvent(prisma, id)
@@ -150,6 +151,101 @@ describe('editing the draft', () => {
     expect(needs[1]?.note).toBeNull()
     // No longer suggested — the list is theirs now.
     expect(needs.every((need) => !need.fromTemplate)).toBe(true)
+  })
+
+  /**
+   * UX-03. The old shape was delete-everything-and-recreate, which was
+   * harmless while a need item was only a label and stopped being harmless
+   * when M2-03 hung claims off the rows: `need_claims.need_item_id` cascades,
+   * so one revisit of this screen after publishing deleted every claim on the
+   * umcimbi — the M3-03 §1 class, one table over.
+   */
+  it('keeps a row’s claims when the list is saved again', async () => {
+    const { id } = await draftFor('umngcwabo')
+    await reconcileNeeds(prisma, id, [{ id: null, label: 'Tent', note: '' }])
+
+    const [tent] = await needsForEvent(prisma, id)
+    const claim = await claimItem(prisma, {
+      needItemId: tent?.id ?? '',
+      quantity: 1,
+      claimantName: 'Thandi Ngcobo',
+    })
+    expect(claim.ok).toBe(true)
+
+    // The save that used to destroy it: same row back, same id, edited note.
+    const outcome = await reconcileNeeds(prisma, id, [
+      { id: tent?.id ?? '', label: 'Tent', note: 'Around R1 200 to hire' },
+    ])
+    expect(outcome.kept).toEqual([])
+
+    const claims = await prisma.needClaim.findMany({
+      where: { needItem: { eventId: id } },
+    })
+    expect(claims).toHaveLength(1)
+    expect(claims[0]?.status).toBe('claimed')
+
+    const [after] = await needsForEvent(prisma, id)
+    expect(after?.id).toBe(tent?.id)
+    expect(after?.note).toBe('Around R1 200 to hire')
+  })
+
+  it('refuses to delete a row with a live claim, and names it', async () => {
+    const { id } = await draftFor('umngcwabo')
+    await reconcileNeeds(prisma, id, [
+      { id: null, label: 'Tent', note: '' },
+      { id: null, label: 'Chairs', note: '' },
+    ])
+
+    const rows = await needsForEvent(prisma, id)
+    const tent = rows.find((row) => row.label === 'Tent')
+    const chairs = rows.find((row) => row.label === 'Chairs')
+
+    const claim = await claimItem(prisma, {
+      needItemId: tent?.id ?? '',
+      quantity: 1,
+      claimantName: 'Thandi Ngcobo',
+    })
+    expect(claim.ok).toBe(true)
+
+    // She removes both. The unclaimed row goes; the claimed one stays, and the
+    // caller is told which so the screen can say why.
+    const outcome = await reconcileNeeds(prisma, id, [])
+    expect(outcome.kept).toEqual(['Tent'])
+
+    const after = await needsForEvent(prisma, id)
+    expect(after.map((row) => row.label)).toEqual(['Tent'])
+    expect(after.find((row) => row.label === 'Chairs')).toBeUndefined()
+    expect(chairs).toBeDefined()
+
+    const claims = await prisma.needClaim.findMany({
+      where: { needItem: { eventId: id } },
+    })
+    expect(claims).toHaveLength(1)
+  })
+
+  it('leaves suggested rows alone — they were never on the form', async () => {
+    const { id } = await draftFor('umngcwabo')
+    await reconcileNeeds(prisma, id, [{ id: null, label: 'Tent', note: '' }])
+
+    await prisma.needItem.create({
+      data: {
+        eventId: id,
+        label: 'Ice',
+        status: 'suggested',
+        suggestedByName: 'Sipho',
+        sortOrder: 99,
+      },
+    })
+
+    // A save that keeps only the tent must not read the suggestion as a
+    // removed row: the screen shows active rows only, so it was never there.
+    const [tent] = await needsForEvent(prisma, id)
+    await reconcileNeeds(prisma, id, [{ id: tent?.id ?? '', label: 'Tent', note: '' }])
+
+    const suggestion = await prisma.needItem.findFirst({
+      where: { eventId: id, status: 'suggested' },
+    })
+    expect(suggestion?.label).toBe('Ice')
   })
 
   it('stores abakhaphi as invited, and sends nothing', async () => {
@@ -169,7 +265,7 @@ describe('editing the draft', () => {
 
   it('counts what publishing needs', async () => {
     const { id } = await draftFor('umngcwabo')
-    await replaceNeeds(prisma, id, [{ label: 'Tent', note: '' }])
+    await reconcileNeeds(prisma, id, [{ id: null, label: 'Tent', note: '' }])
     await replaceWitnesses(prisma, id, [
       { name: 'Thandi Ngcobo', phoneE164: '+27821234568' },
     ])
@@ -216,7 +312,9 @@ describe('the public read', () => {
 
   it('returns the event once it is published', async () => {
     const draft = await draftFor('umngcwabo')
-    await replaceNeeds(prisma, draft.id, [{ label: 'Tent', note: 'Around R1 200' }])
+    await reconcileNeeds(prisma, draft.id, [
+      { id: null, label: 'Tent', note: 'Around R1 200' },
+    ])
     await replaceWitnesses(prisma, draft.id, [
       { name: 'Thandi Ngcobo', phoneE164: '+27821234569' },
     ])

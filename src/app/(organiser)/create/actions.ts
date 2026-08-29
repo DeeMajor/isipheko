@@ -7,7 +7,7 @@ import {
   createDraft,
   draftForOrganiser,
   publishDraft,
-  replaceNeeds,
+  reconcileNeeds,
   replaceWitnesses,
   setOrganiserName,
   updateDetails,
@@ -117,6 +117,12 @@ export async function saveDetails(formData: FormData): Promise<void> {
  * All three are submits, because "add another" as a click handler would mean
  * the step needs JavaScript. Every path writes what is currently on screen
  * first, so a row typed and then removed does not take its neighbours with it.
+ *
+ * Rows travel with their ids and are reconciled, never wholesale replaced
+ * (UX-03): this screen stays reachable after publishing, and the old
+ * delete-and-recreate cascade-deleted every claim on the umcimbi the first
+ * time somebody came back to it. A removed row with a live claim stays, and
+ * the redirect says why.
  */
 export async function saveNeeds(formData: FormData): Promise<void> {
   const organiserId = await requireOrganiser()
@@ -131,11 +137,23 @@ export async function saveNeeds(formData: FormData): Promise<void> {
   const removeIndex = Number(formData.get('remove') ?? -1)
   const removing = Number.isInteger(removeIndex) && removeIndex >= 0
 
+  const ids = formData.getAll('itemId').map(text)
   const items = pairs(formData, 'label', 'note')
-    .filter(([label], index) => label !== '' && index !== removeIndex)
-    .map(([label, note]) => ({ label, note }))
+    .map(([label, note], index) => ({
+      id: (ids[index] ?? '') === '' ? null : (ids[index] as string),
+      label,
+      note,
+    }))
+    .filter((item, index) => item.label !== '' && index !== removeIndex)
 
-  await replaceNeeds(prisma, id, items)
+  const outcome = await reconcileNeeds(prisma, id, items)
+
+  // A removed row with a live claim stayed. Everything else was saved; the
+  // screen names the row and says why it is still there.
+  const held = outcome.kept[0]
+  if (held !== undefined) {
+    redirect(`/create/${id}/needs?error=claimed&held=${encodeURIComponent(held)}`)
+  }
 
   if (removing) redirect(`/create/${id}/needs`)
   if (action === 'add') redirect(`/create/${id}/needs?add=1`)

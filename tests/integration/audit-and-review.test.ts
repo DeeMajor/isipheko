@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 
 import { organiserForPhone } from '@/db/repositories/auth'
 import { auditForActor, auditForTarget, recordAudit } from '@/db/repositories/audit'
-import { createDraft, publishDraft, replaceNeeds } from '@/db/repositories/event'
+import { createDraft, publishDraft, reconcileNeeds } from '@/db/repositories/event'
 import type { PrismaClient } from '@/db/generated/client'
 import {
   fileReport,
@@ -71,7 +71,7 @@ async function publishedEvent(): Promise<{ id: string; slug: string }> {
     eventDate: null,
   })
 
-  await replaceNeeds(app, draft.id, [{ label: 'Tent', note: '' }])
+  await reconcileNeeds(app, draft.id, [{ id: null, label: 'Tent', note: '' }])
   await app.witness.create({
     data: { eventId: draft.id, name: 'MaDlamini', phoneE164: nextPhone() },
   })
