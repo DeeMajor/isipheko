@@ -4160,3 +4160,44 @@ guess. The two inline button strings on this card moved into
 
 The share-gate E2E now walks the whole loop: refusal, check, return to a card
 that says done, one tap, link.
+
+---
+
+## UX-11 · The claim says what happened to the photo, and the enhancement stops inventing outcomes
+
+### 1. A rejected photo was silent, on a panel that read as "attached"
+
+M4-02b §4 decided a rejected photograph must not consume the claim — somebody
+bringing the tent is bringing the tent whatever their camera produced — and
+stopped there. The person was never told. *"You've claimed the tent"* with
+nothing about the photo reads as "photo attached", and a claim cannot take a
+photo afterwards, so by the time anybody noticed, the only record of the
+graveside was gone.
+
+The rejection reason now rides the redirect (`&photo=<reason>`, validated
+against the known set on the way back in), and the claimed panel says what
+happened **while the undo seconds are still counting** — undo-and-claim-again
+is the one honest way to a photo, and it exists for fifteen seconds. Each
+reason keeps M4-01's register (the HEIC one still says how to turn it into a
+JPEG).
+
+### 2. A missing name gets its own sentence
+
+The claim endpoint answered a missing name with `at-least-one` — *"Choose at
+least one"*, the quantity error, about a different field. `no-name` says what
+to do. A missing item id keeps the generic answer: that is a forged form, not
+a person.
+
+### 3. The enhancement navigates on the server's query — a bug fix found in passing
+
+`needs-board.js` rebuilt the redirect query itself from the status code, with
+a branch that collapsed every non-409 to `claimed` — so a rate-limited 429,
+or the no-name 400, **navigated to `claim=claimed` and drew a success panel
+over a refusal**. It now reads the `query` the JSON response has carried since
+M2-04 and navigates on that, which is also what delivers the photo marker on
+the enhanced path. The fallback for an unparseable body is the conflict
+branch, never success: when the answer is unknown, the safe claim is that
+somebody else got there first, not that you did.
+
+E2E covers the oversized photo (claim stands, fate named, no photoKey on the
+row) and the enhanced no-name path (error, not success).

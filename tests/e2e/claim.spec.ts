@@ -434,3 +434,78 @@ test('the enhancement stays small', async ({ page }) => {
   // And it is nowhere near a framework, which is the point.
   expect(transferred).toBeLessThan(4 * 1024)
 })
+
+/**
+ * A rejected photograph does not stop the claim (M4-02b §4) — and is not
+ * silent about it either (UX-11). "You've claimed the tent" with nothing
+ * about the photo read as "photo attached", and by the time anyone noticed
+ * it was not, the claim could no longer take one. The panel says what
+ * happened while the undo seconds — the one honest way to a photo — are
+ * still counting.
+ */
+test('a rejected photo is named on the claimed panel, and the claim stands', async ({
+  page,
+}) => {
+  const board = await seedBoard()
+  await page.setExtraHTTPHeaders(freshAddress())
+  await page.goto(`/e/${board.slug}`)
+
+  await page
+    .locator(`[data-item="${board.tentId}"] input[name="name"]`)
+    .fill('Thandi Ngcobo')
+  await page.locator(`[data-item="${board.tentId}"] input[name="photo"]`).setInputFiles({
+    name: 'graveside.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.alloc(9 * 1024 * 1024),
+  })
+  await page.locator(`[data-item="${board.tentId}"] [data-claim-button]`).click()
+
+  // The claim held.
+  await expect(page.getByText("You've claimed the tent")).toBeVisible()
+
+  // And the photo's fate is said, with the honest remedy beside it.
+  await expect(page.getByText('Your photo is over 8MB')).toBeVisible()
+  await expect(
+    page.getByText('tap Undo while the seconds are still counting'),
+  ).toBeVisible()
+
+  const prisma = prismaClient()
+  try {
+    const claim = await prisma.needClaim.findFirstOrThrow({
+      where: { needItemId: board.tentId },
+    })
+    expect(claim.status).toBe('claimed')
+    expect(claim.photoKey).toBeNull()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+/**
+ * The enhancement navigates on the server's own query (UX-11). It used to
+ * rebuild the query itself, and every non-409 status — a 429 rate limit
+ * included — navigated to claim=claimed and drew a success panel over a
+ * refusal.
+ */
+test('a missing name via the enhancement shows the name error, not success', async ({
+  page,
+}) => {
+  const board = await seedBoard()
+  await page.setExtraHTTPHeaders(freshAddress())
+  await page.goto(`/e/${board.slug}`)
+
+  // Strip `required` so the post reaches the server the way an old browser
+  // would send it — the server's answer is what is under test.
+  await page
+    .locator(`[data-item="${board.tentId}"] input[name="name"]`)
+    .evaluate((node) => {
+      node.removeAttribute('required')
+    })
+  await page.locator(`[data-item="${board.tentId}"] [data-claim-button]`).click()
+
+  await expect(page).toHaveURL(/claim=error&reason=no-name/)
+  await expect(
+    page.getByText('Enter the name the family should see, and claim it again.'),
+  ).toBeVisible()
+  await expect(page.getByText("You've claimed the tent")).not.toBeVisible()
+})

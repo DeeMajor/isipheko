@@ -79,10 +79,37 @@ export const needsCopy = {
     'more-than-remains': 'That is more than is still needed. Try a smaller amount.',
     'all-or-nothing': 'This one is all or nothing.',
     'at-least-one': 'Choose at least one.',
+    /**
+     * Its own sentence (UX-11): a missing name used to answer with
+     * "Choose at least one", the quantity error, about a different field.
+     */
+    'no-name': 'Enter the name the family should see, and claim it again.',
     'not-a-whole-number': 'Whole numbers only.',
     conflict: 'Somebody else got there first.',
     'too-many-requests':
       'That is a lot of claims from one place. Wait a few minutes and try again.',
     'cross-site': 'That request did not come from this page.',
   },
+
+  /**
+   * The claim held; the photo did not (UX-11).
+   *
+   * A rejected photograph deliberately does not stop the claim — somebody
+   * bringing the tent is bringing the tent whatever their camera produced
+   * (M4-02b §4) — but silence about it left the person believing the photo
+   * was on the record. Each says what happened and the one honest way to a
+   * photo: undo inside the window and claim again, because a claim cannot
+   * take a photo afterwards.
+   */
+  photoRejected: {
+    empty: 'Your photo did not come through, so the claim stands without it.',
+    'too-big': 'Your photo is over 8MB, so the claim stands without it.',
+    heic: 'Your photo is an iPhone format we cannot read, so the claim stands without it. Sending it through WhatsApp or Photos first turns it into a JPEG.',
+    'not-an-image':
+      'That file is not a photo we can read, so the claim stands without it.',
+    unreadable:
+      'Your photo did not come through in one piece, so the claim stands without it.',
+  },
+  photoRejectedNext:
+    'To put a photo on it, tap Undo while the seconds are still counting and claim again with a different one.',
 } as const

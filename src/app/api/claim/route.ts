@@ -96,7 +96,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
   }
 
-  if (name === '' || itemId === '') {
+  // Two different mistakes, two sentences (UX-11): a missing name used to
+  // answer with the quantity error. A missing item id is a forged form and
+  // keeps the generic answer.
+  if (name === '') {
+    return respond(request, { slug, status: 400, query: 'claim=error&reason=no-name' })
+  }
+  if (itemId === '') {
     return respond(request, {
       slug,
       status: 400,
@@ -158,10 +164,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
   }
 
+  /*
+   * A rejected photo did not stop the claim (M4-02b §4) — but it must not be
+   * silent either (UX-11): "You've claimed the tent" with nothing about the
+   * photo reads as "photo attached". The reason travels in the query so the
+   * claimed panel can say what happened, while the seconds for the one honest
+   * remedy — undo and claim again — are still counting.
+   */
+  const photoNote =
+    photo !== null && !photo.ok ? `&photo=${encodeURIComponent(photo.reason)}` : ''
+
   return respond(request, {
     slug,
     status: 200,
-    query: `claim=claimed&item=${itemId}`,
+    query: `claim=claimed&item=${itemId}${photoNote}`,
     cookie: { name: CLAIM_COOKIE, value: claimCookieValue(outcome.claimId) },
   })
 }

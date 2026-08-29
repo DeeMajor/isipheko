@@ -47,7 +47,14 @@ function outcomeFrom(url: URL): BoardOutcome | undefined {
   const reason = url.searchParams.get('reason') ?? ''
 
   if (claim === 'claimed' && item !== '') {
-    return { kind: 'claimed', itemId: item, secondsLeft: 15 }
+    // The photo's fate rides along when it was rejected (UX-11). Validated
+    // against the known reasons, so a forged value renders nothing rather
+    // than a key lookup gone wrong.
+    const rejections = ['empty', 'too-big', 'heic', 'not-an-image', 'unreadable'] as const
+    const photo = url.searchParams.get('photo') ?? ''
+    const photoRejection = rejections.find((value) => value === photo)
+
+    return { kind: 'claimed', itemId: item, secondsLeft: 15, photoRejection }
   }
   if (claim === 'conflict' && item !== '') return { kind: 'conflict', itemId: item }
   if (claim === 'undone' && item !== '') return { kind: 'undone', itemId: item }
@@ -59,6 +66,7 @@ function outcomeFrom(url: URL): BoardOutcome | undefined {
       'more-than-remains',
       'all-or-nothing',
       'at-least-one',
+      'no-name',
       'not-a-whole-number',
       'conflict',
       'too-many-requests',

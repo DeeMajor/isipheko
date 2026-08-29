@@ -28,7 +28,18 @@ export interface BoardItem {
 }
 
 export type ItemOutcome =
-  | { readonly kind: 'claimed'; readonly itemId: string; readonly secondsLeft: number }
+  | {
+      readonly kind: 'claimed'
+      readonly itemId: string
+      readonly secondsLeft: number
+      /**
+       * Set when the photo was rejected while the claim went through (UX-11).
+       * A rejection does not stop the claim (M4-02b §4), but silence about it
+       * read as "photo attached" — the panel says what happened while the
+       * undo seconds, the one honest way to a photo, are still counting.
+       */
+      readonly photoRejection?: keyof typeof needsCopy.photoRejected | undefined
+    }
   | { readonly kind: 'conflict'; readonly itemId: string }
   | { readonly kind: 'undone'; readonly itemId: string }
 
@@ -102,6 +113,17 @@ function NeedRow({
         <div className="claimed" role="status">
           <p className="claimedTitle">{needsCopy.claimed(item.noun)}</p>
           <p className="claimedBody">{needsCopy.claimedBody}</p>
+
+          {/* The photo did not attach, said now — while undoing and claiming
+              again is still possible (UX-11). */}
+          {outcome.photoRejection === undefined ? null : (
+            <>
+              <p className="claimedBody">
+                {needsCopy.photoRejected[outcome.photoRejection]}
+              </p>
+              <p className="claimHelp">{needsCopy.photoRejectedNext}</p>
+            </>
+          )}
 
           {canUndo ? (
             <form

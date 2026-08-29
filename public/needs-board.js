@@ -37,17 +37,32 @@
       credentials: 'same-origin',
     })
       .then(function (response) {
-        /* 200 claimed, 409 somebody else was quicker, anything else an error.
-         * Every branch reloads so the server decides what the board says. */
-        var query = response.status === 409 ? 'conflict' : 'claimed'
-        var item = form.querySelector('[name="item"]')
-        window.location.assign(
-          form.getAttribute('data-return') +
-            '?claim=' +
-            (response.ok ? 'claimed' : query) +
-            '&item=' +
-            encodeURIComponent(item ? item.value : ''),
-        )
+        /* Every branch reloads so the server decides what the board says —
+         * and the server's own query string is what it says (UX-11). It
+         * carries the outcome, the reason, and the photo's fate; rebuilding
+         * it here is how a rate-limited 429 once navigated to claim=claimed
+         * and drew a success panel over a refusal. */
+        return response
+          .json()
+          .then(function (payload) {
+            return payload && typeof payload.query === 'string' ? payload.query : null
+          })
+          .catch(function () {
+            return null
+          })
+          .then(function (query) {
+            var item = form.querySelector('[name="item"]')
+            window.location.assign(
+              form.getAttribute('data-return') +
+                '?' +
+                (query ||
+                  'claim=' +
+                    (response.status === 409 ? 'conflict' : 'error') +
+                    '&item=' +
+                    encodeURIComponent(item ? item.value : '') +
+                    '&reason=conflict'),
+            )
+          })
       })
       .catch(function () {
         /* Offline, or the request never landed. Fall back to the thing that
