@@ -16,8 +16,15 @@ design/
 # produce a large diff that says nothing, on the documents most often read by a
 # human. CLAUDE.md additionally cannot be kept stable — `next dev` appends its
 # agent-rules block on every run.
+#
+# `docs/decisions.md` was left off this list at M1-01 and joined it at M5-01.
+# Nothing was failing, because `pnpm lint` is ESLint only — but `pnpm format`
+# would have rewrapped every paragraph in the longest prose document in the
+# repository, which is precisely what the paragraph above exists to prevent.
 CLAUDE.md
 docs/architecture.md
 docs/implementation-plan.md
 docs/isipheko-phase1-research.md
 docs/isipheko-phase1.5-solutions.md
+docs/paystack-analysis.md
+docs/decisions.md

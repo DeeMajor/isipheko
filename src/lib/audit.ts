@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { prisma } from '@/db/client'
 import { recordAudit } from '@/db/repositories/audit'
 import { hashPhone } from '@/domain/auth'
+import { clientAddress } from '@/lib/client-address'
 import type {
   AdminAction,
   AuditActorType,
@@ -55,34 +56,21 @@ export interface RequestFingerprint {
 }
 
 /**
- * Where the request came from, in order of how much the header can be trusted.
+ * The hashed fingerprint of a request: the address and the user agent, HMAC'd,
+ * never stored in the clear (CLAUDE.md rule 8).
  *
- * `cf-connecting-ip` first: Cloudflare sets it and strips any copy the client
- * sent, so it is the one header here an attacker cannot choose. `x-real-ip` is
- * set by our own proxy. `x-forwarded-for` is last and is **client-controlled** —
- * anybody can send one, and its first entry is whatever they typed.
- *
- * That matters for the per-IP limit, which is evadable by whoever is willing to
- * rotate a header. It is a speed bump on casual enumeration, not a control; the
- * per-number limit is the one that holds, because a number is not something the
- * requester gets to invent. The ordering above means the limit is real in
- * production behind Cloudflare and best-effort anywhere else.
- *
- * Used for rate limiting and the audit trail, never for authorisation. A
- * spoofed value costs somebody a limit; it cannot let anybody in.
+ * Which header the address comes from, and why none of them may be trusted for
+ * authorisation, is in `src/lib/client-address.ts` — it has a second caller now
+ * and the reasoning belongs with the function rather than with one of them.
  */
 export async function requestFingerprint(): Promise<RequestFingerprint> {
   const header = await headers()
 
-  const forwarded = header.get('x-forwarded-for')?.split(',')[0]?.trim()
-  const ip =
-    header.get('cf-connecting-ip') ??
-    header.get('x-real-ip') ??
-    (forwarded === undefined || forwarded === '' ? null : forwarded)
+  const ip = clientAddress(header)
   const userAgent = header.get('user-agent')
 
   return {
-    ipHash: ip === null || ip === '' ? null : hashIdentifier('ip', ip),
+    ipHash: ip === null ? null : hashIdentifier('ip', ip),
     userAgentHash:
       userAgent === null || userAgent === '' ? null : hashIdentifier('ua', userAgent),
   }

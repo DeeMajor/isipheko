@@ -50,8 +50,8 @@ ID numbers hashed with a KMS-held pepper. Bank account numbers column-encrypted.
 **9. The public event page has a hard 150KB budget.**
 CI fails the build on breach. South African mobile data is expensive; every kilobyte is friction between a family and a contribution. Server components by default.
 
-**10. Payment code lives behind the `PaymentProvider` interface.**
-No domain or UI code imports Stitch types. The regulatory position is unresolved and the provider may change.
+**10. Payment code lives behind the `PaymentProvider` interface in `src/domain/payments/`.**
+No domain, UI or database code imports a provider's types or calls its API. `HeldBalanceProvider` is the narrower contract for a provider that holds a beneficiary balance — PayFast cannot satisfy it and must not be made to. The regulatory position is unresolved and the provider will change.
 
 **11. Copy lives in `src/copy/`, keyed by archetype.**
 Never inline user-facing strings in components. This structure is also the i18n translation unit.

@@ -179,6 +179,28 @@ function schemaFor(nodeEnv: string | undefined) {
     // than a boot failure — and refusing to start would take the whole product
     // down over a screen two people use.
     ADMIN_PHONE_NUMBERS: z.string().default(''),
+
+    // PayFast, for checkout only (M5-01). Merchant ID and key are on the
+    // merchant dashboard; the passphrase is under Settings, "Salt Passphrase".
+    //
+    // **Optional here, and required at the point of use.** Making them required
+    // in production would refuse to start a deployment that is not using
+    // PayFast at all, over a provider nothing calls yet — `payFastProvider()`
+    // throws instead, naming the variable that is missing. Same shape as
+    // ADMIN_PHONE_NUMBERS: a deployment without it is a deployment without that
+    // feature, not a boot failure.
+    //
+    // The passphrase is not optional to PayFast's signature being worth
+    // anything. Without one the signature is a checksum over data the sender
+    // chose rather than a shared secret, which is the appearance of a security
+    // check and not one.
+    PAYFAST_MERCHANT_ID: z.string().optional(),
+    PAYFAST_MERCHANT_KEY: z.string().optional(),
+    PAYFAST_PASSPHRASE: z.string().optional(),
+
+    // Anything but `live` is the sandbox. Defaulting the other way round is how
+    // a test transaction reaches a real card.
+    PAYFAST_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
   })
 }
 

@@ -71,11 +71,39 @@ describe('parseEnv', () => {
     // deployment with nobody on it is a deployment where the report queue goes
     // unread — a staffing problem rather than a boot failure, and refusing to
     // start would take the whole product down over a screen two people use.
+    //
+    // PayFast defaults the same way and for the same shape of reason (M5-01):
+    // a deployment not using PayFast should start. The three credentials are
+    // absent rather than empty, because `payFastProvider()` names the one that
+    // is missing and an empty string would be a value it had been given.
     expect(env).toEqual({
       NODE_ENV: 'production',
       ...PRODUCTION,
       ADMIN_PHONE_NUMBERS: '',
+      PAYFAST_MODE: 'sandbox',
     })
+  })
+
+  it('defaults PayFast to the sandbox, never to live', () => {
+    // Defaulting the other way round is how a test transaction reaches a real
+    // card. An unset mode has to mean the harmless one.
+    expect(parseEnv({ NODE_ENV: 'production', ...PRODUCTION }).PAYFAST_MODE).toBe(
+      'sandbox',
+    )
+    expect(
+      parseEnv({ NODE_ENV: 'production', ...PRODUCTION, PAYFAST_MODE: 'live' })
+        .PAYFAST_MODE,
+    ).toBe('live')
+  })
+
+  it('starts without PayFast configured, and refuses an unknown mode', () => {
+    // Optional at boot, required at the point of use — the refusal belongs
+    // where somebody can act on it, not where it stops a product that is not
+    // using PayFast at all.
+    expect(() => parseEnv({ NODE_ENV: 'production', ...PRODUCTION })).not.toThrow()
+    expect(() =>
+      parseEnv({ NODE_ENV: 'production', ...PRODUCTION, PAYFAST_MODE: 'staging' }),
+    ).toThrow(EnvironmentError)
   })
 
   it('carries the reviewer allowlist through as given', () => {

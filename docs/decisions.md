@@ -2583,3 +2583,161 @@ Type-only imports were left aliased throughout: `import type` is erased before N
 - **No printed cover variant per archetype beyond the accent.** The accent band is the archetype's, and it is the print equivalent of `var(--accent, #16233D)` — bereavement declares none and gets indigo, with no branch anywhere (rule 2).
 - **No pagination control for the organiser.** No page-size choice, no "photos only", no reordering. The record has an order and it is the order people came.
 - **Nothing deletes an old render.** `ObjectStore` still has no `delete` and the app role holds no DELETE on `album_renders`. Old versions of a book stay reachable, which is the point of addressing them by content.
+
+---
+
+## M5-01 · Payment provider interface and simulator
+
+### 1. Two interfaces, because PayFast's terms forbid one
+
+`PaymentProvider` takes money in and reports that it arrived. `HeldBalanceProvider extends PaymentProvider` adds a balance held per beneficiary, a withdrawal against it, and the state of that withdrawal.
+
+The split is not a modelling preference. PayFast's General Terms and Conditions 5.17 reads, verbatim:
+
+> (v) an aggregated Payment Transaction is not made for multiple suppliers;
+>
+> (vi) a Payment Transaction is not submitted for or on behalf of third party (i.e. other business entities or an entity that has not signed an Affiliate form); and
+
+A balance held for an organiser is what (vi) forbids. So `PayFastProvider` implements the narrow interface, and **assigning it where a `HeldBalanceProvider` is required is a compile error** — asserted by a `@ts-expect-error` in `tests/unit/payments-provider.test.ts`, which `pnpm typecheck` covers, so the day PayFast grows a `balanceFor` the build fails.
+
+The alternative considered and rejected was one interface with three methods that throw on PayFast. That is the partial implementation the task said to refuse, and it converts something the compiler knows at build time into a runtime surprise on a payments path — the worst place in this product to discover anything. It would also read, to the next person, as an unimplemented feature rather than a contractual boundary.
+
+**This entry exists so that the split survives the person who later wonders why there are two.** The answer is not tidiness. Merging them re-opens 5.17(vi).
+
+### 2. `createDisbursement` did not cross over from architecture §5.1
+
+§5.1 lists five methods shaped around Stitch: `verifyBankAccount`, `createPayIn`, `createDisbursement`, `getDisbursementStatus`, `verifyWebhookSignature`. Three of them describe instructing a credit transfer out of a float account we fund — which is the arrangement §0.2 flagged as closer to TPPP activity than we want, and the reason Milestone 5 was gated on a legal opinion in the first place.
+
+Carrying them across would have meant somebody eventually implementing them. What replaced them is `requestWithdrawal` and `withdrawalState` against a balance **the provider holds and we never fund**, which is a materially different fact pattern and the one docs/paystack-analysis.md is asking a lawyer about.
+
+`verifyBankAccount` is also absent. Onboarding a beneficiary has its own consent, its own evidence and its own review queue, and it is not something a payment interface should be able to do in passing. A `BeneficiaryReference` arrives here already opaque.
+
+### 3. Nothing in the interface can carry a payer, or a clock
+
+Two structural absences, both in the same spirit as M3-01 §3's _"nothing in the outcome types can carry an image"_.
+
+**No payer.** `PayInRequest` has no name, no phone number, no email address, no message. An adapter has nowhere to put a contributor's details, so it cannot forward them without this file changing first (rule 4). A test asserts the PayFast form carries no `name_first`, `name_last`, `email_address` or `cell_number`, all four of which PayFast accepts and would happily have taken.
+
+Where a vendor requires an address anyway — Paystack's initialize call does — the adapter derives an opaque, undeliverable one from the reference. That is a decision for the task that builds it; what this file guarantees is that it cannot be the contributor's.
+
+**No timestamp.** No event carries one. Every rule in this product is computed against an application-supplied `now` — the ledger hash covers `created_at` (M2-01 §3), and the digest cap and the 72-hour hold read columns the application stamped (M2-08b, M3-08 §3). A provider's clock would make all three depend on somebody else's and untestable at a fixed instant, which is the failure the working agreement in CLAUDE.md exists to prevent. A test asserts no event field name matches `at$|date|time`.
+
+### 4. PayFast's published ITN signature is not a test vector, and the sandbox settled it instead
+
+The done-criteria asked for the signature to be pinned against PayFast's documented vector. **There is no such vector.** Their documentation shows an example ITN payload alongside the signature `ad8e7685c9522c24365d7ccea8cb3db7`; that signature does not verify against that payload under either of their two published algorithms, with or without the sandbox passphrase, with blank fields included or excluded, or under any plausible rendering of the three decimal fields. It is illustrative.
+
+That mattered more than it sounds, because PayFast publishes **two** reference implementations that disagree with each other. PHP's `urlencode` escapes `` !'()*~ ``; JavaScript's `encodeURIComponent` leaves them. A surname with an apostrophe is enough to make the two produce different signatures, and O'Brien is not a rare payer.
+
+So the question was settled against their server rather than their documentation. **`pnpm check:payfast`** posts a signed form to `sandbox.payfast.co.za/eng/process` and a corrupted one after it. PayFast **mints a payment page for ours** — `302` to `/eng/process/payment/<uuid>`, rendering `R 500.00` and the item name — and answers **`400 Bad Request`** to the corrupted one. PHP's `urlencode` is what their server agrees with, and the encoder follows it.
+
+It is a command rather than a test because it makes a real request to a third party, and a gate that fails when the wifi does is a gate people learn to re-run rather than read.
+
+**The incoming direction is still unconfirmed and the criterion is partially met.** An ITN is posted by PayFast to a publicly reachable `notify_url` after a _completed_ sandbox payment. Their own documentation says to use ngrok for this. It needs a public URL and a person, and no terminal can close it — the same posture as M2-07's WhatsApp device checklist and M4-03b's printer preflight. It is on Part J.
+
+### 5. Three of PayFast's four security checks are in the adapter, and the fourth cannot be
+
+PayFast documents four: verify the signature, check the notification came from a PayFast host, compare the amount to what was expected, and post the notification back to PayFast for confirmation.
+
+One, two and four are in `PayFastProvider.verifyWebhook`. Three is `amountMatches` in `src/domain/payments/provider.ts`, and it is the caller's — for an ordering reason worth writing down. **You have to verify and parse a notification before you know which record it is about, and know which record it is about before you know what to compare the amount to.** An adapter given that responsibility would have to read the database, which puts a repository behind the payment interface and undoes rule 10.
+
+Two smaller decisions inside those checks:
+
+**The source is checked before the callback**, so a flood of forged notifications cannot make us call PayFast once per forgery. Asserted.
+
+**`amountMatches` is exact, with no tolerance.** PayFast's own reference implementation allows a cent of drift because it compares floating-point decimals. This product has no floats anywhere (rule 7), so there is nothing to drift, and a tolerance would only widen what an attacker may substitute.
+
+### 6. The incoming parameter string is never re-encoded
+
+PayFast's reference implementations decode the posted body into a map and encode it again. That round trip only reproduces the original bytes if their encoder and ours agree on every character — which, per §4, theirs do not even agree with each other.
+
+So the incoming direction takes the raw body and removes the `signature` pair from it, byte for byte, decoding nothing. Whatever PayFast encoded is what gets hashed, and the whole encoding question is unreachable in that direction.
+
+**Exactly one `signature` pair, or the body is not an ITN.** PayFast's PHP reference stops at the signature, which truncates the body if it is ever not last — safe, but it would then fail every notification rather than one. Removing the pair wherever it sits survives a reordering; requiring there to be exactly one closes what that would otherwise open, which is a second `signature=` injected earlier for a verifier that reads the first it finds. Found by writing the test for "removes it wherever it is" and noticing what that permitted.
+
+**The outgoing direction refuses to sign an ambiguous value.** We control every outgoing field, so a value containing one of `` !'()*~ `` is refused rather than guessed at. It costs nothing in practice — a merchant id, a reference like `MTH-4K7B2X`, an amount, an item name and URLs — and makes the ambiguity structurally unreachable rather than merely unlikely. The error names the field and never the value, because the value is payer data and the message reaches logs (rule 8).
+
+### 7. MD5, said out loud
+
+`payfast-signature.ts` hashes with MD5. It is PayFast's scheme, not ours: their server computes the signature they send, and a stronger hash on our side would simply not match. The file says so in its first paragraph, because an unexplained MD5 in a payments file reads as a lapse to every reviewer who finds it, and the next person should not have to work out whether it was a decision.
+
+What makes an ITN safe is not the hash. It is all four checks: the notification must come from a PayFast host, carry a signature computed under a passphrase only PayFast and we hold, match an amount we were expecting, and survive PayFast being asked whether it is theirs.
+
+Nothing else in the product uses MD5. The ledger chain is SHA-256 (M2-01), one-time codes are HMAC-SHA256 (M1-06 §3), and the simulator signs with HMAC-SHA256 because that one is ours to choose.
+
+### 8. The simulator POSTs. It never calls a repository
+
+The single most important property of `SimulatedPaymentProvider`: whatever a real provider would POST, it POSTs — over HTTP, to the `notifyUrl` it was given, signed, to be verified by the same `verifyWebhook` a real notification goes through.
+
+A simulator that reached into a repository would leave the receiver route, the signature check and the handler seam untested, and those are the three things a payments integration actually gets wrong. The shortcut makes the tests green and the production path unexercised.
+
+`tests/e2e/payments-simulator.spec.ts` is where that is proved, because it is the only place the POST actually leaves the process: money in, held for a beneficiary, a withdrawal requested, a withdrawal settled, with both notifications arriving through `/api/payments/simulator`. The unit test captures the POST and hands it straight back to `verifyWebhook`, which proves the loop closes and runs fast enough for every save.
+
+### 9. Settling is two acts, not one
+
+`requestWithdrawal` creates a **pending** withdrawal and posts nothing. `completeWithdrawal` is a separate control.
+
+A simulator that completed synchronously would let a caller be written that never handles `pending` — and then the first real provider, whose settlement is asynchronous by construction, would break it. The asymmetry is the point of having a simulator at all.
+
+**Held is reduced at the request, not at the settlement.** Otherwise two requests against one balance both pass their check and the second is caught only when it settles, by which time both were promised. Asserted.
+
+**The nonce is idempotent and returns the same withdrawal.** Architecture §5.5: a retry carrying the same nonce is safe, and treating it as an error is how a timeout becomes a second payout.
+
+### 10. `balanceFor` answers `null`, not zero
+
+A beneficiary the provider has never held anything for is a different answer from one whose balance is R0,00, and only one of them should ever reach a screen as a number. A typo in a beneficiary reference that rendered as "R0,00" would be an organiser told, on the screen where money is counted, that nobody had given — which is the M1-08 §5 failure with an amount attached.
+
+### 11. Three refusals stop the simulator reaching production, and they are not spares
+
+1. `paymentProvider()` throws in production rather than returning the simulator.
+2. `paymentEventHandler()` throws there too.
+3. `/api/payments/simulator` and `/dev/payments` both `notFound()` there.
+
+M2-05 §7 is firm that two application-level checks of the same condition are one check with a spare. These are not that: the factory refusals are construction-level and read the validated `env.NODE_ENV`, the route guards are route-level and read `process.env.NODE_ENV`, and they fail independently. `tests/unit/payments-factory.test.ts` proves each, and also proves both routes **serve** outside production — a route that 404'd unconditionally would pass the first three assertions.
+
+The thing being guarded is a simulator crediting a real organiser's balance with money nobody paid, on the screen she makes promises against.
+
+### 12. `/dev/payments` is the control surface; `/api/payments/simulator` is the receiver
+
+Two routes, deliberately. The receiver is shaped exactly as a production one — raw body, signature, handler — and the tests must exercise it as such. The control surface is a set of buttons no production deployment has an equivalent of: _this payer paid_, _this one walked away_, _release this balance_, _the money landed_.
+
+Mixing them would mean the receiver carrying an argument only a test ever sends, which is how a receiver stops being the thing that was tested.
+
+The receiver is under `/api` rather than `/dev` because its shape is production's, and it 404s in production anyway. The controls are under `/dev`, beside `/dev/sms` and `/dev/tokens`.
+
+### 13. `clientAddress` moved out of `src/lib/audit.ts`
+
+The PayFast receiver needs the connecting address for the host check, and `audit.ts` imports the Prisma client. A route that touches no database was pulling in a database client to read a header — and it made the route untestable without a running Postgres, which is how it was found.
+
+It is now `src/lib/client-address.ts` with the header-precedence reasoning attached to it, and `requestFingerprint` calls it. One rule, one place, two callers.
+
+**The caveat travels with it.** `x-forwarded-for` is client-controlled, so the host check is only as good as the proxy in front of it — which is exactly why it is one of PayFast's four checks and not the whole of it. No header a sender chooses can make PayFast say a payment was theirs.
+
+### 14. `payment_method` is left unset, and the task's "card and instant EFT" is not expressible
+
+PayFast's `payment_method` field selects exactly **one** method and hides the rest. "These two and no others" cannot be said in the request. Sending `payment_method=cc` would have satisfied the letter of the task and shipped a checkout where nobody could pay by EFT.
+
+So the field is omitted, every method the merchant account has enabled is offered, and **which methods are enabled is an account setting rather than a line of code**. Recorded here so that nobody later reads the omission as an oversight.
+
+### 15. Optional environment variables, and a refusal at the point of use
+
+`PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY` and `PAYFAST_PASSPHRASE` are optional in `parseEnv`; `PAYFAST_MODE` defaults to `sandbox`. Requiring them in production would refuse to start a deployment that is not using PayFast at all, over a provider nothing calls yet. `payFastProvider()` throws instead, naming the variable that is missing. Same shape as `ADMIN_PHONE_NUMBERS` (M3-07 §2).
+
+**The passphrase is required even though PayFast treats it as optional.** Without one the signature is a checksum over data the sender chose rather than a shared secret — the appearance of a security check and not one.
+
+**`PAYFAST_MODE` is anything-but-`live` means sandbox**, never the other way round. Defaulting to live is how a test transaction reaches a real card.
+
+### 16. Constructor parameter properties are not available here
+
+`scripts/` runs under Node's `--experimental-strip-types`, which does not support them, so the adapters and `PaymentProviderError` declare their fields and assign in the constructor. Found by `pnpm check:payfast` failing to load the adapter it exists to exercise. Same family of constraint as M2-01 §8's relative imports with explicit extensions, and noted in the files themselves so the shape does not look like an accident.
+
+### 17. `docs/decisions.md` joined `.prettierignore`
+
+M1-01 §13 put the authored prose documents there because reflowing them produces a large diff that says nothing on the files most often read by a human. This one was left off the list, and nothing was failing because `pnpm lint` is ESLint only — but `pnpm format` would have rewrapped every paragraph in the longest prose document in the repository. Found by running Prettier over this entry and watching it reflow 21 paragraphs of M4-01 to M4-03 that nobody had touched.
+
+### 18. What this does not do
+
+- **Nothing is wired into the contribution flow.** No hosted mode, no tip, no copy changed, no collection touched. This is the seam and two implementations of it; the flows are M5-02 and after.
+- **The handler records and credits nothing.** `RecordingEventHandler` appends the event to an array. Confirming a contribution and appending to the ledger is M5-03, and a handler that wrote to the chain now would be writing entries no flow can produce and no screen can read.
+- **The simulator simulates no fees, no reversals, no settlement delay and no partial payment.** Each is a real behaviour with real copy consequences, and a half-simulated one teaches something false. They arrive with the flow that needs them.
+- **No `releaseSettlement` on a real provider.** How a Paystack manual settlement is released is undocumented in both directions (docs/paystack-analysis.md §1.3) and is the first of the three written answers M5-00 is waiting on.
+- **No ITN received from PayFast, ever.** §4. The receiver route exists, is tested against bodies we sign ourselves, and has never seen a real one.

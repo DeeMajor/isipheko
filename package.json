@@ -33,6 +33,7 @@
     "tokens:css": "node --experimental-strip-types scripts/generate-tokens-css.ts",
     "gate:size": "node --experimental-strip-types scripts/size-gate.ts",
     "verify:ledger": "node --experimental-strip-types scripts/verify-ledger.ts",
+    "check:payfast": "node --experimental-strip-types scripts/payfast-sandbox.ts",
     "expire": "node --experimental-strip-types scripts/expire.ts",
     "notify": "node --experimental-strip-types scripts/notify.ts",
     "render": "node --experimental-strip-types scripts/render.ts"

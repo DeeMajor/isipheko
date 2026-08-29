@@ -703,6 +703,36 @@ Take a generated album to an actual print shop and run their preflight against i
 **Not a task an agent can close** — it needs a person, a shop and a proof. It is here so that the partially-met criterion above has somewhere to land rather than reading as done.
 *Done:* one album has been through a commercial preflight, and whatever it said is recorded here.
 
+### Milestone 5 — Payments
+
+**Gated, and the gate is written down.** Architecture §15 item 1 made the whole milestone wait on a legal opinion about the Stitch float. The float is gone — see docs/paystack-analysis.md — and what replaces it is three written answers, not one: how a Paystack manual settlement is released, whether our model falls foul of Paystack's aggregation clause, and the opinion itself in both its halves. **M5-01 is the only task in this milestone that needs none of them**, because an interface and a simulator commit us to nothing.
+
+**M5-01 · Payment provider interface and simulator**
+*Deps:* M1-03
+The seam architecture §5.1 designs and nothing implemented. `PaymentProvider` in `src/domain/payments/` for a pay-in and a webhook; `HeldBalanceProvider` extending it for a beneficiary balance, a withdrawal and its state. An in-memory simulator that holds a balance and settles only on request, **POSTing whatever a real provider would POST** rather than calling a repository. A PayFast adapter for checkout only.
+*Done:* the interface is pure domain; the simulator holds a balance, settles on request and drives the real webhook path; ~~the PayFast adapter handles a checkout end to end against their sandbox~~ — **partially met, see below**; production factories throw; `domain/` imports nothing it should not; a test asserts the simulator is unreachable in production.
+
+**Built, and rule 10 is now true.** It asserted that payment code lived behind a `PaymentProvider` interface; there was no such interface, in any file, and Mode A was built straight against the database. The rule has been rewritten to name the interface that exists, to name `HeldBalanceProvider` as the narrower contract, and to say plainly that PayFast cannot satisfy it and must not be made to.
+
+**Two interfaces, and the compiler enforces the reason.** PayFast's General Terms 5.17(v) and (vi) forbid aggregating a transaction for multiple suppliers and submitting one on behalf of a third party. A balance held for an organiser is what (vi) describes, so `PayFastProvider` implements the narrow interface and **cannot be assigned where the wide one is required** — a `@ts-expect-error` covered by `pnpm typecheck`, not a comment somebody has to have read. One interface with throwing stubs was considered and refused: it moves a build-time fact to a runtime surprise on a payments path. See docs/decisions.md M5-01 §1.
+
+**`createDisbursement` did not cross over from §5.1.** It, `getDisbursementStatus` and `verifyBankAccount` describe instructing a credit transfer out of a float we fund — the arrangement that gated this milestone. Carrying them across would have meant somebody eventually implementing them.
+
+**The first criterion is partially met, and the reason is a finding.** PayFast's documentation publishes an example ITN payload beside a signature; **that signature does not verify against that payload** under either of their two reference implementations, either passphrase, or any rendering of the decimal fields. There is no vector to pin against — and their two implementations disagree with each other on `` !'()*~ ``, which an apostrophe in a surname is enough to expose.
+
+So the outgoing half was settled against their server instead. **`pnpm check:payfast`** posts a signed form to the sandbox: PayFast mints a payment page for ours and answers 400 to a corrupted one. The **incoming** half is what stays open — an ITN needs a publicly reachable `notify_url` and a completed sandbox payment, which needs a person and a public URL. Same posture as M2-07's WhatsApp rendering and M4-03b's preflight, and it is on Part J.
+
+**Nothing is wired into any flow.** No hosted mode, no tip, no copy changed, no collection touched. The handler seam records the event and credits nothing — the ledger append is M5-03, and a handler writing to the chain now would be writing entries no flow can produce and no screen can read.
+
+**M5-01b · A real ITN from PayFast** *(NEW — outstanding)*
+*Deps:* M5-01
+Where M5-01's first criterion lands. Expose a development server on a public URL, complete a payment in PayFast's sandbox, and let PayFast post a real Instant Transaction Notification to `/api/payments/payfast`. What nobody has checked is whether our incoming parameter string matches what their server signed — the outgoing direction is confirmed, this one is reasoned.
+
+**Not a task an agent can close.** It needs a tunnel, a sandbox payment and a person watching the route. It is here so the partially-met criterion has somewhere to land rather than reading as done.
+*Done:* one real ITN has been verified by `PayFastProvider`, and whatever it said is recorded here.
+
+---
+
 ---
 
 ## Part F — Reconciling Bank Verification
@@ -828,7 +858,9 @@ Two consequences to plan around:
 
 None of these block Milestones 1–4.
 
-1. **Legal opinion on the Stitch float** — gates Milestone 5 only. Commission now.
+1. **The payment provider, and the three written answers that gate it.** The Stitch float is gone; docs/paystack-analysis.md replaces architecture §0.2 and §15 items 1–4. What is outstanding is (a) how a Paystack manual subaccount settlement is released — undocumented in both directions, (b) whether our model falls foul of Paystack's ZA aggregation clause, which is the shape of the clause that ruled PayFast out as a beneficiary rail, and (c) the legal opinion, now about a discretionary release trigger rather than a float. **M5-01 needed none of them and is built** — the interface, the simulator and a checkout-only PayFast adapter. Everything after it waits.
+
+1a. **A real Instant Transaction Notification from PayFast** — M5-01b. The outgoing signature is confirmed against their sandbox by `pnpm check:payfast`; the incoming direction has never seen a real notification, because one needs a publicly reachable `notify_url` and a completed sandbox payment. Same shape as items 2 and 3 below: an interface that is built and a delivery that is not.
 2. Identity vendor and pricing — gates M3-01's implementation, not its interface. **M3-01 is built:** the `IdentityVerifier` interface, an in-memory implementation, consent capture, the peppered hash and the polling UI all exist, and `identityVerifier()` refuses to construct in production until a vendor is chosen. The choice also decides one thing beyond the credential — **whether a selfie capture step exists at all.** VerifyNow and Datanamix return the Home Affairs photograph for us to compare, which means capture, upload and images we are then responsible for not keeping; Didit does liveness and face match inside its own hosted flow, so no image reaches us. `VerificationStart` accepts either shape. **No capture was built**, so M3-01's "no image reaches storage or logs" is honest today because none is captured — if the vendor chosen needs one, that criterion has to be earned again in the task that builds it rather than inherited.
 
 2a. **A KMS for the ID pepper.** Architecture §7.3 puts it in one and M3-01 uses `ID_NUMBER_PEPPER` from the environment, the same stopgap M1-02 §5 recorded for the column key. It was on neither list. `hashIdNumber` takes the pepper as an argument, so the seam is already where it needs to be — moving it is one function in `src/lib/identity.ts`.

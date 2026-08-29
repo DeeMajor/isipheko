@@ -180,7 +180,10 @@ All amounts are **integer cents in ZAR**, stored as `BIGINT`. No floats, ever. A
 
 ### 5.1 The adapter interface
 
+**Superseded by what M5-01 built.** The shape below was designed around Stitch and is kept for the record; `src/domain/payments/provider.ts` is the contract, and docs/decisions.md M5-01 says why it differs.
+
 ```typescript
+// The design, July 2026 — three of these did not survive.
 interface PaymentProvider {
   verifyBankAccount(input: BankAccountVerificationRequest)
     : Promise<BankAccountVerificationResult>;
@@ -191,7 +194,30 @@ interface PaymentProvider {
 }
 ```
 
-Implementations: `StitchProvider`, `ManualProvider` (Mode A — verification is organiser confirmation), and later alternatives. **No domain code imports Stitch types.**
+**As built, it is two interfaces rather than one:**
+
+```typescript
+interface PaymentProvider {
+  startPayIn(request: PayInRequest): Promise<PayInHandle>;
+  verifyWebhook(delivery: WebhookDelivery): Promise<WebhookVerification>;
+}
+
+interface HeldBalanceProvider extends PaymentProvider {
+  balanceFor(beneficiary: BeneficiaryReference): Promise<HeldBalance | null>;
+  requestWithdrawal(request: WithdrawalRequest): Promise<WithdrawalHandle>;
+  withdrawalState(reference: ProviderReference): Promise<WithdrawalState>;
+}
+```
+
+Three changes, each with a reason:
+
+**`createDisbursement` and `getDisbursementStatus` are gone.** They describe instructing a credit transfer out of a float account we fund, which is the arrangement §0.2 flagged and the reason Milestone 5 was gated. What replaces them acts against a balance the provider holds and we never fund.
+
+**`verifyBankAccount` is gone.** Onboarding a beneficiary carries its own consent, evidence and review, and is not something a payment interface should be able to do in passing. A `BeneficiaryReference` arrives already opaque.
+
+**The split into two is contractual.** PayFast's General Terms 5.17(v) and (vi) forbid aggregating a transaction for multiple suppliers and submitting one on behalf of a third party — so a checkout-only provider implements the narrow interface and **cannot typecheck into the wide one**. That is what makes the constraint a compile error rather than a paragraph.
+
+Implementations: `SimulatedPaymentProvider` (development and test; holds a balance, settles on request, and POSTs its notifications over HTTP so the receiver and the signature check are exercised rather than stepped around), `PayFastProvider` (checkout only, one merchant account). `paymentProvider()` throws in production until a real one is chosen. **No domain, UI or database code names a provider** — a source scan asserts it (CLAUDE.md rule 10).
 
 ### 5.2 Mode A — Ledger-Only flow
 
