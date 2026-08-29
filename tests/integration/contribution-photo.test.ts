@@ -14,6 +14,7 @@ import {
 } from '@/db/repositories/contribution'
 import { confirmHandover, handoverHasEvidence } from '@/db/repositories/collection'
 import { createDraft } from '@/db/repositories/event'
+import { claimItem, confirmDelivery } from '@/db/repositories/needs'
 import { findGpsFix, photoKey, scanImageMetadata } from '@/domain/media'
 import { fromCents } from '@/domain/money'
 
@@ -402,5 +403,138 @@ describe('a handover photograph', () => {
     expect(
       await handoverHasEvidence(app, { id: collectionId, organiserId: stranger.id }),
     ).toBe(false)
+  })
+})
+
+/**
+ * M4-02b — a message and a photograph on the thing somebody brings.
+ *
+ * Somebody brings the tent, which is the most substantial thing anyone does and
+ * the thing the product is named for, and could leave **no message and no photo,
+ * ever** — while somebody sending R50 could write whatever they liked. The album
+ * therefore under-represented exactly the contribution *ukupheka* describes.
+ *
+ * The shape is not the cash flow's. A cash row exists at the pay step, which is
+ * where M4-01 attaches the photo; an in-kind row is created at confirm time, by
+ * the organiser, from a claim made hours or days earlier. So it waits on the
+ * claim — the only moment the person with something to say is present — and
+ * `confirmDelivery` moves it across.
+ */
+describe('a message and a photograph on a claim', () => {
+  async function anItem(): Promise<{ eventId: string; itemId: string }> {
+    const event = await newEvent()
+    const item = await app.needItem.findFirstOrThrow({
+      where: { eventId: event.id },
+      select: { id: true },
+    })
+
+    return { eventId: event.id, itemId: item.id }
+  }
+
+  it('travels from the claim onto the contribution the confirmation creates', async () => {
+    const { eventId, itemId } = await anItem()
+    const photo = await photos.acceptClaimPhoto(asFile(await phonePhoto()), eventId)
+    expect(photo.ok).toBe(true)
+    if (!photo.ok) return
+
+    const claimed = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Musa Khumalo',
+      message: 'We will bring it on the Friday.',
+      photoKey: photo.key,
+      photoWidth: photo.width,
+      photoHeight: photo.height,
+    })
+
+    expect(claimed.ok).toBe(true)
+    if (!claimed.ok) return
+
+    const confirmed = await confirmDelivery(app, {
+      claimId: claimed.claimId,
+      organiserId,
+    })
+
+    expect(confirmed.ok).toBe(true)
+
+    const contribution = await app.contribution.findFirstOrThrow({
+      where: { eventId, type: 'in_kind' },
+      select: {
+        message: true,
+        photoKey: true,
+        photoWidth: true,
+        photoHeight: true,
+      },
+    })
+
+    expect(contribution.message).toBe('We will bring it on the Friday.')
+    expect(contribution.photoKey).toBe(photo.key)
+    expect(contribution.photoWidth).toBe(photo.width)
+    expect(contribution.photoHeight).toBe(photo.height)
+  })
+
+  it('still writes exactly one ledger entry', async () => {
+    // The claim path's whole invariant. A message must not become a second bead.
+    const { eventId, itemId } = await anItem()
+
+    const claimed = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Musa Khumalo',
+      message: 'Bringing it Friday.',
+    })
+    expect(claimed.ok).toBe(true)
+    if (!claimed.ok) return
+
+    await confirmDelivery(app, { claimId: claimed.claimId, organiserId })
+
+    const entries = await app.ledgerEntry.findMany({ where: { eventId } })
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0]?.amountCents).toBeNull()
+  })
+
+  it('is optional, and a claim with neither is still a claim', async () => {
+    // Somebody bringing chairs who writes nothing has still brought the chairs.
+    const { eventId, itemId } = await anItem()
+
+    const claimed = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Musa Khumalo',
+    })
+    expect(claimed.ok).toBe(true)
+    if (!claimed.ok) return
+
+    await confirmDelivery(app, { claimId: claimed.claimId, organiserId })
+
+    const contribution = await app.contribution.findFirstOrThrow({
+      where: { eventId, type: 'in_kind' },
+      select: { message: true, photoKey: true },
+    })
+
+    expect(contribution.message).toBeNull()
+    expect(contribution.photoKey).toBeNull()
+  })
+
+  it('is stripped, and is reachable by the key the album will ask for', async () => {
+    /*
+     * Scoped by event, because `/e/[slug]/photo/[file]` builds its key from the
+     * event id. Stored under anything else it would be written successfully and
+     * then be unreachable from the album it exists for.
+     */
+    const { eventId } = await anItem()
+    const photo = await photos.acceptClaimPhoto(asFile(await phonePhoto()), eventId)
+    expect(photo.ok).toBe(true)
+    if (!photo.ok) return
+
+    expect(photo.key).toContain(`photo/${eventId}/`)
+
+    const { objectStore } = await import('@/adapters/storage')
+    const stored = await objectStore().get(photo.key)
+
+    expect(stored).not.toBeNull()
+    expect(scanImageMetadata(stored?.bytes ?? new Uint8Array())).toEqual([])
+    expect(findGpsFix(stored?.bytes ?? new Uint8Array())).toBeNull()
   })
 })

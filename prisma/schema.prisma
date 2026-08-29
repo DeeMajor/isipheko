@@ -689,6 +689,23 @@ model NeedClaim {
   /// once. A column rather than a lookup against `notifications`, which is
   /// pruned on a retention schedule and would eventually read as "never told".
   expiryWarnedAt DateTime? @map("expiry_warned_at")
+
+  /// What she wants said, and a photograph, carried from the claim (M4-02b).
+  ///
+  /// A cash contribution's row exists at the pay step, which is where M4-01
+  /// attaches a photo. **An in-kind row is created at confirm time**, by the
+  /// organiser, from a claim made hours or days earlier — so there is no row to
+  /// attach anything to at the only moment the contributor is present. These
+  /// wait on the claim and `confirmDelivery` moves them across.
+  ///
+  /// The dimensions are the pair `contributions` carries and for the same
+  /// reason: four hundred lazy images with no intrinsic size shift the layout
+  /// as they land, and a fixed aspect box crops somebody's photograph of a
+  /// gravestone to fit (M4-02).
+  message     String?
+  photoKey    String? @map("photo_key")
+  photoWidth  Int?    @map("photo_width")
+  photoHeight Int?    @map("photo_height")
   createdAt      DateTime  @default(now()) @map("created_at")
 
   needItem     NeedItem      @relation(fields: [needItemId], references: [id], onDelete: Cascade)

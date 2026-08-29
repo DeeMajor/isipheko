@@ -24,6 +24,31 @@ export const needsCopy = {
   nameLabel: 'Your name',
   nameHelp: 'Your name goes on the strand once the family confirms it arrived.',
 
+  /**
+   * A message and a photograph on the thing she is bringing (M4-02b).
+   *
+   * Somebody bringing the tent — the most substantial thing anyone does, and the
+   * thing the product is named for — could leave neither, ever. The album
+   * therefore under-represented exactly the contribution *ukupheka* describes,
+   * while somebody sending R50 could write whatever they liked.
+   *
+   * **Asked here because here is the only place she is.** An in-kind
+   * contribution's row is not created until the organiser confirms delivery,
+   * hours or days later, so this is the last and only moment the person with
+   * something to say is on the page.
+   *
+   * Both optional, and the copy does not press. Somebody bringing chairs who
+   * writes nothing has still brought the chairs.
+   */
+  messageLabel: 'Anything you want to say',
+  messageHelp:
+    'It goes on the record beside your name, for the family to read. Leave it blank if you would rather not.',
+  messagePlaceholder: '',
+
+  photoLabel: 'A photograph, if you have one',
+  photoHelp:
+    'We strip where and when it was taken before storing it, so a picture taken at your house does not carry your address with it.',
+
   held: 'Held',
   heldBy: (name: string) => `${name} is bringing this`,
   allTaken: 'All of this is taken',

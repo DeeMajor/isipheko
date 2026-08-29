@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 
 import { prisma } from '@/db/client'
 import { claimItem } from '@/db/repositories/needs'
+import { acceptClaimPhoto } from '@/lib/contribution-photo'
 import { CLAIM_COOKIE, claimCookieOptions, claimCookieValue } from '@/lib/claim-session'
 import { requestFingerprint } from '@/lib/audit'
 import { checkClaimRateLimit } from '@/lib/claim-rate-limit'
@@ -103,11 +104,49 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
   }
 
+  /*
+   * The photograph (M4-02b), stripped before anything is reserved.
+   *
+   * Order matters here in the opposite direction to the handover's: a rejected
+   * photo must not consume the last tent. So it is processed **before** the
+   * conditional UPDATE, and a rejection is only a photo that does not travel —
+   * the claim goes through, because somebody bringing the tent is bringing the
+   * tent whatever their camera produced.
+   */
+  const submitted = form.get('photo')
+
+  /*
+   * Scoped by event, because `/e/[slug]/photo/[file]` builds its key from the
+   * event id — a photo stored under the item id would be written successfully
+   * and then be unreachable from the album it exists for. The extra read
+   * happens only when somebody actually attached one.
+   */
+  const eventId =
+    submitted instanceof File && submitted.size > 0
+      ? ((
+          await prisma.needItem.findUnique({
+            where: { id: itemId },
+            select: { eventId: true },
+          })
+        )?.eventId ?? null)
+      : null
+
+  const photo =
+    submitted instanceof File && submitted.size > 0 && eventId !== null
+      ? await acceptClaimPhoto(submitted, eventId)
+      : null
+
+  const message = text('message')
+
   const outcome = await claimItem(prisma, {
     needItemId: itemId,
     quantity: Number.isFinite(quantity) ? quantity : Number.NaN,
     claimantName: name,
     claimedIpHash: fingerprint.ipHash,
+    message: message === '' ? null : message.slice(0, 500),
+    photoKey: photo?.ok === true ? photo.key : null,
+    photoWidth: photo?.ok === true ? photo.width : null,
+    photoHeight: photo?.ok === true ? photo.height : null,
   })
 
   if (!outcome.ok) {

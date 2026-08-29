@@ -63,6 +63,21 @@ export interface ClaimInput {
    * she is visible; what releases the item is abandoning the collection.
    */
   readonly collectionId?: string | null
+  /**
+   * What she wants said, and a photograph, from the moment she claims (M4-02b).
+   *
+   * **The only moment she is present.** An in-kind contribution's row does not
+   * exist until the organiser confirms delivery, hours or days later, so there
+   * is nothing to attach a message to when the person with something to say is
+   * on the page. It waits on the claim; `confirmDelivery` carries it across.
+   *
+   * Both optional, and their absence is ordinary. Somebody bringing chairs who
+   * writes nothing has still brought the chairs.
+   */
+  readonly message?: string | null
+  readonly photoKey?: string | null
+  readonly photoWidth?: number | null
+  readonly photoHeight?: number | null
   readonly now?: Date
 }
 
@@ -158,6 +173,10 @@ export async function claimItem(
         claimantPhoneE164: input.claimantPhoneE164 ?? null,
         claimedIpHash: input.claimedIpHash ?? null,
         collectionId: input.collectionId ?? null,
+        message: input.message ?? null,
+        photoKey: input.photoKey ?? null,
+        photoWidth: input.photoWidth ?? null,
+        photoHeight: input.photoHeight ?? null,
         status: 'claimed',
         expiresAt,
       },
@@ -326,6 +345,13 @@ export async function confirmDelivery(
       claimantName: true,
       claimantPhoneE164: true,
       needItemId: true,
+      // Carried since the claim (M4-02b). Moved across rather than copied: the
+      // contribution is the record and the claim is the reservation, and a
+      // message living in both is two places for somebody to correct one.
+      message: true,
+      photoKey: true,
+      photoWidth: true,
+      photoHeight: true,
       needItem: {
         select: {
           label: true,
@@ -366,6 +392,13 @@ export async function confirmDelivery(
         // cost, say — would put a number on the strand that nobody gave.
         amountCents: null,
         needItemId: claim.needItemId,
+        // What she said and what she photographed when she claimed it. This is
+        // the whole of M4-02b: without it the album under-represents exactly
+        // the contribution *ukupheka* describes.
+        message: claim.message,
+        photoKey: claim.photoKey,
+        photoWidth: claim.photoWidth,
+        photoHeight: claim.photoHeight,
         visibility,
         verificationSource: 'organiser_confirmed',
         status: 'confirmed',

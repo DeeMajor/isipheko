@@ -157,6 +157,10 @@ function ClaimForm({ slug, item }: { slug: string; item: BoardItem }) {
       method="post"
       action="/api/claim"
       className="claimForm"
+      // multipart because of the photograph (M4-02b). The form still works with
+      // JavaScript off — the encoding changes what the browser sends, not who
+      // sends it.
+      encType="multipart/form-data"
       data-claim-form=""
       data-return={`/e/${slug}`}
     >
@@ -199,6 +203,45 @@ function ClaimForm({ slug, item }: { slug: string; item: BoardItem }) {
       />
       <p className="claimHelp" id={`name-help-${item.id}`}>
         {needsCopy.nameHelp}
+      </p>
+
+      {/*
+        What she wants said, and a photograph (M4-02b). Asked here because here
+        is the only place she is: an in-kind row is not created until the
+        organiser confirms delivery, days later, so there is no later moment at
+        which the person with something to say is on the page.
+
+        Neither is `required`. Somebody bringing chairs who writes nothing has
+        still brought the chairs.
+      */}
+      <label className="claimLabel" htmlFor={`message-${item.id}`}>
+        {needsCopy.messageLabel}
+      </label>
+      <textarea
+        className="claimInput"
+        id={`message-${item.id}`}
+        name="message"
+        rows={2}
+        maxLength={500}
+        aria-describedby={`message-help-${item.id}`}
+      />
+      <p className="claimHelp" id={`message-help-${item.id}`}>
+        {needsCopy.messageHelp}
+      </p>
+
+      <label className="claimLabel" htmlFor={`photo-${item.id}`}>
+        {needsCopy.photoLabel}
+      </label>
+      <input
+        className="claimInput"
+        id={`photo-${item.id}`}
+        name="photo"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        aria-describedby={`photo-help-${item.id}`}
+      />
+      <p className="claimHelp" id={`photo-help-${item.id}`}>
+        {needsCopy.photoHelp}
       </p>
 
       <button type="submit" className="buttonPrimary" data-claim-button="">

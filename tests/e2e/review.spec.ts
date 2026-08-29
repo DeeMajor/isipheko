@@ -178,6 +178,33 @@ async function fileReportAbout(page: Page, slug: string, words: string): Promise
   await expect(page.getByRole('heading', { name: 'We have it' })).toBeVisible()
 }
 
+/**
+ * Open a report from the queue, paging to reach it if it is not on this screen.
+ *
+ * **The queue is paginated (M3-07b)** and every other test in this suite files
+ * into the same one, so a freshly-filed report sorts last — by deadline — and
+ * is on the final page rather than the first as soon as more than fifty are
+ * open. That is the pagination working, and it is also how these two tests
+ * started failing against a local database with fifty-nine open reports.
+ *
+ * Following the links is what a reviewer does, so the tests do it too.
+ */
+async function openReport(page: Page, title: string): Promise<void> {
+  const link = page.getByRole('link', { name: new RegExp(title) })
+
+  for (let hop = 0; hop < 20; hop += 1) {
+    if ((await link.count()) > 0) break
+
+    const next = page.getByRole('link', { name: /The next/ })
+    if ((await next.count()) === 0) break
+
+    await next.first().click()
+    await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible()
+  }
+
+  await link.first().click()
+}
+
 test('a signed-in organiser who is not a reviewer gets nothing', async ({ page }) => {
   await asFreshClient(page)
   await signInAs(page, e164(uniquePhone()))
@@ -220,8 +247,9 @@ test('a reviewer works the queue, and the page is unchanged afterwards', async (
   await expect(page.getByText('Nothing here changes a page')).toBeVisible()
 
   // By title, not by position: the queue is one queue and every other test in
-  // the suite has filed into it.
-  await page.getByRole('link', { name: new RegExp(title) }).click()
+  // the suite has filed into it — and paginated since M3-07b, so this pages to
+  // reach it the way a reviewer would.
+  await openReport(page, title)
 
   await expect(
     page.getByText('The name on this page is not the family I know.'),
@@ -359,7 +387,7 @@ test('the queue and the report screen have no accessibility violations', async (
   const queue = await new AxeBuilder({ page }).analyze()
   expect(queue.violations).toEqual([])
 
-  await page.getByRole('link', { name: new RegExp(title) }).click()
+  await openReport(page, title)
 
   const detail = await new AxeBuilder({ page }).analyze()
   expect(detail.violations).toEqual([])

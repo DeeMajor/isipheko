@@ -372,12 +372,26 @@ test('is reachable and operable from the keyboard alone', async ({ page }) => {
   await name.focus()
   await page.keyboard.type('Thandi Ngcobo')
 
-  // Tab to the button and press it. No pointer anywhere in this test.
-  await page.keyboard.press('Tab')
-  const focused = await page.evaluate(() =>
-    document.activeElement?.getAttribute('data-claim-button'),
-  )
-  expect(focused).not.toBeNull()
+  /*
+   * Tab to the button and press it. No pointer anywhere in this test.
+   *
+   * **Tabs until it arrives rather than a fixed number of times.** M4-02b added
+   * a message field and a photograph between the name and the button, and a
+   * one-press version of this failed — correctly, but for a reason that was
+   * about the count and not about the keyboard. What matters is that the button
+   * is reachable from the name without touching anything, however many fields
+   * are between them; a bound of ten is what catches a focus trap.
+   */
+  let focused: string | null = null
+
+  for (let press = 0; press < 10 && focused === null; press += 1) {
+    await page.keyboard.press('Tab')
+    focused = await page.evaluate(
+      () => document.activeElement?.getAttribute('data-claim-button') ?? null,
+    )
+  }
+
+  expect(focused, 'the claim button was not reachable by tabbing').not.toBeNull()
 
   await page.keyboard.press('Enter')
   await expect(page.getByText("You've claimed the tent")).toBeVisible()

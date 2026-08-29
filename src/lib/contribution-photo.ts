@@ -166,6 +166,40 @@ export async function acceptHandoverPhoto(
 }
 
 /**
+ * Accept a photograph attached to a need claim, and answer with the key and its
+ * dimensions (M4-02b).
+ *
+ * **Scoped by event, like every other contribution photo**, and that is not a
+ * detail: `/e/[slug]/photo/[file]` builds its key from the event id, so a photo
+ * stored under anything else would be written successfully and then be
+ * unreachable from the album it exists for. Found by asking what would serve it.
+ *
+ * The claim row is written in the same request, so — like the handover and
+ * unlike the contributor's flow — there is nothing to carry across and no
+ * ticket to sign.
+ *
+ * The dimensions travel because the album lazy-loads and an image with no
+ * intrinsic size shifts the layout as it lands (M4-02).
+ */
+export async function acceptClaimPhoto(
+  file: File,
+  eventId: string,
+): Promise<
+  | { ok: true; key: string; width: number; height: number }
+  | { ok: false; reason: PhotoRejection }
+> {
+  const stored = await processAndStore(file, eventId)
+  if (!stored.ok) return stored
+
+  return {
+    ok: true,
+    key: photoKey(eventId, stored.digest, 'full', 'avif'),
+    width: stored.width,
+    height: stored.height,
+  }
+}
+
+/**
  * What a carried ticket is entitled to, or null.
  *
  * Called at the pay step, before anything is written to a row. An unsigned or

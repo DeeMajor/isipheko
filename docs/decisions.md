@@ -3619,3 +3619,82 @@ Storing the original alongside the derivatives fails `is stripped before it is
 stored` — with the GPS fix found in the bytes, by the metadata reader rather
 than by asking sharp whether sharp stripped it. Dropping `evidenceKey` on the
 write fails two more.
+
+---
+
+## M4-02b · A message and a photograph on the thing somebody brings
+
+### 1. The album under-represented the thing the product is named for
+
+Somebody bringing the tent — the most substantial thing anyone does — could
+leave **no message and no photograph, ever**, while somebody sending R50 could
+write whatever they liked. So the album systematically under-represented
+precisely the contribution *ukupheka* describes, on a product named for it.
+
+### 2. It carries on the claim, which was the choice to make
+
+Two options were open and neither had been taken. It carries on the claim.
+
+A cash contribution's row is created at the pay step, which is where M4-01
+attaches the photo. **An in-kind row is created at confirm time**, inside
+`confirmDelivery`'s transaction, by the organiser, from a claim the contributor
+made hours or days earlier — so the attachment point is not on the row's
+creation path at all. There is no row when the only person with something to
+say is present.
+
+The claim is where she is. Four columns on `need_claims`, written at claim time,
+moved across by `confirmDelivery` into the contribution it creates.
+
+**The alternative was reaching her afterwards** through the undo capability she
+already holds, which is the only handle we have on somebody with no account
+(rule 4). It needs a message we cannot send — no BSP is configured (M2-08) — so
+it is a design for a product that has one.
+
+Moved rather than copied: the contribution is the record and the claim is the
+reservation, and a message living in both is two places for somebody to correct
+one.
+
+### 3. Scoped by event, and the reason is what serves it
+
+`acceptClaimPhoto` stores under the **event** id, not the need item id.
+`/e/[slug]/photo/[file]` builds its key from the event, so a photo stored under
+anything else would be written successfully, recorded successfully, and then be
+unreachable from the album it exists for.
+
+Found by asking what would serve the file rather than by a test failing —
+which is worth recording, because the first version was under the item id and
+every assertion about stripping and storage passed.
+
+### 4. Order is opposite to the handover's, deliberately
+
+On the handover the photo is processed first because the record must not close
+against a key that does not exist. Here it is processed first for a different
+reason: **a rejected photograph must not consume the last tent.**
+
+So the strip happens before the conditional UPDATE, and a rejection means only
+that no photo travels. The claim goes through — somebody bringing the tent is
+bringing the tent whatever their camera produced. Neither field is `required`,
+in the markup or in the words.
+
+### 5. Two tests broke, and both were right to
+
+**The keyboard test tabbed once.** `is reachable and operable from the keyboard
+alone` pressed Tab exactly once between the name field and the button, and two
+new fields sit between them now. It tabs until it arrives, bounded at ten —
+which is what the test actually means, and still catches a focus trap.
+
+**The review queue tests could not find their report.** M3-07b paginated at
+fifty; the local database has fifty-nine open reports; a freshly-filed one sorts
+last by deadline and is therefore on the final page. Both tests now page to it
+the way a reviewer does. That is M3-07b working, arriving in a suite that was
+written when everything fit on one screen.
+
+### 6. The guarantee the album already had, made explicit
+
+`reads as in-kind, and carries no amount to read as` was first written as
+`expect(entry.amount).toBeNull()` and **would not typecheck**: `AlbumEntry` has
+no `amount` field at all. A message must not turn a tent into a number, and the
+type already guarantees it more strongly than a test could. What is asserted
+instead is that the entry describes a thing and that no key on it holds a number.
+
+`pnpm gate:size`: `/e/[slug]` 36.5KB against 150KB, up 0.5KB for the two fields.

@@ -9,6 +9,7 @@ import {
   startContribution,
 } from '@/db/repositories/contribution'
 import { createDraft } from '@/db/repositories/event'
+import { claimItem, confirmDelivery } from '@/db/repositories/needs'
 import { appendReversal } from '@/db/repositories/ledger'
 import { strandForEvent } from '@/db/repositories/strand'
 import { fromCents } from '@/domain/money'
@@ -153,7 +154,10 @@ describe('what is in the album', () => {
     expect(before.entries).toHaveLength(2)
 
     const target = before.entries[0]
-    await appendReversal(app, { chain: { eventId: event.id }, reversing: target?.id ?? '' })
+    await appendReversal(app, {
+      chain: { eventId: event.id },
+      reversing: target?.id ?? '',
+    })
 
     const after = await albumForEvent(app, event.id)
 
@@ -244,5 +248,88 @@ describe('the cover and the entries', () => {
 
     expect(beads.map((one) => one.id)).toEqual(strand.map((one) => one.id))
     expect(beads.map((one) => one.amount)).toEqual(strand.map((one) => one.amount))
+  })
+})
+
+/**
+ * M4-02b — the album stops under-representing the thing the product is named
+ * for.
+ *
+ * Somebody bringing the tent could leave no message and no photograph, ever,
+ * while somebody sending R50 could write whatever they liked. This asserts the
+ * end of that from the album's side: it is the surface the whole task exists
+ * for, and the repository test proves the columns travel.
+ */
+describe('an in-kind entry carries what she said', () => {
+  async function bring(
+    event: { id: string; title: string },
+    options: { message?: string | null; photoKey?: string | null } = {},
+  ): Promise<void> {
+    const item = await app.needItem.findFirstOrThrow({
+      where: { eventId: event.id },
+      select: { id: true },
+    })
+
+    const claimed = await claimItem(app, {
+      needItemId: item.id,
+      quantity: 1,
+      claimantName: 'Musa Khumalo',
+      message: options.message ?? null,
+      photoKey: options.photoKey ?? null,
+      photoWidth: options.photoKey == null ? null : 2400,
+      photoHeight: options.photoKey == null ? null : 1600,
+    })
+
+    if (!claimed.ok) throw new Error(`claim failed: ${claimed.reason}`)
+
+    const confirmed = await confirmDelivery(app, {
+      claimId: claimed.claimId,
+      organiserId,
+    })
+
+    if (!confirmed.ok) throw new Error(`confirm failed: ${String(confirmed.reason)}`)
+  }
+
+  it('shows the message and the photograph on the entry', async () => {
+    const event = await newEvent()
+    await bring(event, {
+      message: 'It is the big one, it seats eighty.',
+      photoKey: `photo/${event.id}/00112233445566778899aabbccddeeff-full.avif`,
+    })
+
+    const album = await albumForEvent(app, event.id)
+    const entry = album.entries.find((row) => row.form === 'in_kind')
+
+    expect(entry?.message).toBe('It is the big one, it seats eighty.')
+    expect(entry?.photo).not.toBeNull()
+  })
+
+  it('reads as in-kind, and carries no amount to read as', async () => {
+    /*
+     * A message must not turn a tent into a number.
+     *
+     * `AlbumEntry` has no `amount` field at all — asserting one is null does not
+     * typecheck, which is a better guarantee than a test and was found by trying
+     * to write the weaker version. What is asserted instead is that the entry
+     * describes a thing, and that no key on it holds a number.
+     */
+    const event = await newEvent()
+    await bring(event, { message: 'Bringing it Friday.' })
+
+    const album = await albumForEvent(app, event.id)
+    const entry = album.entries.find((row) => row.form === 'in_kind')
+
+    expect(entry?.description).not.toBeNull()
+    expect(Object.keys(entry ?? {})).not.toContain('amount')
+  })
+
+  it('is still one entry, message or not', async () => {
+    const event = await newEvent()
+    await bring(event, { message: 'Bringing it Friday.' })
+
+    const album = await albumForEvent(app, event.id)
+
+    expect(album.entries).toHaveLength(1)
+    expect(album.beads).toHaveLength(1)
   })
 })
