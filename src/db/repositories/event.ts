@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@/db/generated/client'
 import { ARCHETYPES, type ArchetypeKey } from '@/domain/archetype'
+import type { PaymentMode } from '@/domain/contribution'
 import { generateSlug } from '@/domain/event'
 import { derivePrefix, generateCode } from '@/domain/reference'
 import { needTemplate } from '@/copy/need-templates'
@@ -32,6 +33,12 @@ export interface DraftSummary {
   witnessCount: number
   /** M3-01's status, which M3-02 turned into the publish gate. */
   organiserVerified: boolean
+  /**
+   * How this event takes money (M5-02). The dashboard needs it because *where
+   * the money is* has a different answer per mode, and it is the sentence an
+   * organiser acts on.
+   */
+  mode: PaymentMode
 }
 
 /**
@@ -118,6 +125,7 @@ export async function draftForOrganiser(
       place: true,
       eventDate: true,
       status: true,
+      mode: true,
       organiser: { select: { idVerificationStatus: true } },
       _count: { select: { needItems: true, witnesses: true } },
     },
@@ -137,6 +145,7 @@ export async function draftForOrganiser(
     needCount: event._count.needItems,
     witnessCount: event._count.witnesses,
     organiserVerified: event.organiser.idVerificationStatus === 'verified',
+    mode: event.mode,
   }
 }
 

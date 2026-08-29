@@ -19,7 +19,13 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
  */
 
 interface SimulatorState {
-  payIns: { reference: string; amountCents: string; settled: boolean }[]
+  payIns: {
+    reference: string
+    amountCents: string
+    settled: boolean
+    returnUrl: string
+    cancelUrl: string
+  }[]
   balances: { beneficiary: string; heldCents: string; paidOutCents: string }[]
   withdrawals: { reference: string; amountCents: string; state: string }[]
   events: {
@@ -69,11 +75,11 @@ test('money in, held for the organiser, released only when asked', async ({
   })
 
   const started = await state(request)
-  expect(started.payIns).toContainEqual({
-    reference,
-    amountCents: '50000',
-    settled: false,
-  })
+  // `objectContaining`, because the simulator also remembers where the payer
+  // goes back to (M5-02) and this test is not about that.
+  expect(started.payIns).toContainEqual(
+    expect.objectContaining({ reference, amountCents: '50000', settled: false }),
+  )
   expect(started.balances).toContainEqual({
     beneficiary,
     heldCents: '0',

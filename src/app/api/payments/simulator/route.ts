@@ -2,13 +2,13 @@ import { notFound } from 'next/navigation'
 import type { NextRequest } from 'next/server'
 
 import {
-  paymentEventHandler,
   paymentProvider,
   recordedPaymentEvents,
   simulatorState,
 } from '@/adapters/payments'
 import type { PaymentEvent } from '@/domain/payments'
 import { clientAddress } from '@/lib/client-address'
+import { eventHandler } from '@/lib/payments'
 import { env } from '@/lib/env'
 
 /**
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ rejected: verification.reason }, { status: 400 })
   }
 
-  await paymentEventHandler(env.NODE_ENV).handle(verification.event)
+  await eventHandler().handle(verification.event)
 
   return Response.json({ accepted: verification.event.kind })
 }

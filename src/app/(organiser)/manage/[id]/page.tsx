@@ -215,6 +215,7 @@ export default async function ManagePage({
 
         <MoneySection
           facts={{
+            mode: draft.mode,
             balance,
             conditions,
             confirmedCount: beads.filter((bead) => bead.amount !== null).length,

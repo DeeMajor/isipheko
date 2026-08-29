@@ -114,33 +114,6 @@ export function payFastProvider(environment: PayFastEnvironment): PaymentProvide
   return new PayFastProvider(config)
 }
 
-/**
- * What a verified notification is handed to.
- *
- * **Today it records and does nothing else.** Confirming a contribution and
- * appending to the ledger is M5-03; a handler that wrote to the chain now would
- * be writing entries no flow can produce and no screen can read, and the ledger
- * is not the place to leave something half-built (CLAUDE.md rule 3).
- *
- * Production throws for the same reason the provider factory does: a receiver
- * that accepted a real notification and dropped it would be a contribution
- * taken and never recorded, which is the one failure this product cannot
- * apologise its way out of. Nothing can send us a real notification today —
- * `paymentProvider` refuses to construct — so the throw is unreachable rather
- * than latent.
- */
-export function paymentEventHandler(nodeEnv: string | undefined): PaymentEventHandler {
-  if (nodeEnv === 'production') {
-    throw new Error(
-      'No payment event handler is wired (M5-03). A verified notification would be ' +
-        'accepted and discarded — a contribution taken and never recorded. Build the ' +
-        'handler that confirms the contribution and appends the ledger entry first.',
-    )
-  }
-
-  return new RecordingEventHandler()
-}
-
 interface RecordedEvents {
   readonly events: PaymentEvent[]
 }
@@ -151,6 +124,12 @@ const recorded: RecordedEvents = ((
 
 /**
  * Records what arrived, in order. Development and test only.
+ *
+ * **It is not the handler**, and has not been one since M5-03 — confirming a
+ * contribution and appending the ledger entry is `src/lib/payments.ts`, which
+ * is where knowing about the database is allowed. This runs beside it outside
+ * production so `/api/payments/simulator` can show what the seam received,
+ * including an event the ledger refused.
  *
  * This is what lets the simulator's round trip be asserted end to end without
  * anything downstream existing: the event was signed, posted over HTTP,

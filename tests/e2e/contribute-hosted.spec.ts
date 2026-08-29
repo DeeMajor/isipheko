@@ -38,6 +38,7 @@ interface Fixture {
   slug: string
   eventId: string
   organiserId: string
+  organiserPhone: string
 }
 
 /**
@@ -59,12 +60,11 @@ async function seedHostedEvent(): Promise<Fixture> {
     .padEnd(16, '0')
     .slice(0, 16)
 
+  const organiserPhone = `082${String(Math.floor(Math.random() * 10_000_000)).padStart(7, '0')}`
+
   try {
     const organiser = await prisma.organiser.create({
-      data: {
-        phoneE164: `+2782${String(Math.floor(Math.random() * 10_000_000)).padStart(7, '0')}`,
-        displayName: 'Nomsa Mthembu',
-      },
+      data: { phoneE164: `+27${organiserPhone.slice(1)}`, displayName: 'Nomsa Mthembu' },
     })
 
     const event = await prisma.event.create({
@@ -83,10 +83,31 @@ async function seedHostedEvent(): Promise<Fixture> {
       select: { id: true },
     })
 
-    return { slug, eventId: event.id, organiserId: organiser.id }
+    return { slug, eventId: event.id, organiserId: organiser.id, organiserPhone }
   } finally {
     await prisma.$disconnect()
   }
+}
+
+/** Signs the organiser in, so the dashboard can be reached. */
+async function signInOrganiser(page: Page, phone: string): Promise<void> {
+  await page.goto('/sign-in')
+  await page.getByLabel('Your phone number').fill(phone)
+  await page.getByRole('button', { name: 'Send me a code' }).click()
+
+  // Waiting for the code screen before reading /dev/sms: the request would
+  // otherwise race the action that sends it.
+  await expect(page.getByRole('heading', { name: 'Enter the code' })).toBeVisible()
+
+  const response = await page.request.get(
+    `/dev/sms?phone=${encodeURIComponent(`+27${phone.slice(1)}`)}`,
+  )
+  const { body } = (await response.json()) as { body: string }
+  const code = /\b(\d{6})\b/.exec(body)?.[1] ?? ''
+
+  await page.getByLabel('The six-digit code').fill(code)
+  await page.getByRole('button', { name: 'Sign me in' }).click()
+  await expect(page).toHaveURL(/\/account$/)
 }
 
 /** Everything before the pay step is identical in both modes. */
@@ -132,15 +153,51 @@ test('a stranger pays on the page and comes back to the done step', async ({
   await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible()
 
   /*
-   * **Still clearing, and that is correct at M5-02.** The notification reaches
-   * the receiver and the handler records it; nothing confirms the contribution
-   * or writes to the ledger yet, because that is M5-03. The screen says the
-   * true thing — it reads the row's status rather than assuming — and M5-03
-   * flips this assertion to the confirmed wording.
+   * **The payment confirmed itself** (M5-03). The notification reached the
+   * receiver while the contributor was being redirected back, the handler
+   * confirmed the contribution and appended the ledger entry, and the done step
+   * reads the row rather than assuming — so it says the true thing.
    */
-  await expect(page.getByText('Your payment is going through')).toBeVisible()
-  await expect(page.getByText('Your payment went through')).toHaveCount(0)
+  await expect(page.getByText('Your payment went through')).toBeVisible()
 
+  // The record moved: a bead on the strand, on the page anybody with the link
+  // can read. Read from the ledger, like everything else on it (M2-06 §5).
+  await page.goto(`/e/${fixture.slug}`)
+  await expect(page.getByText('Thandi Ngcobo')).toBeVisible()
+
+  // And the organiser's balance, computed from the chain (M3-08 §4).
+  const organiser = await browser.newContext({ extraHTTPHeaders: freshAddress() })
+  const organiserPage = await organiser.newPage()
+  await signInOrganiser(organiserPage, fixture.organiserPhone)
+  await organiserPage.goto(`/manage/${fixture.eventId}`)
+
+  await expect(organiserPage.getByText('R1 234,56').first()).toBeVisible()
+
+  // Where the money is, said correctly for this mode. The ledger-only sentence
+  // would be telling her she already has money she does not have (M3-08 §1).
+  await expect(organiserPage.getByText('not yet in your bank account')).toBeVisible()
+  await expect(organiserPage.getByText('already in your own account')).toHaveCount(0)
+
+  // Nothing waits for her: a hosted payment never enters the confirmation
+  // queue, because a row she can confirm when it is already confirmed is a row
+  // she can be wrong about.
+  await expect(
+    organiserPage.getByRole('button', { name: "Yes, it's in my account" }),
+  ).toHaveCount(0)
+
+  // One entry on the chain, whatever the provider retried.
+  const prisma = prismaClient()
+  try {
+    const entries = await prisma.ledgerEntry.findMany({
+      where: { eventId: fixture.eventId },
+    })
+    expect(entries).toHaveLength(1)
+    expect(entries[0]?.amountCents).toBe(123_456n)
+  } finally {
+    await prisma.$disconnect()
+  }
+
+  await organiser.close()
   await visitor.close()
 })
 

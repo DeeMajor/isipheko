@@ -344,6 +344,161 @@ export async function confirmContribution(
   return { ok: true, ledgerEntryId: entry.id }
 }
 
+/**
+ * What the provider's notification did to the record.
+ *
+ * `already-recorded` is not a failure. A provider retries a notification it was
+ * not acknowledged for — PayFast for 72 hours, Paystack hourly after the first
+ * four attempts — so a second delivery of a payment already on the chain is the
+ * ordinary case, and treating it as an error is how a retry becomes an alert
+ * nobody can act on.
+ */
+export type ProviderConfirmOutcome =
+  | {
+      readonly ok: true
+      readonly contributionId: string
+      readonly ledgerEntryId: string
+    }
+  | {
+      readonly ok: false
+      readonly reason:
+        'not-found' | 'not-pending' | 'amount-mismatch' | 'already-recorded'
+    }
+
+/**
+ * The payment confirming itself.
+ *
+ * The organiser's counterpart is {@link confirmContribution}; this is the same
+ * append, reached by a different authority. There it is a person saying the
+ * money arrived in her account; here it is a notification whose signature and
+ * origin have already been checked by an adapter (M5-01 §5). Two entry points
+ * with genuinely different preconditions, and **one append**, because two ways
+ * of writing to the chain is two chances to write it differently.
+ *
+ * ## Idempotency, in two layers, and the second one is the database
+ *
+ * A provider retries until it is acknowledged. The conditional update requires
+ * the row to still be pending **and** to carry no payment id, so a replay
+ * changes nothing; `contributions.psp_payment_id` is unique, so a replay that
+ * somehow got past that is refused by Postgres.
+ *
+ * M2-05 §7 is firm that two application-level checks of one condition are one
+ * check with a spare. These are not that: the second layer is the database and
+ * can be observed failing.
+ *
+ * ## The amount is checked here
+ *
+ * It is the fourth of PayFast's four security checks and the one an adapter
+ * cannot do, because knowing what to compare against means knowing which record
+ * the notification is about (M5-01 §5). A mismatch confirms nothing.
+ *
+ * `now` is the application's, never the provider's. The hash covers
+ * `created_at` (M2-01 §3) and the 72-hour hold reads it (M3-08 §3); a
+ * provider's clock would make both depend on somebody else's.
+ */
+export async function confirmByProvider(
+  db: PrismaClient,
+  {
+    prefix,
+    code,
+    providerReference,
+    amountCents,
+    now,
+  }: {
+    prefix: string
+    code: string
+    providerReference: string
+    amountCents: bigint
+    now: Date
+  },
+): Promise<ProviderConfirmOutcome> {
+  const contribution = await db.contribution.findFirst({
+    where: { refPrefix: prefix, refCode: code },
+    select: {
+      id: true,
+      status: true,
+      eventId: true,
+      amountCents: true,
+      pspPaymentId: true,
+      contributorPhoneE164: true,
+      event: { select: { organiserId: true, title: true, slug: true, archetype: true } },
+    },
+  })
+
+  if (
+    contribution === null ||
+    contribution.eventId === null ||
+    contribution.event === null
+  )
+    return { ok: false, reason: 'not-found' }
+
+  // The retry. Nothing to do, and nothing wrong.
+  if (contribution.pspPaymentId === providerReference) {
+    return { ok: false, reason: 'already-recorded' }
+  }
+
+  if (contribution.status !== 'pending') return { ok: false, reason: 'not-pending' }
+
+  if (contribution.amountCents !== amountCents) {
+    return { ok: false, reason: 'amount-mismatch' }
+  }
+
+  const eventId = contribution.eventId
+  const contributionId = contribution.id
+
+  const entry = await db.$transaction(async (tx) => {
+    const { count } = await tx.contribution.updateMany({
+      where: { id: contributionId, status: 'pending', pspPaymentId: null },
+      data: {
+        status: 'confirmed',
+        confirmedAt: now,
+        // Only meaningful once confirmed, and this is the moment it becomes
+        // true: the row was created before anybody knew how it would be paid.
+        verificationSource: 'psp_webhook',
+        pspPaymentId: providerReference,
+      },
+    })
+
+    if (count === 0) return null
+
+    return appendEntryWithin(tx as PrismaClient, {
+      chain: { eventId },
+      entryType: 'contribution',
+      direction: 'credit',
+      amountCents: fromCents(amountCents),
+      referenceId: contributionId,
+      contributionId,
+      createdAt: now,
+    })
+  })
+
+  if (entry === null) return { ok: false, reason: 'already-recorded' }
+
+  // Outside the transaction, for the reason `confirmContribution` gives: an
+  // unsent message is a smaller harm than a payment that is not written down.
+  await enqueueNotification(db, {
+    kind: 'contribution_confirmed',
+    templateId: 'contributor_contribution_confirmed',
+    params: {
+      eventTitle: contribution.event.title,
+      slug: contribution.event.slug,
+      archetype: contribution.event.archetype,
+    },
+    recipient: { phoneE164: contribution.contributorPhoneE164 },
+    eventId,
+    now,
+  })
+
+  await recordDigestEntry(db, {
+    eventId,
+    organiserId: contribution.event.organiserId,
+    kind: 'contribution_confirmed',
+    now,
+  })
+
+  return { ok: true, contributionId, ledgerEntryId: entry.id }
+}
+
 export interface RateLimitInput {
   readonly phoneE164: string | null
   readonly ipHash: string | null

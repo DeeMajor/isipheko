@@ -735,6 +735,17 @@ So the outgoing half was settled against their server instead. **`pnpm check:pay
 
 **Two things were refused rather than half-built.** A provider answering with a form to post needs a screen saying where somebody is about to be sent, in reviewed words; none exists and PayFast is unreachable, so the flow shows `checkout-unavailable` instead. And the hosted step shows no reference, because nobody types one — which closes one route into `/check` for hosted contributors, recorded in docs/decisions.md M5-02 §5.
 
+**M5-03 · The handler**
+*Deps:* M5-02, M2-01
+What a verified notification does to the record: confirms the contribution and appends the ledger entry, in one transaction, through the same append the organiser's confirmation uses. Idempotent on `psp_payment_id`, `created_at` supplied by the application.
+*Done:* a replayed notification writes exactly one entry, proved by replaying it; an amount we were not expecting confirms nothing; the chain verifies; integration tests run against a real Postgres.
+
+**Built, and the second of three idempotency guards took three attempts to make observable.** Removing the conditional update's `where` clause broke no test: every sequential path is caught by the early `already-recorded` return, and the concurrent one by the unique index — which only turns a clean answer into a thrown constraint violation. Two race tests did not fix it either, because two calls in one process do not reliably interleave past the read. It is now tested at the level it operates, against a state that is deliberately not reachable through the application, and the test says so. See docs/decisions.md M5-03 §2.
+
+**A cancellation does nothing and a settled withdrawal does nothing**, both deliberately and both recorded. Voiding on cancel would make cancel-then-pay unrecoverable and no provider guarantees notification order; a debit against no payout row would be a movement the record cannot explain.
+
+**One dashboard sentence was fixed rather than left to M5-08.** *"People pay you directly, so this money is already in your own account"* is false on a hosted event, on the screen where an organiser decides what to do with money. `available` still reads *"Settled"*, which is the same problem one notch smaller, and stays M5-08's.
+
 **M5-01b · A real ITN from PayFast** *(NEW — outstanding)*
 *Deps:* M5-01
 Where M5-01's first criterion lands. Expose a development server on a public URL, complete a payment in PayFast's sandbox, and let PayFast post a real Instant Transaction Notification to `/api/payments/payfast`. What nobody has checked is whether our incoming parameter string matches what their server signed — the outgoing direction is confirmed, this one is reasoned.

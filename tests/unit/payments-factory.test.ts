@@ -4,7 +4,6 @@ import {
   PayFastProvider,
   SimulatedPaymentProvider,
   payFastProvider,
-  paymentEventHandler,
   paymentProvider,
 } from '@/adapters/payments'
 
@@ -16,8 +15,14 @@ import {
  * only kind of defence in depth M2-05 §7 says is worth having:
  *
  *   1. `paymentProvider()` will not construct the simulator in production.
- *   2. `paymentEventHandler()` will not construct the recorder there either.
- *   3. `/api/payments/simulator` and `/dev/payments` both 404 there.
+ *   2. `/api/payments/simulator` and `/dev/payments` both 404 there.
+ *
+ * **There were three until M5-03.** `paymentEventHandler()` also refused, on
+ * the grounds that a receiver accepting a real notification and discarding it
+ * would be a contribution taken and never recorded. There is now something for
+ * a notification to do — `eventHandler()` in `src/lib/payments.ts` confirms it
+ * and appends the ledger entry — so the refusal no longer describes anything
+ * and has gone rather than being kept as decoration.
  *
  * The thing being guarded is a simulator crediting a real organiser's balance
  * with money nobody paid — on the screen she makes promises against.
@@ -46,16 +51,6 @@ describe('paymentProvider', () => {
 
   it('says what to do, and names where the open questions are', () => {
     expect(() => paymentProvider('production')).toThrow(/paystack-analysis/)
-  })
-})
-
-describe('paymentEventHandler', () => {
-  it('records in development and test', () => {
-    expect(paymentEventHandler('development')).toBeDefined()
-  })
-
-  it('throws in production, because a dropped notification is a lost contribution', () => {
-    expect(() => paymentEventHandler('production')).toThrow(/M5-03/)
   })
 })
 

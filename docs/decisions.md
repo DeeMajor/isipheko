@@ -2821,3 +2821,73 @@ A real provider's checkout shows one payment: the one you were sent to pay. So a
 - **No tip.** M5-07.
 - **No screen sets `mode`, and none sets a beneficiary.** §1.
 - **Nothing touches collections.** Rules 12, 13 and 16 are untouched, and the asymmetry a contributor may now notice — a card on an event page, none on a collection — is M5-12's sentence to write.
+
+---
+
+## M5-03 · The handler
+
+### 1. Two entry points to the chain, and one append
+
+`confirmContribution` is a person saying the money arrived in her account. `confirmByProvider` is a notification whose signature and origin an adapter has already checked. Different authority, different preconditions, different `verification_source` — and **the same append**, because two ways of writing to the ledger is two chances to write it differently.
+
+M2-05 §7 warns against duplicating a guard across layers. This is not that: these are two callers of one mechanism, not one condition checked twice. What is shared is `appendEntryWithin` and the transaction shape around it; what differs is who is allowed to ask.
+
+`verification_source` flips to `psp_webhook` at confirmation rather than at creation. The row exists from the moment the pay step is reached (M2-05 §3), which is before anybody knows how it will be paid — and the field is only meaningful once something is confirmed.
+
+### 2. Idempotency in three places, and only two of them were observable
+
+Every provider retries until it is acknowledged: PayFast for 72 hours, Paystack every three minutes and then hourly. **A replayed notification is the ordinary case, not an attack.** The ledger is append-only, so a duplicate is not something a later correction tidies away — it is two credits for one payment, permanently, and the only remedy is a reversal saying the record was wrong.
+
+Three guards:
+
+1. **The early return.** A row already carrying this payment id answers `already-recorded`, which is *not* a failure. Treating a retry as an error is how a provider's normal behaviour becomes an alert nobody can act on.
+2. **The conditional update.** `where: { id, status: 'pending', pspPaymentId: null }`.
+3. **The unique index** on `contributions.psp_payment_id`. The database, and it can be observed failing.
+
+**The second one survived its first two mutation checks, and that is the part worth reading.** Removing the `where` clause broke nothing: every sequential path is caught by the early return or the status check, and the concurrent one is caught by the unique index — which turns the loser into a thrown constraint violation instead of a clean answer. A guard whose removal no test notices is precisely what M2-05 §7 names.
+
+Two attempts at a race test did not fix it either, because two `confirmByProvider` calls in one process do not reliably interleave past the read.
+
+So it is tested at the level it operates: a row that is **pending and already carries a payment id**. That state is not reachable through the application today — nothing records an id without confirming — and the test says so. The guard is there because **the read and the write are separate statements**: under read-committed the read is stale by the time the update runs, and the organiser confirming by hand in that window is a real sequence. Testing an unreachable state to cover a reachable risk is the honest shape here, and better than a clause nobody can prove does anything.
+
+### 3. `now` is the application's, and there was nowhere for a provider's clock to get in
+
+The hash covers `created_at` (M2-01 §3) and the 72-hour hold reads it (M3-08 §3). **No event in `src/domain/payments/` carries a time at all** (M5-01 §3), so the handler stamps the moment it wrote the row, which is the fact the ledger is actually asserting. The clock is injectable, so the integration tests assert an exact instant rather than a range.
+
+### 4. A cancellation does nothing, deliberately
+
+Somebody who backed out at the checkout changed their mind, which is the same as walking away from the pay step: the row stays pending and the fourteen-day sweep voids it (M2-05 §6).
+
+Marking it void here would also make cancel-then-pay unrecoverable, and **no provider guarantees the order two notifications arrive in.** A void row that a later `charge.success` could not revive would lose a payment that actually happened.
+
+### 5. A settled withdrawal does nothing yet
+
+`payouts` is empty and nothing writes it (M3-08 §12). A debit on the chain against no payout row would be a movement the record cannot explain, and the ledger is the one place where "we will tidy it later" is not available. Recorded, not acted on, until M5-09.
+
+### 6. The handler moved out of the adapter
+
+`paymentEventHandler` was in `src/adapters/payments/` and refused in production, on the grounds that a receiver accepting a real notification and discarding it would be a contribution taken and never recorded. There is now something for a notification to do, so **the refusal is gone rather than kept as decoration** — M5-01 §11's three refusals are two.
+
+Selection lives in `src/lib/payments.ts`, beside `notifyUrlFor` and `checkoutUrls`, because confirming a contribution means knowing about the database and `src/adapters/` has no business doing that. Outside production the recorder runs **first**, so `/api/payments/simulator` shows what the seam received including an event the ledger refused — an event that arrived and was rejected is exactly the thing a developer needs to see.
+
+### 7. One sentence on the dashboard could not wait for M5-08
+
+*"People pay you directly, so this money is already in your own account"* is false on a hosted event, on the screen where an organiser decides what to do with the money. That is the failure M3-08 §1 was written about, pointing the other way — there the design claimed we held money we did not, here the copy claims she holds money she does not.
+
+So `money.intro` is keyed by mode and the hosted variant says where the money actually is: with the payment service, not with Isipheko, and not yet in her bank account.
+
+**The rest of the section is still Mode A's, and one label is still wrong.** `available` reads *"Settled"*, which on a hosted event sounds like *in your bank* and means *past the reversal window*. Two different facts. The full rewrite is M5-08; this was the one sentence somebody could act on.
+
+### 8. A hosted contribution never reaches the confirmation queue
+
+The queue reads `self_reported_at`, which only *"I've paid"* sets, and a hosted contribution never passes through it. That is the mechanism M2-05 §3 built working without being asked to.
+
+It matters more than it looks: a row she can confirm when it is already confirmed is a row she can be wrong about, and the whole value of that queue is that her yes means something. Asserted in the E2E rather than assumed.
+
+### 9. What this does not do
+
+- **No tip.** M5-07.
+- **No payout.** `payoutReady` still has no caller and the payout section still says nothing can be requested, which is still true. M5-09.
+- **No dispute or reversal handling.** A provider that reverses a settled payment needs a `reversal` entry and copy to explain it. M5-11.
+- **No real beneficiary.** Still the organiser's id (M5-02 §1).
+- **Nothing touches collections.** Rules 12, 13 and 16 unchanged.

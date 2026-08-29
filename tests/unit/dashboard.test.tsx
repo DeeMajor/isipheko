@@ -85,6 +85,7 @@ const row = (over: Record<string, unknown> = {}) => ({
 })
 
 const moneyFacts = (over: Record<string, unknown> = {}) => ({
+  mode: 'ledger_only' as const,
   balance: {
     raised: fromCents(47_800_00n),
     settling: fromCents(3_200_00n),
@@ -385,6 +386,24 @@ describe('the payout conditions', () => {
     const markup = renderToStaticMarkup(<MoneySection facts={moneyFacts()} />)
 
     expect(markup).toContain(dashboardCopy.payout.notAJudgement)
+  })
+
+  it('says where the money is, and the answer differs by mode', () => {
+    /*
+     * The one sentence M5-03 had to fix rather than leave to M5-08. "People pay
+     * you directly, so this money is already in your own account" is false on a
+     * hosted event, on the screen where an organiser decides what to do with
+     * it — which is the failure M3-08 §1 was written about, pointing the other
+     * way.
+     */
+    const ledgerOnly = renderToStaticMarkup(<MoneySection facts={moneyFacts()} />)
+    const hosted = renderToStaticMarkup(
+      <MoneySection facts={moneyFacts({ mode: 'hosted' })} />,
+    )
+
+    expect(ledgerOnly).toContain('already in your own account')
+    expect(hosted).not.toContain('already in your own account')
+    expect(hosted).toContain('not yet in your bank account')
   })
 })
 

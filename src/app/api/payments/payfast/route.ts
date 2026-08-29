@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server'
 
-import { payFastProvider, paymentEventHandler } from '@/adapters/payments'
+import { payFastProvider } from '@/adapters/payments'
 import { clientAddress } from '@/lib/client-address'
+import { eventHandler } from '@/lib/payments'
 import { env } from '@/lib/env'
 
 /**
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   try {
     provider = payFastProvider(env)
-    handler = paymentEventHandler(env.NODE_ENV)
+    handler = eventHandler()
   } catch {
     // Not configured, or no handler wired. Deliberately not 200: if a real
     // notification ever reached an unwired receiver, the right outcome is that

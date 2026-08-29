@@ -141,6 +141,26 @@ export const dashboardCopy = {
     intro:
       'People pay you directly, so this money is already in your own account. What is below is the record of it — what has been confirmed, and what is new enough that a payment could still be reversed.',
 
+    /**
+     * **The hosted truth, and it is the opposite of the sentence above** (M5-03).
+     *
+     * On a hosted event the contributor pays on the page and the money is with
+     * the payment service — not with Isipheko, and not yet in her bank account.
+     * Leaving the ledger-only sentence there would tell an organiser she
+     * already has money she does not have, on the screen where she decides
+     * what to do with it. That is the failure M3-08 §1 was written about,
+     * pointing the other way.
+     *
+     * **The rest of this section is still Mode A's**, and one label in
+     * particular has not been fixed: `available` reads *"Settled"*, which on a
+     * hosted event sounds like *in your bank* and means *past the reversal
+     * window*. Two different facts. The full rewrite is M5-08; this is the one
+     * sentence that could not wait for it, because it is the one an organiser
+     * acts on.
+     */
+    introHosted:
+      'People pay on this page, so this money is with the payment service — not with Isipheko, and not yet in your bank account. What is below is the record of it: what has been confirmed, and what is new enough that a payment could still be reversed.',
+
     raised: 'Confirmed on the record',
     raisedNote: (count: number) =>
       count === 1

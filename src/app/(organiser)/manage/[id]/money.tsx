@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { dashboardCopy } from '@/copy/dashboard'
+import type { PaymentMode } from '@/domain/contribution'
 import { formatMoney } from '@/domain/money'
 import {
   WITNESS_APPROVAL_THRESHOLD,
@@ -40,6 +41,8 @@ import styles from './page.module.css'
  */
 
 export interface MoneyFacts {
+  /** Where the money is depends on how it was taken (M5-03). */
+  readonly mode: PaymentMode
   readonly balance: Balance
   readonly conditions: readonly PayoutCondition[]
   readonly confirmedCount: number
@@ -136,8 +139,17 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
   return (
     <>
       <Card title={dashboardCopy.money.heading} titleAs="h2" className={styles.card}>
-        {/* The Mode A truth, first, before any number. */}
-        <p className={styles.body}>{dashboardCopy.money.intro}</p>
+        {/*
+          Where the money is, first, before any number — and it is a different
+          answer per mode. Ledger-only: already in her own account. Hosted: with
+          the payment service and not yet in her bank. Telling her the wrong one
+          on this screen is the failure M3-08 §1 exists to prevent.
+        */}
+        <p className={styles.body}>
+          {facts.mode === 'hosted'
+            ? dashboardCopy.money.introHosted
+            : dashboardCopy.money.intro}
+        </p>
 
         <div className={styles.figures}>
           <Figure
