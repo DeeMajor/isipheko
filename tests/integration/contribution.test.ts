@@ -14,7 +14,7 @@ import {
   startContribution,
 } from '@/db/repositories/contribution'
 import { createDraft } from '@/db/repositories/event'
-import { entriesForChain } from '@/db/repositories/ledger'
+import { appendEntry, entriesForChain } from '@/db/repositories/ledger'
 import { verifyChain } from '@/domain/ledger'
 import { fromCents } from '@/domain/money'
 
@@ -130,6 +130,51 @@ describe('confirmation', () => {
     expect(entries[0]?.amountCents).toBe(fromCents(50_000n))
     expect(entries[0]?.contributionId).toBe(started.id)
 
+    expect(verifyChain(event.id, entries).problems).toEqual([])
+  })
+
+  it('rolls the status back when the append fails', async () => {
+    /*
+     * **The invariant the doc comment claims, proved rather than asserted.**
+     *
+     * Until M5-03 the `updateMany` committed on its own and the append ran
+     * after it in a second transaction, so a failure between the two left a
+     * confirmed contribution with nothing on the record — the exact lie the
+     * comment on `confirmContribution` forbids.
+     *
+     * The failure here is a **real** database error, not a mock: one ledger
+     * entry per contribution is a unique constraint, so an entry already
+     * pointing at this row makes the append fail the way a crash would. The
+     * ledger, the chain and the transaction are all the real ones (Part H).
+     */
+    const event = await newEvent()
+    const started = await start(event.id, event.title)
+    await selfReport(app, { contributionId: started.id })
+
+    // Somebody else's entry, already pointing at this contribution.
+    await appendEntry(app, {
+      chain: { eventId: event.id },
+      entryType: 'adjustment',
+      direction: 'credit',
+      amountCents: fromCents(100n),
+      contributionId: started.id,
+      createdAt: new Date('2026-08-01T09:00:00.000Z'),
+    })
+
+    await expect(
+      confirmContribution(app, { contributionId: started.id, organiserId }),
+    ).rejects.toThrow()
+
+    // The status change went back with it. Without the transaction this row
+    // reads `confirmed` and the chain holds nothing for it.
+    const row = await app.contribution.findUniqueOrThrow({ where: { id: started.id } })
+    expect(row.status).toBe('pending')
+    expect(row.confirmedAt).toBeNull()
+
+    // And the chain is untouched apart from the entry the test planted.
+    const entries = await entriesForChain(app, { eventId: event.id })
+    expect(entries).toHaveLength(1)
+    expect(entries[0]?.entryType).toBe('adjustment')
     expect(verifyChain(event.id, entries).problems).toEqual([])
   })
 

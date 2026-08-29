@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../generated/client.ts'
-import { appendEntry } from './ledger.ts'
+import { appendEntryWithin } from './ledger.ts'
 import { enqueueNotification, recordDigestEntry } from './notifications.ts'
 import { fromCents, type Money } from '../../domain/money/index.ts'
 import type { Visibility } from '../../domain/contribution/index.ts'
@@ -231,7 +231,8 @@ export type ConfirmOutcome =
  * **This is the only thing that writes to the ledger from this flow**, and it
  * happens in one transaction with the status change: a confirmed contribution
  * with no ledger entry, or an entry with no confirmation, would each be a
- * different kind of lie about the record.
+ * different kind of lie about the record. That sentence was written at M2-05
+ * and was not true until M5-03 — see the note on the transaction below.
  *
  * The ledger append is itself append-only and hash-chained (M2-01). If the
  * organiser is wrong, the correction is a reversal entry, never an edit.
@@ -265,28 +266,52 @@ export async function confirmContribution(
   if (contribution.status !== 'pending') return { ok: false, reason: 'not-pending' }
   if (contribution.eventId === null) return { ok: false, reason: 'not-found' }
 
-  const { count } = await db.contribution.updateMany({
-    where: { id: contributionId, status: 'pending' },
-    data: { status: 'confirmed', confirmedAt: now },
-  })
-
-  // Somebody confirmed it a moment ago. One confirmation, one ledger entry.
-  if (count === 0) return { ok: false, reason: 'not-pending' }
-
-  const entry = await appendEntry(db, {
-    chain: { eventId: contribution.eventId },
-    entryType: 'contribution',
-    direction: 'credit',
-    amountCents:
-      contribution.amountCents === null ? null : fromCents(contribution.amountCents),
-    inKindDescription:
-      contribution.type === 'in_kind' ? (contribution.needItem?.label ?? null) : null,
-    referenceId: contributionId,
-    contributionId,
-    createdAt: now,
-  })
+  const eventId = contribution.eventId
 
   /*
+   * **One transaction, and it did not used to be.**
+   *
+   * The comment above this function has always claimed the append happens in
+   * one transaction with the status change. Until M5-03 it did not: the
+   * `updateMany` committed on its own and `appendEntry` opened a second
+   * transaction after it, so a crash in between left exactly the lie the
+   * comment forbids — a confirmed contribution with nothing on the record.
+   *
+   * `appendEntryWithin` exists for this and M2-06's in-kind path already used
+   * it. The advisory lock is taken inside, so it is held for this whole
+   * transaction and the serialisation guarantee is the same either way.
+   */
+  const entry = await db.$transaction(async (tx) => {
+    const { count } = await tx.contribution.updateMany({
+      where: { id: contributionId, status: 'pending' },
+      data: { status: 'confirmed', confirmedAt: now },
+    })
+
+    // Somebody confirmed it a moment ago. One confirmation, one ledger entry.
+    if (count === 0) return null
+
+    return appendEntryWithin(tx as PrismaClient, {
+      chain: { eventId },
+      entryType: 'contribution',
+      direction: 'credit',
+      amountCents:
+        contribution.amountCents === null ? null : fromCents(contribution.amountCents),
+      inKindDescription:
+        contribution.type === 'in_kind' ? (contribution.needItem?.label ?? null) : null,
+      referenceId: contributionId,
+      contributionId,
+      createdAt: now,
+    })
+  })
+
+  if (entry === null) return { ok: false, reason: 'not-pending' }
+
+  /*
+   * **Outside the transaction, deliberately.** A message that could not be
+   * queued must not roll back a contribution that is on the record: the record
+   * is the thing that has to be atomic, and an unsent notification is a smaller
+   * harm than a payment that happened and is not written down.
+   *
    * The contributor is told immediately — they are waiting for it — and the
    * organiser only in the next digest (§8.2).
    *
