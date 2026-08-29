@@ -155,7 +155,13 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
           <Figure
             label={dashboardCopy.money.raised}
             amount={formatMoney(balance.raised)}
-            note={dashboardCopy.money.raisedNote(facts.confirmedCount)}
+            note={
+              // Who confirmed it differs by mode, like the sentence above. On a
+              // hosted event she confirmed nothing — the payment did.
+              facts.mode === 'hosted'
+                ? dashboardCopy.money.raisedNoteHosted(facts.confirmedCount)
+                : dashboardCopy.money.raisedNote(facts.confirmedCount)
+            }
           />
 
           <Figure

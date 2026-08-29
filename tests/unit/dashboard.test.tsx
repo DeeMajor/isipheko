@@ -405,6 +405,28 @@ describe('the payout conditions', () => {
     expect(hosted).not.toContain('already in your own account')
     expect(hosted).toContain('not yet in your bank account')
   })
+
+  it('does not credit her with a confirmation the payment made', () => {
+    /*
+     * The second string of the same class, under the confirmed figure. On a
+     * hosted event she confirmed nothing — the payment did, and the row never
+     * reached her queue to be confirmed (M5-03 §8). Asserted at both counts,
+     * because the singular and the plural are separate strings and only one of
+     * them was ever going to be read on a small event.
+     */
+    for (const confirmedCount of [1, 12]) {
+      const ledgerOnly = renderToStaticMarkup(
+        <MoneySection facts={moneyFacts({ confirmedCount })} />,
+      )
+      const hosted = renderToStaticMarkup(
+        <MoneySection facts={moneyFacts({ confirmedCount, mode: 'hosted' })} />,
+      )
+
+      expect(ledgerOnly).toContain('confirmed by you')
+      expect(hosted).not.toContain('confirmed by you')
+      expect(hosted).toContain('cleared')
+    }
+  })
 })
 
 describe('what the dashboard may not contain', () => {

@@ -2891,3 +2891,13 @@ It matters more than it looks: a row she can confirm when it is already confirme
 - **No dispute or reversal handling.** A provider that reverses a settled payment needs a `reversal` entry and copy to explain it. M5-11.
 - **No real beneficiary.** Still the organiser's id (M5-02 §1).
 - **Nothing touches collections.** Rules 12, 13 and 16 unchanged.
+
+### 10. The second untrue string, fixed after the fact
+
+§7 said *"one label is still wrong"* and named `available`. There were **two**, and the other one was worse.
+
+Under the confirmed figure, `raisedNote` read *"41 people's money, confirmed by you."* On a hosted event she confirmed nothing. The payment did, and §8 above is the reason she could not have: a hosted contribution never reaches the confirmation queue, so the screen was crediting her with checking something she never saw, in the note directly under the number she acts on.
+
+It is now mode-keyed like the sentence above it — *"confirmed as each payment cleared"* — at both the singular and the plural, because those are separate strings and the singular is the one a small event reads. Asserted in `tests/unit/dashboard.test.tsx` beside the `intro` assertion.
+
+**`available` is still *"Settled"* and is still M5-08's.** That one is a label meaning the wrong fact; this one was a sentence naming the wrong actor. Worth separating, because the audit that found the first missed the second — a mode sweep that reads the prose and stops at the figures will keep missing this class.

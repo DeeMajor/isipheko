@@ -162,10 +162,29 @@ export const dashboardCopy = {
       'People pay on this page, so this money is with the payment service — not with Isipheko, and not yet in your bank account. What is below is the record of it: what has been confirmed, and what is new enough that a payment could still be reversed.',
 
     raised: 'Confirmed on the record',
+
+    /**
+     * **Ledger-only.** She checked each one against her own bank message and
+     * said yes, so "confirmed by you" is the literal account of what happened.
+     */
     raisedNote: (count: number) =>
       count === 1
         ? 'One person’s money, confirmed by you.'
         : `${String(count)} people’s money, confirmed by you.`,
+
+    /**
+     * **Hosted, and the same class of untruth as `intro` was** (M5-03 §7).
+     *
+     * On a hosted event she confirmed nothing — the payment did, and a hosted
+     * contribution never reaches her confirmation queue at all (M5-03 §8).
+     * Telling her she confirmed this money is telling her she checked something
+     * she never saw, directly under the figure she acts on. Mode-keyed like the
+     * sentence above it rather than softened into one line true of neither.
+     */
+    raisedNoteHosted: (count: number) =>
+      count === 1
+        ? 'One person’s money, confirmed when the payment cleared.'
+        : `${String(count)} people’s money, confirmed as each payment cleared.`,
 
     settling: 'Still inside the 72 hours',
     settlingNone: 'Nothing came in within the last 72 hours.',
