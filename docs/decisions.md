@@ -3084,3 +3084,62 @@ timetable.
   reasons that are not its subject.
 - **It knows nothing about a provider.** Every surface renders from `mode`, so it
   keeps working unchanged when M5-04 replaces the simulator.
+
+---
+
+## OPS-09 · Object storage refuses in production, and a photograph is not a cache
+
+### 1. The comment justifying the fallback outlived the thing it was about
+
+`objectStore()` was the only one of six provider factories that did not throw in
+production. It logged one warning and returned the local-disk store, and the
+reason was written down in the file:
+
+> Unlike `smsSender`, this does not throw in production: **a missing OG cache
+> costs a redraw**, not a person waiting for a code that never comes.
+
+That was correct when an OG card was the only thing in the store. **M4-01 put
+contributor photographs in the same store and deliberately keeps no original** —
+only the four re-encodes exist, because keeping the source would keep its GPS
+with it (M4-01 §5). M4-03 then added album PDFs.
+
+So the cost of the fallback stopped being a redraw. It became a photograph
+somebody attached to a funeral: written to one container's disk, unreadable from
+every other instance immediately, and gone on the next deploy — **weeks after**
+the single warning line that was supposed to prevent it.
+
+Nothing was wrong with the original decision. What was wrong is that a
+justification aged into a hazard while still reading as reviewed, which is the
+same failure shape as the four untrue copy strings and is why the doc comment now
+carries the date the reasoning changed rather than only the reasoning.
+
+### 2. The error says what the fallback would cost
+
+The security-copy rule — copy explains what it protects, never only what it
+blocks — applied to an error message an operator reads at three in the morning
+during a deploy. *"No object storage is configured"* on its own invites the
+quickest route back to a green deployment, and on this one the quickest route
+loses somebody's photograph. So the message says that, and a test asserts it does.
+
+### 3. The guard is a source assertion, deliberately
+
+`warns nobody, because a warning was the bug` reads the adapter and asserts there
+is no `console.warn` in it. A behavioural test cannot see the difference between
+a throw and a throw with a warning restored beside it — and a warning beside a
+refusal would pass every other assertion here while re-teaching the next reader
+that carrying on is an option. That option is what this task removed.
+
+### 4. `OBJECT_STORE_DIR` was the one variable the boot guard could not see
+
+It was read from `process.env` and declared in no schema, so M1-01's guarantee —
+*a missing or malformed value is a refusal to start, not a 500 on a contributor's
+page later* — silently did not cover it. It is declared now, and **optional**:
+the local store is never constructed in production, so requiring a path would
+demand configuration for something that cannot exist.
+
+**Optional is not the same as undeclared**, and the second test is the general
+form: every `process.env.X` read anywhere under `src/` outside `env.ts` must be a
+name the schema knows. There are three today — `DATABASE_URL`,
+`NEXT_PUBLIC_APP_URL`, `OBJECT_STORE_DIR` — plus `NODE_ENV`, which every factory
+takes as an argument and the schema declares anyway. A fourth added without a
+declaration fails the suite.

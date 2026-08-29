@@ -180,6 +180,18 @@ function schemaFor(nodeEnv: string | undefined) {
     // down over a screen two people use.
     ADMIN_PHONE_NUMBERS: z.string().default(''),
 
+    // Where the local object store writes (OPS-09). Development and test only:
+    // `objectStore()` refuses to construct in production, so there is nothing
+    // for this to configure there and requiring it would demand a path for a
+    // store that is never built.
+    //
+    // It is here at all because it was the one variable the application read
+    // from `process.env` without declaring, which quietly exempted it from
+    // M1-01's guarantee that a missing or malformed value is a refusal to start
+    // rather than a surprise later. A declared variable with an honest note is
+    // the point; being optional is not the same as being undeclared.
+    OBJECT_STORE_DIR: z.string().min(1).optional(),
+
     // PayFast, for checkout only (M5-01). Merchant ID and key are on the
     // merchant dashboard; the passphrase is under Settings, "Salt Passphrase".
     //
