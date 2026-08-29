@@ -249,7 +249,8 @@ export async function requestAlbumRender(formData: FormData): Promise<void> {
     { now: new Date() },
   )
 
-  // Null means there is nothing on the record to print. Not an error, and not a
-  // queued job that would produce an empty book.
-  redirect(`/manage/${id}?${requested === null ? 'error=album-empty' : 'album=1'}`)
+  // Null means there is nothing on the record to print. Not an error — and
+  // said as information now (UX-12), rather than as "That did not go
+  // through" about a request that worked exactly as it should.
+  redirect(`/manage/${id}?${requested === null ? 'album=empty' : 'album=1'}`)
 }

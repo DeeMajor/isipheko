@@ -192,8 +192,15 @@ export default async function ManagePage({
         {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
         {released === '1' ? <Toast>{dashboardCopy.toasts.released}</Toast> : null}
         {listed === '1' ? <Toast>{dashboardCopy.toasts.listUpdated}</Toast> : null}
+        {/* An empty record is information, not a failure (UX-12). */}
+        {requestedAlbum === 'empty' ? (
+          <Toast>{dashboardCopy.toasts.albumEmpty}</Toast>
+        ) : null}
         {error === undefined ? null : (
-          <Toast tone="problem">That did not go through. Nothing was changed.</Toast>
+          <Toast tone="problem">
+            {dashboardCopy.errors[error as keyof typeof dashboardCopy.errors] ??
+              dashboardCopy.errors.generic}
+          </Toast>
         )}
 
         {/* Leads the page. Everything else is below it, deliberately. */}

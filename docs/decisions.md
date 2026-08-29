@@ -4201,3 +4201,25 @@ somebody else got there first, not that you did.
 
 E2E covers the oversized photo (claim stands, fate named, no photoKey on the
 row) and the enhanced no-name path (error, not success).
+
+---
+
+## UX-12 · The dashboard's failures are named, and an empty album is not one
+
+Every failure on `/manage/[id]` collapsed into one sentence — *"That did not
+go through. Nothing was changed."* — inlined in the component (a rule 11
+leak) and vague in exactly the way the voice rules forbid. Worse, the same
+toast answered `album-empty`, which is not a failure at all: asking for the
+book of an empty record is a request that worked exactly as it should, and
+the honest answer is when the book starts.
+
+`dashboardCopy.errors` names each case — the unfilled pay details, the
+already-settled confirmation, the unreleasable claim, the answered
+suggestion, the invite that cannot be issued again — each saying what
+happened and what, if anything, to do. The old sentence survives only as the
+last resort for an unrecognised code. `album=empty` renders as an
+informational toast in the album's own words.
+
+The one-list mapping (`errors[key] ?? errors.generic`) means a new redirect
+reason added without copy degrades to the generic sentence rather than to a
+blank toast — vague is the floor now, not the ceiling.

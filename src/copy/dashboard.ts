@@ -62,6 +62,35 @@ export const dashboardCopy = {
     released: 'Put back on the list. Somebody else can take it now.',
     /** After the details edit (UX-07). The card versioning does the rest. */
     detailsSaved: 'Saved. The page shows it now.',
+    /**
+     * Not a failure (UX-12). An empty record is a fact about the umcimbi, and
+     * it used to render as "That did not go through" — an error toast for a
+     * request that worked exactly as it should.
+     */
+    albumEmpty:
+      'There is nothing on the record to print yet. The book starts when the first contribution is confirmed.',
+  },
+
+  /**
+   * What went wrong, by name (UX-12). Every failure on this screen used to
+   * collapse into one inlined sentence — "That did not go through. Nothing
+   * was changed." — which is the vagueness the voice rules forbid, and for
+   * `album-empty` it was not even a failure. Each says what happened and
+   * what, if anything, to do; none apologises.
+   */
+  errors: {
+    incomplete: 'The number and the name both need filling in. Nothing was saved.',
+    confirm:
+      'That one is already settled, or is no longer there to confirm. Nothing was changed — check the queue, which shows what is still waiting.',
+    release:
+      'That claim cannot be released — it may already have arrived, or belong to a group. Nothing was changed.',
+    suggestion: 'That suggestion has already been answered. Nothing was changed.',
+    /** The invite could not be issued: the person has answered already. */
+    'already-answered':
+      'They have already answered, so there is no link to issue. Their answer is on this screen.',
+    'not-found': 'That one is no longer there. Nothing was changed.',
+    /** Anything unrecognised — the old sentence, now the last resort. */
+    generic: 'That did not go through. Nothing was changed.',
   },
 
   queue: {
