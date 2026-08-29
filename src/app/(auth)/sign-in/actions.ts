@@ -33,6 +33,8 @@ import {
   startSession,
 } from '@/lib/session'
 
+import { destinationParam, signInDestination } from './destination'
+
 /**
  * The two steps of signing in.
  *
@@ -56,14 +58,20 @@ function backToPhone(error?: PhoneError): never {
   redirect(error === undefined ? '/sign-in' : `/sign-in?error=${error}`)
 }
 
-function backToCode(error?: CodeError): never {
+function backToCode(error?: CodeError, next = ''): never {
   redirect(
-    error === undefined ? '/sign-in?step=code' : `/sign-in?step=code&error=${error}`,
+    error === undefined
+      ? `/sign-in?step=code${next}`
+      : `/sign-in?step=code&error=${error}${next}`,
   )
 }
 
 export async function requestCode(formData: FormData): Promise<void> {
   const raw = formData.get('phone')
+  // Where they were going before they were sent here (M1-09). Allowlisted, so
+  // an unrecognised value is the default rather than an error and never reaches
+  // a Location header.
+  const next = destinationParam(formData.get('next'))
   const parsed = normalisePhone(typeof raw === 'string' ? raw : '')
 
   if (!parsed.ok) backToPhone(parsed.reason)
@@ -90,7 +98,7 @@ export async function requestCode(formData: FormData): Promise<void> {
     // Same destination, same words as a code that was actually sent. Telling
     // somebody they have hit a limit tells them the number is worth hammering.
     await setPendingPhone(phoneE164)
-    redirect('/sign-in?step=code')
+    redirect(`/sign-in?step=code${next}`)
   }
 
   const code = generateOtpCode()
@@ -107,10 +115,11 @@ export async function requestCode(formData: FormData): Promise<void> {
   await recordAuthEvent({ action: 'auth.otp.requested', phoneE164, fingerprint })
 
   await setPendingPhone(phoneE164)
-  redirect('/sign-in?step=code')
+  redirect(`/sign-in?step=code${next}`)
 }
 
 export async function verifyCode(formData: FormData): Promise<void> {
+  const next = destinationParam(formData.get('next'))
   const phoneE164 = await pendingPhone()
   if (phoneE164 === null) backToPhone()
 
@@ -119,7 +128,7 @@ export async function verifyCode(formData: FormData): Promise<void> {
   const now = new Date()
   const fingerprint = await requestFingerprint()
 
-  if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(code)) backToCode('malformed')
+  if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(code)) backToCode('malformed', next)
 
   const challenge = await latestOtpChallenge(prisma, phoneE164)
 
@@ -127,14 +136,14 @@ export async function verifyCode(formData: FormData): Promise<void> {
   // ever asked for must not answer differently from one that has.
   if (challenge === null) {
     await recordAuthEvent({ action: 'auth.otp.rejected', phoneE164, fingerprint })
-    backToCode('rejected')
+    backToCode('rejected', next)
   }
 
   const status = otpChallengeStatus(challenge, now)
 
   if (status === 'too-many-attempts') {
     await recordAuthEvent({ action: 'auth.otp.exhausted', phoneE164, fingerprint })
-    backToCode('exhausted')
+    backToCode('exhausted', next)
   }
 
   if (status !== 'usable' || !otpCodeMatches(code, env.OTP_PEPPER, challenge.codeHash)) {
@@ -145,7 +154,7 @@ export async function verifyCode(formData: FormData): Promise<void> {
       fingerprint,
       metadata: { status },
     })
-    backToCode('rejected')
+    backToCode('rejected', next)
   }
 
   // Conditional update: two requests carrying the same valid code race, and
@@ -154,7 +163,7 @@ export async function verifyCode(formData: FormData): Promise<void> {
   const consumed = await consumeOtpChallenge(prisma, challenge.id, now)
   if (!consumed) {
     await recordAuthEvent({ action: 'auth.otp.rejected', phoneE164, fingerprint })
-    backToCode('rejected')
+    backToCode('rejected', next)
   }
 
   const organiser = await organiserForPhone(prisma, phoneE164)
@@ -184,7 +193,7 @@ export async function verifyCode(formData: FormData): Promise<void> {
     fingerprint,
   })
 
-  redirect('/account')
+  redirect(signInDestination(formData.get('next')))
 }
 
 /** "Use a different number" — drops the pending number and starts over. */

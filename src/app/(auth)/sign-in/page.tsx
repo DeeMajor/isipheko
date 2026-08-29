@@ -5,6 +5,7 @@ import { pendingPhone } from '@/lib/session'
 import { Button, Card, Field } from '@/ui/primitives'
 
 import { requestCode, startOver, verifyCode } from './actions'
+import { signInDestination } from './destination'
 
 import styles from './page.module.css'
 
@@ -44,10 +45,23 @@ function codeError(value: string | undefined): string | undefined {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ step?: string; error?: string }>
+  searchParams: Promise<{ step?: string; error?: string; next?: string }>
 }) {
-  const { step, error } = await searchParams
+  const { step, error, next } = await searchParams
   const pending = await pendingPhone()
+
+  /*
+   * Where this sign-in is on the way to (M1-09). The home page's two calls to
+   * action carry it, so somebody who tapped "Set up your umcimbi" arrives at the
+   * setup flow rather than at their account screen.
+   *
+   * Allowlisted in `destination.ts`, so an unrecognised value is the default
+   * rather than an error and nothing a person supplies reaches a redirect
+   * unrecognised. Rendered as a hidden field rather than kept in the URL alone,
+   * because the forms post to server actions and the query string is not part of
+   * what they receive.
+   */
+  const destination = signInDestination(next)
 
   // The cookie is what decides, not the query string: an expired pending cookie
   // with `?step=code` still in the URL must send somebody back to the start
@@ -68,6 +82,7 @@ export default async function SignInPage({
         {onCodeStep ? (
           <>
             <form action={verifyCode} className={styles.form}>
+              <input type="hidden" name="next" value={destination} />
               <Field
                 id="code"
                 name="code"
@@ -91,6 +106,7 @@ export default async function SignInPage({
           </>
         ) : (
           <form action={requestCode} className={styles.form}>
+            <input type="hidden" name="next" value={destination} />
             <Field
               id="phone"
               name="phone"

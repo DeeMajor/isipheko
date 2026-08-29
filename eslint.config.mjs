@@ -116,6 +116,33 @@ export default tseslint.config(
   },
 
   {
+    /**
+     * `no-html-link-for-pages` is off, everywhere, and the reason is structural.
+     *
+     * The rule assumes an App Router application whose routes are pages, where a
+     * plain `<a>` throws away a client-side navigation. **This product's entire
+     * public path is route handlers rendering static markup** — Part G.1
+     * measured 174KB of client runtime on a page with zero client components,
+     * against a 150KB ceiling, so `/`, `/e/[slug]`, `/c/[slug]`, `/check` and
+     * `/report` are all handlers. `next/link` needs the runtime those files
+     * exist to avoid, and pointing one at a route handler is wrong besides.
+     *
+     * It was reported per-file until M1-09, when the root catch-all 404 made the
+     * rule resolve **every** path as a page and it fired on five files that had
+     * been correct for months. Disabling it once with a reason is better than
+     * five directives that each look like an exception.
+     *
+     * The rules that matter here — the domain boundary above, the size gate, and
+     * `tests/unit/home-page.test.tsx` asserting no script on the front page —
+     * are all still in force.
+     */
+    name: 'isipheko/no-client-router-on-the-public-path',
+    rules: {
+      '@next/next/no-html-link-for-pages': 'off',
+    },
+  },
+
+  {
     name: 'isipheko/config-files',
     files: ['**/*.{js,mjs,cjs}'],
     extends: [tseslint.configs.disableTypeChecked],

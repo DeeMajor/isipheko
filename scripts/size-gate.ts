@@ -389,6 +389,8 @@ interface RawResponse {
   readonly bytes: number
   readonly body: string
   readonly encoding: string
+  /** Read for `x-robots-tag`, which M1-09 asserts in both directions. */
+  readonly headers: Readonly<Record<string, string | string[] | undefined>>
 }
 
 /**
@@ -420,6 +422,7 @@ function fetchRaw(url: string): Promise<RawResponse> {
             bytes,
             body: Buffer.concat(chunks).toString('binary'),
             encoding: response.headers['content-encoding'] ?? 'identity',
+            headers: response.headers,
           })
         })
       },
@@ -666,6 +669,71 @@ async function main(): Promise<void> {
       process.exitCode = 1
       return
     }
+
+    // The front page (M1-09). No slug, no seed, no session — the one public
+    // route a stranger reaches by typing the address, and the first thing many
+    // of them ever load from us.
+    const home = await fetchRaw(`${ORIGIN}/`)
+    if (home.status !== 200) {
+      throw new Error(`the home page answered ${String(home.status)}`)
+    }
+
+    const homeTotal = home.bytes + latin.bytes
+    process.stdout.write(
+      `  ${kb(homeTotal).padStart(10)}  /, first load ` +
+        `(HTML ${kb(home.bytes)} + the latin font)\n`,
+    )
+
+    // It carries no needs board, so unlike `/e/[slug]` it should load no script
+    // at all. A single one here means it was converted back to a page and the
+    // App Router runtime came with it (Part G.1).
+    const homeScripts = referencedAssets(await (await fetch(`${ORIGIN}/`)).text()).js
+    if (homeScripts.length > 0) {
+      process.stderr.write(
+        `The home page loaded ${String(homeScripts.length)} script(s):\n` +
+          homeScripts.map((src) => `  ${src}\n`).join('') +
+          '\nIt is a route handler rendering static markup and needs none.\n' +
+          'A script here means it became a page.tsx again. See Part G.1.\n',
+      )
+      process.exitCode = 1
+      return
+    }
+
+    /*
+     * The one public route that is **not** noindex, and the assertion runs both
+     * ways because a later blanket header is exactly how this breaks.
+     *
+     * Architecture §10 keeps event and collection pages out of search because a
+     * death in the family must not be findable on Google. This page names
+     * nobody, and a front door nobody can find is not a front door.
+     */
+    if (home.headers['x-robots-tag'] !== undefined) {
+      process.stderr.write(
+        'The home page carries x-robots-tag, and it is the one public page that ' +
+          'should not.\nSee docs/decisions.md M1-09 §2.\n',
+      )
+      process.exitCode = 1
+      return
+    }
+
+    if (!String(collection.headers['x-robots-tag'] ?? '').includes('noindex')) {
+      process.stderr.write(
+        'The collection page lost its noindex header (architecture §10).\n',
+      )
+      process.exitCode = 1
+      return
+    }
+
+    if (homeTotal > BUDGET_BYTES) {
+      process.stderr.write(
+        `The home page is ${kb(homeTotal)}, over the ${kb(BUDGET_BYTES)} ceiling.\n` +
+          'It is the first thing a stranger loads (rule 9).\n',
+      )
+      process.exitCode = 1
+      return
+    }
+
+    process.stdout.write('\n')
 
     // One script is expected: the ~1.5KB needs-board enhancement from M2-04.
     // Anything else on this route means a framework runtime came back, which is

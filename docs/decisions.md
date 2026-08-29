@@ -3204,3 +3204,107 @@ That last run mattered more than the others: OPS-09 had just made
 passes because the album's lazy-loaded photographs are never fetched in the
 measurement — but nothing about that was obvious from reading the change, and it
 is the sort of thing a first CI run exists to find.
+
+---
+
+## M1-09 · The home page, and a 404 that costs six kilobytes instead of a hundred and seventy-five
+
+### 1. What was there
+
+`src/app/page.tsx` rendered `<main>Isipheko</main>` and carried a comment saying
+not to grow it. Somebody typing the domain landed on the word and nothing else —
+on **the only screen in the product a stranger reaches without a link**.
+
+Two people arrive here and the page serves both without averaging them: somebody
+deciding whether to set an umcimbi up, and **somebody who was sent a link they do
+not trust and correctly refuses to use a number on it** (M3-04). The second is
+why this page is load-bearing rather than marketing.
+
+The custom comes before the product, because *isipheko* is from *ukupheka* and
+in-kind is the reason the word is the name (CLAUDE.md). Somebody who reads only
+the top must already know that bringing a thing counts the same as sending an
+amount.
+
+**Custody is stated, and the two answers differ.** On an umcimbi the money
+reaches the family's own account; on a collection it goes to the organiser and
+never touches us at all. The page gives both rather than the reassuring average,
+which is rules 12 and 16 applied to the one page that describes both roles.
+
+**32.0KB first load, zero scripts**, and `pnpm gate:size` measures it.
+
+### 2. The one public route without `noindex`, asserted both ways
+
+Architecture §10 puts `x-robots-tag: noindex` on every event and collection page
+because a death in the family must not be findable on Google. That rule is about
+pages naming a family. This page names nobody, and **a front door nobody can find
+is not a front door**.
+
+The gate asserts the absence here *and* the presence on `/c/[slug]` in the same
+run, because the way this breaks is a later blanket header applied to everything
+public — which would look like tightening security and would quietly delete the
+only way anybody finds us.
+
+### 3. Sign-in carries a destination, and it is an allowlist
+
+Both calls to action land on `(organiser)` routes that redirect to `/sign-in`,
+which had no return path: somebody who tapped *"Set up your umcimbi"* was dropped
+at a phone-number field with no explanation and arrived after the code at an
+account screen rather than at the thing they came for.
+
+`next` now travels as a hidden field on both steps — the forms post to server
+actions, which never see the query string, so a URL alone would lose it between
+the number and the code.
+
+**Four known destinations in a `Set`, and anything else is the default.** The
+obvious shape is a check that the value starts with `/` and contains no `//`, and
+every open redirect ever shipped passed a check like that. `signInDestination`
+is tested against `//evil.example`, `/\evil.example`, a lookalike host, a
+traversal, a query string and a trailing space.
+
+Making the first creation step public was the alternative and is bigger. The
+archetype choice stays inside the authenticated flow.
+
+### 4. The 404 is a catch-all route handler, and the reason is 169 kilobytes
+
+Next renders `not-found.tsx` as an App Router **page**. Measured on this build:
+**1.7KB of document and eight scripts, 174.8KB transferred** — over rule 9's
+ceiling, on the one screen whose entire audience is somebody on a prepaid bundle
+holding a link they do not trust. Part G.1 measured the same 174KB and moved the
+event page off a page because of it; this is the same measurement reaching the
+same answer.
+
+`src/app/[...path]/route.tsx` serves the same answer in **5.1KB with no script**.
+
+**A root catch-all is a new pattern and it was asked about before it was built.**
+It is only correct because Next resolves more specific segments first, which is a
+framework guarantee this product now depends on and does not enforce. The failure
+mode if that ever changes is silent and total: every umcimbi in existence
+answering *"there is nothing at this address"*, which looks exactly like the scam
+the page warns about.
+
+So `tests/e2e/routes.spec.ts` walks **all thirty public addresses** and asserts
+none fell through, and a fourth test reads the route table off the filesystem so
+that adding a route without adding it to the walk fails.
+
+**That test found its own false positive first.** Asserting on the response body
+failed on `/sign-in`, which was serving the sign-in form perfectly well: **every
+App Router page embeds its `not-found` boundary in the RSC flight payload**, so
+the 404's title appears in the source of every page whether or not it rendered.
+It reads the document `<title>` now — what a person would actually see.
+
+`not-found.tsx` stays, because `notFound()` called from inside a page still
+renders it — the four `/dev` screens and the simulator receiver, all in
+production. Both read `homeCopy.notFound`, so the words cannot drift; only the
+rendering differs, and each is right for its own constraint.
+
+### 5. `no-html-link-for-pages` is off, everywhere
+
+The catch-all made the rule resolve **every** path as a page, and it fired on
+five files that had been correct for months — `check-page.tsx`,
+`public-page.tsx`, `contribute-page.tsx` among them.
+
+The rule assumes an App Router application whose routes are pages. This product's
+entire public path is route handlers rendering static markup, `next/link` needs
+the runtime those files exist to avoid, and pointing one at a route handler is
+wrong besides. Disabled once in `eslint.config.mjs` with that reasoning, rather
+than as five per-file directives that would each read as an exception.
