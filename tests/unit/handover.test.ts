@@ -137,18 +137,56 @@ describe('what the handover copy says', () => {
     expect(copy.sealOrganiserBody).toContain('worth less than a witness')
   })
 
-  it('does not claim a photo it cannot take', () => {
-    // The design offers "mark it yourself with a photo". Evidence upload needs
-    // M4-01's EXIF stripping — a JPEG off a phone carries the GPS of the house
-    // it was taken at, which on a funeral handover is the family's address.
-    const strings = [copy.myselfBody, copy.myselfLabel, copy.myselfNoPhoto]
+  it('offers the photo it can now take, and promises no later', () => {
+    /*
+     * **Inverted at M4-01b**, which is where M2-11's deferral lands.
+     *
+     * It used to assert the opposite: that no string claimed a photo, because
+     * evidence upload needed M4-01's EXIF stripping and a JPEG off a phone
+     * carries the GPS of the house it was taken at — which on a funeral
+     * handover is the family's address. M4-01 built that pipeline and this uses
+     * it, so the copy offers the photograph instead of promising one.
+     *
+     * `myselfNoPhoto` is gone rather than reworded. A key whose name says *no
+     * photo* on a screen that takes one is the kind of thing somebody trusts
+     * without reading.
+     */
+    expect(copy.myselfPhotoLabel).toContain('photograph')
+    expect(copy.myselfPhotoHelp).toContain('strip')
 
-    expect(copy.myselfLabel).not.toContain('photo')
-    expect(copy.myselfNoPhoto).toContain('later')
-    for (const line of strings) {
-      expect(line.toLowerCase()).not.toContain('upload')
-      expect(line.toLowerCase()).not.toContain('attach a photo')
+    // No promise of a later, on any of them.
+    for (const line of [
+      copy.myselfBody,
+      copy.myselfLabel,
+      copy.myselfPhotoLabel,
+      copy.myselfPhotoHelp,
+      copy.myselfPhotoAttached,
+    ]) {
+      expect(line.toLowerCase()).not.toContain('will be part of this later')
+      expect(line.toLowerCase()).not.toContain('coming soon')
+      expect(line.toLowerCase()).not.toMatch(/\bnot yet\b/)
     }
+  })
+
+  it('says the photo is optional, because she may be standing at a graveside', () => {
+    // Phones die and signal fails, which is the reason this path exists at all.
+    // A required photograph would make the fallback need a fallback.
+    expect(copy.myselfPhotoHelp).toContain('without one')
+  })
+
+  it('says where and when are stripped, which is the whole reason it waited', () => {
+    // The GPS in a JPEG taken at the house is the family's address, published
+    // to whoever later reads the record. Saying so is the *protects* voice: what
+    // it guards, not what it does.
+    expect(copy.myselfPhotoHelp).toContain('does not carry the address')
+  })
+
+  it('still says her word is worth less than a witness, photograph or not', () => {
+    // A photograph is evidence, not a promotion. It must not turn her own word
+    // into a witness's tap.
+    expect(copy.sealOrganiserWithPhotoBody).toContain('still your word')
+    expect(copy.sealOrganiserWithPhotoBody).toContain('rather than a witness')
+    expect(copy.sealOrganiserWithPhotoBody).toContain('photograph')
   })
 
   it('tells the family nothing depended on them', () => {

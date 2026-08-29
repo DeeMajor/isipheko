@@ -6,6 +6,7 @@ import { verifyCopy } from '@/copy/verify'
 import { prisma } from '@/db/client'
 import {
   collectionForOrganiser,
+  handoverHasEvidence,
   collectionPageBySlug,
 } from '@/db/repositories/collection'
 import { env } from '@/lib/env'
@@ -76,6 +77,14 @@ export default async function CollectionPage({
   // it, and when.
   const page =
     collection.slug === null ? null : await collectionPageBySlug(prisma, collection.slug)
+
+  // Whether her own handover carries a photograph (M4-01b). Scoped to her, and
+  // a boolean rather than a key — nothing renders the photograph, and the view
+  // the public page shares must not learn that one exists.
+  const hasEvidence = await handoverHasEvidence(prisma, {
+    id,
+    organiserId: session.organiserId,
+  })
 
   const members = await prisma.collectionMember.findMany({
     where: { collectionId: id },
@@ -243,10 +252,30 @@ export default async function CollectionPage({
 
             <h3 className={styles.subheading}>{collectionCopy.handover.myselfHeading}</h3>
             <p className={styles.body}>{collectionCopy.handover.myselfBody}</p>
-            <p className={styles.body}>{collectionCopy.handover.myselfNoPhoto}</p>
+            {/*
+              The photograph (M4-01b), and it is optional in the markup as well
+              as in the words: no `required`, and the button closes the record
+              with or without a file. She may have no signal, no camera, or
+              nobody willing to be photographed at a graveside.
 
+              Stripped by M4-01's pipeline before it is stored — the only one
+              there is — because a JPEG off a phone carries the GPS of the house
+              it was taken at, which here is the family's address.
+            */}
             <form action={markHandedOver}>
               <input type="hidden" name="id" value={id} />
+
+              <label className={styles.body} htmlFor="handover-photo">
+                {collectionCopy.handover.myselfPhotoLabel}
+              </label>
+              <input
+                id="handover-photo"
+                name="photo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <p className={styles.body}>{collectionCopy.handover.myselfPhotoHelp}</p>
+
               <Button type="submit" variant="secondary">
                 {collectionCopy.handover.myselfLabel}
               </Button>
@@ -265,8 +294,19 @@ export default async function CollectionPage({
                     page?.witnessName ?? '',
                     handedOverOn ?? '',
                   )
-                : collectionCopy.handover.sealOrganiserBody}
+                : hasEvidence
+                  ? collectionCopy.handover.sealOrganiserWithPhotoBody
+                  : collectionCopy.handover.sealOrganiserBody}
             </p>
+
+            {/*
+              Said where she can see it, and only where it is true. The record
+              claims a photograph exists; this is the screen that can honestly
+              tell her it does.
+            */}
+            {hasEvidence ? (
+              <p className={styles.body}>{collectionCopy.handover.myselfPhotoAttached}</p>
+            ) : null}
 
             {collection.slug === null ? null : (
               <form method="get" action={`/c/${collection.slug}/incwadi`}>

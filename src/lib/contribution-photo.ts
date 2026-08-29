@@ -52,17 +52,30 @@ export type PhotoOutcome =
     }
   | { readonly ok: false; readonly reason: PhotoRejection }
 
+/** A stored photo, before anybody decides what to do with the fact. */
+export type StoredPhoto =
+  | {
+      readonly ok: true
+      readonly digest: string
+      readonly width: number
+      readonly height: number
+    }
+  | { readonly ok: false; readonly reason: PhotoRejection }
+
 /**
- * Accept a photo for an event, or say why not.
+ * Size, sniff, decode, strip, re-encode, store. **The only stripper there is.**
  *
- * `eventId` is not decoration: the derivatives are stored under it and the
- * ticket is signed against it, so a ticket lifted from one umcimbi cannot
- * attach a photo to a contribution on another.
+ * Extracted at M4-01b, when the collection handover needed the same pipeline
+ * from a different surface. M4-01 §2 is firm that there must not be a second
+ * one — the reader that proves the metadata is gone is independent of the
+ * encoder on purpose, and a second path would need its own proof or would
+ * quietly have none.
+ *
+ * `scopeId` is the event or the collection the derivatives are stored under. It
+ * is not decoration: a key is not a handle to every photo on the platform, and a
+ * request has to name what it belongs to.
  */
-export async function acceptPhoto(
-  file: File,
-  eventId: string,
-): Promise<PhotoOutcome> {
+async function processAndStore(file: File, scopeId: string): Promise<StoredPhoto> {
   if (file.size === 0) return { ok: false, reason: 'empty' }
   if (file.size > MAX_PHOTO_BYTES) return { ok: false, reason: 'too-big' }
 
@@ -93,25 +106,63 @@ export async function acceptPhoto(
   if (full === undefined) return { ok: false, reason: 'unreadable' }
 
   const digest = photoDigest(full.bytes)
-  const claim = { digest, width: full.width, height: full.height }
   const store = objectStore()
 
   await Promise.all(
     processed.derivatives.map((derivative) =>
-      store.put(photoKey(eventId, digest, derivative.size, derivative.format), {
+      store.put(photoKey(scopeId, digest, derivative.size, derivative.format), {
         bytes: derivative.bytes,
         contentType: `image/${derivative.format}`,
       }),
     ),
   )
 
+  return { ok: true, digest, width: full.width, height: full.height }
+}
+
+/**
+ * Accept a photo for a contribution, or say why not.
+ *
+ * The row does not exist yet — it is created at the pay step, two screens later
+ * — so what comes back is an **HMAC-signed ticket** bound to the event rather
+ * than a key in a hidden field, which is a field anybody can edit (M4-01 §3).
+ */
+export async function acceptPhoto(file: File, eventId: string): Promise<PhotoOutcome> {
+  const stored = await processAndStore(file, eventId)
+  if (!stored.ok) return stored
+
+  const claim = { digest: stored.digest, width: stored.width, height: stored.height }
+
   return {
     ok: true,
-    digest,
+    digest: stored.digest,
     ticket: formatPhotoTicket(claim, photoToken(eventId, claim, env.OTP_PEPPER)),
-    width: full.width,
-    height: full.height,
+    width: stored.width,
+    height: stored.height,
   }
+}
+
+/**
+ * Accept a photograph of a handover, and answer with the key to record (M4-01b).
+ *
+ * **No ticket, because there is nothing to carry it across.** A contribution
+ * photo is taken two screens before the row exists, so it travels as a signed
+ * claim. A handover is one authenticated POST by the organiser against a
+ * collection that already exists, so the key goes straight onto the row inside
+ * the same transaction that closes the record.
+ *
+ * That is why this is a different function and not a flag: the contributor's
+ * path needs a capability and hers does not, and giving her one would be a
+ * capability nobody needs issued.
+ */
+export async function acceptHandoverPhoto(
+  file: File,
+  collectionId: string,
+): Promise<{ ok: true; key: string } | { ok: false; reason: PhotoRejection }> {
+  const stored = await processAndStore(file, collectionId)
+  if (!stored.ok) return stored
+
+  return { ok: true, key: photoKey(collectionId, stored.digest, 'full', 'avif') }
 }
 
 /**

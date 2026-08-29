@@ -99,14 +99,24 @@ export const collectionCopy = {
       'Phones die and signal fails at gravesides. Mark it yourself — the record will say it was your word rather than a witness\u2019s, and that difference stays on it.',
     myselfLabel: 'Mark it myself',
     /**
-     * The photo the design offers is not built. Evidence upload needs M4-01's
-     * EXIF stripping, and a JPEG straight off a phone carries the GPS of the
-     * house it was taken at — on a funeral handover, the family's address. It
-     * attaches in M4-01 to a record that already exists (docs/decisions.md
-     * M2-11).
+     * **The photo, built at M4-01b** — the deferral M2-11 recorded and M4-01
+     * made possible.
+     *
+     * It was withheld because a JPEG straight off a phone carries the GPS of
+     * the house it was taken at, which on a funeral handover is the family's
+     * address. M4-01's pipeline strips that, and this uses **that** pipeline
+     * rather than a second one.
+     *
+     * Optional, and said so: she may have no signal, no camera, or nobody
+     * willing to be photographed at a graveside. A photo makes her word carry
+     * further; its absence is not a failure and the copy does not treat it as
+     * one.
      */
-    myselfNoPhoto:
-      'A photo of the handover will be part of this later. For now the record carries your word and the day it happened.',
+    myselfPhotoLabel: 'A photograph, if you have one',
+    myselfPhotoHelp:
+      'The envelope, the group, the moment — whatever you have. We strip where and when it was taken before storing it, so a picture taken at the house does not carry the address with it. You can close the record without one.',
+    myselfPhotoAttached:
+      'Your photograph is on the record, beside your word and the day it happened.',
 
     witnessLead: 'Were you there when it was handed over?',
     witnessBody: (group: string, organiser: string) =>
@@ -131,6 +141,9 @@ export const collectionCopy = {
       `${name} was there and confirmed it on ${when}. The record is closed and cannot be edited by anyone, including you.`,
     sealOrganiserBody:
       'You marked this yourself, and the record says so. It is worth less than a witness\u2019s tap, and anyone reading it later will see the difference.',
+    /** The same sentence, where there is a photograph to say so about. */
+    sealOrganiserWithPhotoBody:
+      'You marked this yourself and attached a photograph, and the record says both. It is still your word rather than a witness\u2019s, and anyone reading it later will see that too.',
 
     errors: {
       expired: 'That link has run out. Ask whoever sent it for a new one.',

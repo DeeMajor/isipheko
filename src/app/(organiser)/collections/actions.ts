@@ -13,6 +13,7 @@ import {
 import { issueHostToken, issueWitnessToken } from '@/db/repositories/handover'
 import { isArchetypeKey } from '@/domain/archetype'
 import { recordOrganiserAction, requestFingerprint } from '@/lib/audit'
+import { acceptHandoverPhoto } from '@/lib/contribution-photo'
 import { currentSession } from '@/lib/session'
 
 /**
@@ -123,9 +124,15 @@ export async function askWitness(formData: FormData): Promise<void> {
  * rather than a witness's, and that difference stays on it** — which is the
  * point of offering this rather than an apology for it.
  *
- * The photo the design offers is not built: evidence upload needs M4-01's EXIF
- * stripping, and a JPEG off a phone carries the GPS of the house it was taken
- * at. It attaches in M4-01 to a record that already exists.
+ * **The photograph is optional and is stripped before it is stored** (M4-01b).
+ * A JPEG off a phone carries the GPS of the house it was taken at, which on a
+ * funeral handover is the family's address — so it goes through M4-01's
+ * pipeline, the only one there is, and the original is never written anywhere.
+ *
+ * A photo that will not process does not stop the handover. She is standing at
+ * a graveside; refusing to close the record because a decoder did not like her
+ * camera would be the product choosing its own tidiness over her day. The
+ * record closes on her word and says nothing about a photograph.
  */
 export async function markHandedOver(formData: FormData): Promise<void> {
   const organiserId = await requireOrganiser()
@@ -138,6 +145,19 @@ export async function markHandedOver(formData: FormData): Promise<void> {
 
   if (collection === null) redirect('/account')
 
+  /*
+   * The photograph, if she had one. Stripped and stored before the record is
+   * touched, so a handover is never closed against a key that does not exist.
+   *
+   * A rejected photo is not an error path: the record closes on her word, which
+   * is what it would have done a moment ago. See the note above.
+   */
+  const submitted = formData.get('photo')
+  const photo =
+    submitted instanceof File && submitted.size > 0
+      ? await acceptHandoverPhoto(submitted, id)
+      : null
+
   const outcome = await confirmHandover(prisma, {
     collectionId: id,
     confirmedBy: 'organiser',
@@ -145,6 +165,7 @@ export async function markHandedOver(formData: FormData): Promise<void> {
     // Null on purpose: no member was there to tap it, and the null *is* the
     // organiser-marked case on the record.
     confirmedByMemberId: null,
+    evidenceKey: photo?.ok === true ? photo.key : null,
   })
 
   // Her own word rather than a witness's, and the log says which — the same
@@ -155,7 +176,9 @@ export async function markHandedOver(formData: FormData): Promise<void> {
       organiserId,
       target: { type: 'collection', id },
       fingerprint: await requestFingerprint(),
-      metadata: { confirmedBy: 'organiser' },
+      // Whether there is a photograph, never the key. The log is read by more
+      // people than the record is (M3-07 §5).
+      metadata: { confirmedBy: 'organiser', withPhoto: photo?.ok === true },
     })
   }
 

@@ -3535,3 +3535,87 @@ M5-01 §16, reached from a third direction.
 All four runners were then run for real: `pnpm render`, `pnpm notify`,
 `pnpm expire` and `pnpm verify:ledger` — the last reporting 222 chains, 12 231
 entries, none with problems.
+
+---
+
+## M4-01b · The handover evidence photograph
+
+### 1. Where M2-11's deferral lands, and why it waited
+
+M2-11 built the organiser-marks-it-herself path without the photograph the
+design offers, and said why: a JPEG straight off a phone carries the GPS of the
+house it was taken at, **which on a funeral handover is the family's address**,
+attached to a record other people read. `collections.handover_evidence_key` has
+existed and been unused since M2-09.
+
+M4-01 built the stripper. This is the surface, and it uses **that** pipeline.
+
+### 2. One stripper, extracted rather than copied
+
+`acceptPhoto` was one function: size, sniff, decode, strip, re-encode, store,
+then sign a ticket. The ticket is the contributor's problem — the row does not
+exist yet, so the claim travels as an HMAC bound to the event (M4-01 §3).
+
+A handover has no such problem. It is one authenticated POST against a
+collection that already exists, so the key goes straight onto the row.
+
+So the pipeline is now `processAndStore(file, scopeId)` and there are two thin
+callers. **M4-01 §2 is firm that there must not be a second stripper** — the
+metadata reader that proves the GPS is gone is deliberately independent of the
+encoder, and a second path would need its own proof or would quietly have none.
+Extracting the core is what keeps one proof covering both.
+
+`acceptHandoverPhoto` returns a key and issues no ticket, because a capability
+nobody needs is a capability nobody should be issued.
+
+### 3. The key is on the row and reaches no view
+
+`CollectionView` did **not** gain a field, and the first attempt at this taught
+why: `CollectionPage` extends it, so the boolean immediately appeared on the
+public page's type. Whether a photograph exists is between the organiser and
+whoever later reviews the record — it is not something a link publishes.
+
+`handoverHasEvidence(db, { id, organiserId })` is a scoped read answering a
+**boolean, never the key**. An id is not a permission here any more than
+anywhere else in this repository, and a test proves a second organiser gets
+`false` for the same collection.
+
+**Nothing renders the photograph, and that is deliberate rather than
+unfinished.** The surface that should eventually show it is the reviewer's
+(M3-07), where somebody is working out whether a handover happened. Putting it on
+the public collection page would publish a photograph of a group at a graveside
+to everybody who has the link, which is the harm one step removed from the GPS
+this task exists to strip.
+
+### 4. A photograph that will not process does not stop the handover
+
+She is standing at a graveside. Refusing to close the record because a decoder
+disliked her camera would be the product choosing its own tidiness over her day —
+and the organiser-marked path exists precisely because phones die and signal
+fails, so a required photograph would give the fallback a fallback.
+
+A rejected photo means the record closes on her word and says nothing about a
+photograph, which is what it would have done a minute earlier. The upload has no
+`required` attribute and the copy says *"You can close the record without one."*
+
+### 5. The copy stopped promising a later, and the seal keeps its honesty
+
+`myselfNoPhoto` — *"A photo of the handover will be part of this later"* — is
+**gone rather than reworded**. A key whose name says *no photo* on a screen that
+takes one is the kind of thing somebody trusts without reading.
+
+The help text says what the stripping protects rather than what it does: *"so a
+picture taken at the house does not carry the address with it."*
+
+And `sealOrganiserWithPhotoBody` keeps M2-11's distinction intact. A photograph
+is evidence, not a promotion: *"It is still your word rather than a witness's,
+and anyone reading it later will see that too."* Asserted, because the tempting
+rewrite is the one where a photo quietly makes her word worth as much as
+somebody else's tap.
+
+### 6. Proved by mutation, on the property that matters
+
+Storing the original alongside the derivatives fails `is stripped before it is
+stored` — with the GPS fix found in the bytes, by the metadata reader rather
+than by asking sharp whether sharp stripped it. Dropping `evidenceKey` on the
+write fails two more.

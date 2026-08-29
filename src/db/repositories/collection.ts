@@ -507,6 +507,30 @@ function toView(collection: {
   }
 }
 
+/**
+ * Whether she attached a photograph to her own handover (M4-01b).
+ *
+ * **Deliberately not on `CollectionView`.** `CollectionPage` extends that type,
+ * so a field added there appears on the public page — and whether a photograph
+ * exists is between the organiser and whoever later reviews the record, not
+ * something a link publishes.
+ *
+ * A boolean, never the key. Nothing renders the photograph yet, and the surface
+ * that eventually should is the reviewer's rather than a public page's: a key on
+ * a view is a key one render away from a URL.
+ */
+export async function handoverHasEvidence(
+  db: PrismaClient,
+  { id, organiserId }: { id: string; organiserId: string },
+): Promise<boolean> {
+  const row = await db.collection.findFirst({
+    where: { id, organiserId },
+    select: { handoverEvidenceKey: true },
+  })
+
+  return row?.handoverEvidenceKey != null
+}
+
 const VIEW_SELECT = {
   id: true,
   slug: true,

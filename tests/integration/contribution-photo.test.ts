@@ -7,7 +7,12 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 
 import type { PrismaClient } from '@/db/generated/client'
 import { organiserForPhone } from '@/db/repositories/auth'
-import { pendingReports, selfReport, startContribution } from '@/db/repositories/contribution'
+import {
+  pendingReports,
+  selfReport,
+  startContribution,
+} from '@/db/repositories/contribution'
+import { confirmHandover, handoverHasEvidence } from '@/db/repositories/collection'
 import { createDraft } from '@/db/repositories/event'
 import { findGpsFix, photoKey, scanImageMetadata } from '@/domain/media'
 import { fromCents } from '@/domain/money'
@@ -68,7 +73,9 @@ async function newEvent(): Promise<{ id: string; title: string }> {
 /** A photo with the family's house in it, the way a phone hands one over. */
 async function phonePhoto(): Promise<Uint8Array> {
   return new Uint8Array(
-    await sharp({ create: { width: 900, height: 600, channels: 3, background: '#4A7C59' } })
+    await sharp({
+      create: { width: 900, height: 600, channels: 3, background: '#4A7C59' },
+    })
       .withExif({
         IFD0: { Make: 'Apple', Model: 'iPhone 13' },
         IFD3: {
@@ -148,7 +155,15 @@ describe('accepting a photo', () => {
   it('refuses a HEIC by name, so the message can say what to do', async () => {
     const event = await newEvent()
     const heic = new Uint8Array([
-      0, 0, 0, 24, ...new TextEncoder().encode('ftypheic'), 0, 0, 0, 0,
+      0,
+      0,
+      0,
+      24,
+      ...new TextEncoder().encode('ftypheic'),
+      0,
+      0,
+      0,
+      0,
     ])
 
     expect(await photos.acceptPhoto(asFile(heic, 'IMG_0001.HEIC'), event.id)).toEqual({
@@ -209,7 +224,10 @@ describe('the ticket that carries it forward', () => {
     expect(photos.digestFromTicket(outcome.ticket, other.id)).toBeNull()
     expect(photos.digestFromTicket(outcome.digest, event.id)).toBeNull()
     expect(
-      photos.digestFromTicket(`${'0'.repeat(32)}.${outcome.ticket.split('.')[1] ?? ''}`, event.id),
+      photos.digestFromTicket(
+        `${'0'.repeat(32)}.${outcome.ticket.split('.')[1] ?? ''}`,
+        event.id,
+      ),
     ).toBeNull()
   })
 })
@@ -255,5 +273,134 @@ describe('the row', () => {
 
     const row = await app.contribution.findUniqueOrThrow({ where: { id: started.id } })
     expect(row.photoKey).toBeNull()
+  })
+})
+
+/**
+ * The handover photograph (M4-01b) — the deferral M2-11 recorded, landing.
+ *
+ * It was withheld because a JPEG straight off a phone carries the GPS of the
+ * house it was taken at, which on a funeral handover is the family's address
+ * published to whoever later reads the record. The assertions below are the
+ * same ones the contributor path gets, because **it is the same pipeline** —
+ * that is what makes this the organiser-authenticated surface rather than a
+ * second stripper.
+ */
+describe('a handover photograph', () => {
+  async function newCollection(): Promise<string> {
+    const collection = await app.collection.create({
+      data: {
+        organiserId,
+        occasionArchetype: 'umngcwabo',
+        occasionArchetypeGroup: 'bereavement',
+        title: 'The Ngcobo cousins',
+        // Open, not the default draft: `canConfirmHandover` refuses a draft,
+        // and a group cannot hand over what it has not started collecting.
+        status: 'open',
+        members: {
+          create: [{ name: 'Thandi Ngcobo', amountCents: 500_00n, status: 'confirmed' }],
+        },
+      },
+      select: { id: true },
+    })
+
+    return collection.id
+  }
+
+  it('is stripped before it is stored, like every other photo here', async () => {
+    const collectionId = await newCollection()
+    const outcome = await photos.acceptHandoverPhoto(
+      asFile(await phonePhoto()),
+      collectionId,
+    )
+
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+
+    const { objectStore } = await import('@/adapters/storage')
+    const stored = await objectStore().get(outcome.key)
+
+    expect(stored).not.toBeNull()
+    expect(scanImageMetadata(stored?.bytes ?? new Uint8Array())).toEqual([])
+    expect(findGpsFix(stored?.bytes ?? new Uint8Array())).toBeNull()
+  })
+
+  it('never writes the original, which is where the address was', async () => {
+    const collectionId = await newCollection()
+    const outcome = await photos.acceptHandoverPhoto(
+      asFile(await phonePhoto()),
+      collectionId,
+    )
+    expect(outcome.ok).toBe(true)
+
+    const written = (await readdir(join(storeRoot, 'photo', collectionId))).filter(
+      (name) => !name.endsWith('.type'),
+    )
+
+    expect(written).toHaveLength(4)
+    for (const name of written) {
+      expect(name).toMatch(/\.(avif|webp)$/)
+    }
+  })
+
+  it('goes onto the record, and the record says she attached one', async () => {
+    const collectionId = await newCollection()
+    const outcome = await photos.acceptHandoverPhoto(
+      asFile(await phonePhoto()),
+      collectionId,
+    )
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+
+    const confirmed = await confirmHandover(app, {
+      collectionId,
+      confirmedBy: 'organiser',
+      confirmedByName: 'Nomsa Mthembu',
+      confirmedByMemberId: null,
+      evidenceKey: outcome.key,
+    })
+
+    expect(confirmed.ok).toBe(true)
+    expect(await handoverHasEvidence(app, { id: collectionId, organiserId })).toBe(true)
+  })
+
+  it('is optional — a handover with no photograph still closes', async () => {
+    // Phones die and signal fails at gravesides, which is the reason the
+    // organiser-marked path exists at all. A required photograph would give the
+    // fallback a fallback.
+    const collectionId = await newCollection()
+
+    const confirmed = await confirmHandover(app, {
+      collectionId,
+      confirmedBy: 'organiser',
+      confirmedByName: 'Nomsa Mthembu',
+      confirmedByMemberId: null,
+    })
+
+    expect(confirmed.ok).toBe(true)
+    expect(await handoverHasEvidence(app, { id: collectionId, organiserId })).toBe(false)
+  })
+
+  it('answers only to the organiser whose collection it is', async () => {
+    // The presence of a photograph is between her and whoever later reviews the
+    // record. An id is not a permission (the repository's own rule).
+    const collectionId = await newCollection()
+    const stranger = await organiserForPhone(
+      app,
+      `+2788${String(++counter).padStart(7, '0')}`,
+    )
+
+    await confirmHandover(app, {
+      collectionId,
+      confirmedBy: 'organiser',
+      confirmedByName: 'Nomsa Mthembu',
+      confirmedByMemberId: null,
+      evidenceKey: 'photo/x/deadbeef-full.avif',
+    })
+
+    expect(await handoverHasEvidence(app, { id: collectionId, organiserId })).toBe(true)
+    expect(
+      await handoverHasEvidence(app, { id: collectionId, organiserId: stranger.id }),
+    ).toBe(false)
   })
 })
