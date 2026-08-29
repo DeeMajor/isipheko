@@ -3809,3 +3809,38 @@ bring-something is a link carrying `#needs`, and no form on that step posts
 
 The event page's needs section gained `id="needs"` as the landing point,
 with a comment saying who links to it.
+
+---
+
+## UX-02 · The amount step was an error loop, by the M4-01 §10 mechanism
+
+### 1. One bad amount was permanent
+
+`AmountStep` rendered every carried field as hidden inputs and its own visible
+`amount` input with no `defaultValue` and no `except`. On the first invalid
+amount, the re-render carried the bad value as a hidden field **before** the
+visible input — and `FormData.get` returns the first occurrence, so every
+subsequent submit re-read the stale bad value. Correcting the amount did
+nothing, forever. The typed value was not shown back either, so the person was
+retyping into a field that was both empty and ignored.
+
+This is exactly the collision M4-01 §10 found and fixed on the who step, one
+step earlier and worse: there an edit was dropped once, here the step became
+unleavable. The join flow had it right all along (`except` plus
+`defaultValue`), which is what confirmed the divergence rather than a design.
+
+### 2. The item step had the narrower version
+
+`ItemStep` rendered a carried `item` before each button's own hidden `item`,
+so backing up and choosing a different thing silently sent the old one. Same
+fix: the carried copy is excluded and each button's value is the only one on
+its form.
+
+### 3. Proved at the level it failed
+
+The E2E extends the existing invalid-amount test past the refusal: the field
+still holds what was typed, and a corrected amount **actually proceeds** — the
+assertion that fails on the old code, where the second submit looped. The unit
+half asserts the mechanism on both steps: no hidden copy of the field the step
+edits, the typed value repopulated, and the rest of the flow's state still
+travelling.

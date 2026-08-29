@@ -346,6 +346,17 @@ test('shows the expected shape of an amount before anybody gets it wrong', async
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByText('Enter an amount, like R1 234,56.')).toBeVisible()
 
+  /*
+   * What they typed is still in the field, and — the UX-02 bug — correcting it
+   * actually works. A stale hidden copy of the amount used to outrank the
+   * visible input, so the first refusal was permanent: every corrected amount
+   * re-read the bad one, forever.
+   */
+  await expect(page.getByLabel('Amount')).toHaveValue('1,234')
+  await page.getByLabel('Amount').fill('R450,00')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: /Who should we say/ })).toBeVisible()
+
   await context.close()
 })
 

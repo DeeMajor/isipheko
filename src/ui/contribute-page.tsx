@@ -334,8 +334,17 @@ function AmountStep({
           : contributeCopy.amount.introHidden}
       </p>
 
+      {/*
+        `except` here is the same collision the who step fixed in M4-01 §10: a
+        field rendered hidden *and* visible on one form is sent twice, and
+        `FormData.get` returns the first. Without it, the first invalid amount
+        travelled forward as a stale hidden field that outranked every
+        corrected one — the step became an error loop no typing could leave.
+        The visible input repopulates instead, so what was typed is also not
+        lost.
+      */}
       <form method="post" action={action} className="claimForm">
-        <Carried values={carried} />
+        <Carried values={carried} except={['amount']} />
         <input type="hidden" name="route" value={route} />
         <input type="hidden" name="step" value="amount" />
 
@@ -349,6 +358,7 @@ function AmountStep({
           type="text"
           inputMode="decimal"
           placeholder={contributeCopy.amount.placeholder}
+          defaultValue={carried.amount ?? ''}
           data-numeric=""
           required
         />
@@ -380,8 +390,14 @@ function ItemStep({
             <p className="needStatus" data-numeric="">
               {`${String(need.remaining)} still needed`}
             </p>
+            {/*
+              `except`, for the same reason as the amount step: a carried
+              `item` rendered before this button's own would outrank it, so
+              backing up and choosing a different thing would silently send
+              the old one.
+            */}
             <form method="post" action={action} className="claimForm">
-              <Carried values={carried} />
+              <Carried values={carried} except={['item']} />
               <input type="hidden" name="route" value={route} />
               <input type="hidden" name="step" value="item" />
               <input type="hidden" name="item" value={need.id} />
