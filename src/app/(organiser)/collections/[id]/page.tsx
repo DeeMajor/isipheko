@@ -12,7 +12,7 @@ import {
 import { env } from '@/lib/env'
 import { formatMoney, fromCents } from '@/domain/money'
 import { currentSession } from '@/lib/session'
-import { Button, Card, Toast } from '@/ui/primitives'
+import { Button, Card, Field, Toast } from '@/ui/primitives'
 
 import {
   askHost,
@@ -20,6 +20,7 @@ import {
   markArrived,
   markHandedOver,
   requestShareLink,
+  saveCollectionDetails,
 } from '../actions'
 
 import styles from '../collections.module.css'
@@ -54,6 +55,7 @@ export default async function CollectionPage({
     shared?: string
     confirmed?: string
     closed?: string
+    details?: string
     witness?: string
     member?: string
     host?: string
@@ -64,7 +66,7 @@ export default async function CollectionPage({
   if (session === null) redirect('/sign-in')
 
   const { id } = await params
-  const { blocked, shared, confirmed, closed, witness, member, host, handover } =
+  const { blocked, shared, confirmed, closed, details, witness, member, host, handover } =
     await searchParams
 
   const collection = await collectionForOrganiser(prisma, {
@@ -110,6 +112,58 @@ export default async function CollectionPage({
 
       {confirmed === '1' ? <Toast>{collectionCopy.manage.markedArrived}</Toast> : null}
       {shared === '1' ? <Toast>{collectionCopy.manage.linkReady}</Toast> : null}
+      {details === 'saved' ? <Toast>{collectionCopy.manage.detailsSaved}</Toast> : null}
+      {details === 'incomplete' ? (
+        <Toast tone="problem">{collectionCopy.manage.detailsIncomplete}</Toast>
+      ) : null}
+      {details === 'closed' ? (
+        <Toast tone="problem">{collectionCopy.manage.detailsClosed}</Toast>
+      ) : null}
+
+      {/*
+        Editing what the collection says about itself (UX-09). The bank hint
+        is the string members are told to send money to, and until this card a
+        typo in it was permanent — the "pays the wrong account" failure as an
+        uncorrectable field. Gone once the record closes: the seal says it
+        cannot be edited by anyone, including her, and the UPDATE refuses too.
+      */}
+      {collection.handoverStatus === 'not_started' ? (
+        <Card
+          title={collectionCopy.manage.detailsTitle}
+          titleAs="h2"
+          className={styles.card}
+        >
+          <p className={styles.body}>{collectionCopy.manage.detailsIntro}</p>
+
+          <form action={saveCollectionDetails} className={styles.form}>
+            <input type="hidden" name="id" value={id} />
+
+            <Field
+              id="title"
+              name="title"
+              label={collectionCopy.setup.nameLabel}
+              defaultValue={collection.title}
+              required
+            />
+            <Field
+              id="purpose"
+              name="purpose"
+              label={collectionCopy.setup.forWhomLabel}
+              defaultValue={collection.purpose ?? ''}
+            />
+            <Field
+              id="bankHint"
+              name="bankHint"
+              label={collectionCopy.setup.bankHintLabel}
+              defaultValue={collection.organiserBankHint ?? ''}
+            />
+
+            <Button type="submit" variant="secondary">
+              {collectionCopy.manage.detailsSave}
+            </Button>
+          </form>
+        </Card>
+      ) : null}
 
       <Card title={collectionCopy.manage.linkTitle} titleAs="h2" className={styles.card}>
         {collection.slug === null ? (

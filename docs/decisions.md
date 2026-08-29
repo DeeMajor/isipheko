@@ -4101,3 +4101,37 @@ string, which is exactly where a phone number must not go.
 
 E2E covers both: Thandi refused by name and added correctly on the retype;
 a homeless note refused out loud.
+
+---
+
+## UX-09 · A collection's details can be corrected, until the record closes
+
+### 1. The bank hint was permanent, and it is where the money goes
+
+Nothing about a collection could be edited after creation — no update action
+existed. The bank hint is **the string members are told to send money to**
+(*"Nomsa's Capitec, ending 4471"*), typed once on the setup screen, and a
+typo in it was invisible until money went to the wrong account. That is
+M2-05 §1's "somebody pays the wrong account is not recoverable", shipped as
+an uncorrectable field on the one surface rule 12 keeps deliberately manual.
+
+### 2. What is editable, and what is not
+
+`updateCollectionDetails` takes the title, the purpose and the bank hint,
+scoped to the organiser. The hint stays free text in her words — never an
+account we hold, verify or pay into (rule 12), exactly as at creation.
+
+**The occasion is not editable**, for the kind step's reason (UX-07): it
+keys the copy, the accent and the register, and a funeral collection flipped
+to a tea is a different page wearing the same roster.
+
+**A closed record refuses.** The seal's copy says the record *"cannot be
+edited by anyone, including you"*, and the ledger entry hashed at handover
+carries the title as it stood — an edit after it would make the page
+disagree with the chain. The condition rides on the UPDATE
+(`handoverStatus: 'not_started'`), so a close landing between read and write
+still refuses, and the refusal's toast says nothing was saved. The edit card
+is not rendered at all on a closed record; the toast exists for the race.
+
+Integration covers the correction, the stranger's refusal and the
+closed-record refusal.

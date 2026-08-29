@@ -209,6 +209,22 @@ export const collectionCopy = {
     joinedTitle: 'Who has joined',
     nobodyJoined: 'Nobody has joined yet.',
 
+    /**
+     * The edit card (UX-09). The bank hint is the string members are told to
+     * send money to, and until this card a typo in it was permanent. The
+     * occasion is not on it: like an umcimbi's kind, it is the one choice
+     * that stays.
+     */
+    detailsTitle: 'The details',
+    detailsIntro:
+      'The name, who it is for, and where people send the money. What you save here is what a member sees the moment they look.',
+    detailsSave: 'Save the changes',
+    detailsSaved: 'Saved. Anyone who opens it sees what you just typed.',
+    detailsIncomplete: 'It needs a name. Everything else can be empty.',
+    /** The seal's own rule, met at the edit rather than after it. */
+    detailsClosed:
+      'The record is closed and cannot be edited by anyone, including you. Nothing you typed just now was saved.',
+
     /** What just happened, after a redirect. */
     markedArrived: 'Marked as arrived.',
     linkReady: 'The link is ready.',

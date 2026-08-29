@@ -107,6 +107,42 @@ export type ShareOutcome =
  * working. A flag that always passed would be worse than no gate, because it
  * would look like one (M1-07 §5).
  */
+/**
+ * Editing what a collection says about itself (UX-09).
+ *
+ * There was no way to change anything after creation — and the bank hint is
+ * **the string members are told to send money to**. A typo'd *"ending 4471"*
+ * for 4417 was permanent and invisible until money went to the wrong account,
+ * which is the M2-05 §1 failure ("somebody pays the wrong account is not
+ * recoverable") shipped as an uncorrectable field.
+ *
+ * The occasion is deliberately not editable, for the kind step's reason
+ * (UX-07): it keys the copy, the accent and the register, and a funeral
+ * collection flipped to a tea is a different page wearing the same roster.
+ *
+ * **Refused once the handover is closed.** The seal copy says the record
+ * "cannot be edited by anyone, including you", and the ledger entry hashed at
+ * handover carries the title as it stood — an edit after it would make the
+ * page disagree with the chain. The condition is on the UPDATE, so a close
+ * landing between read and write still refuses.
+ */
+export async function updateCollectionDetails(
+  db: PrismaClient,
+  { id, organiserId }: { id: string; organiserId: string },
+  details: { title: string; purpose: string | null; organiserBankHint: string | null },
+): Promise<boolean> {
+  const { count } = await db.collection.updateMany({
+    where: { id, organiserId, handoverStatus: 'not_started' },
+    data: {
+      title: details.title,
+      purpose: details.purpose,
+      organiserBankHint: details.organiserBankHint,
+    },
+  })
+
+  return count === 1
+}
+
 export async function shareCollection(
   db: PrismaClient,
   { id, organiserId }: { id: string; organiserId: string },

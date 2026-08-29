@@ -14,6 +14,7 @@ import {
   joinCollection,
   openCollection,
   shareCollection,
+  updateCollectionDetails,
 } from '@/db/repositories/collection'
 import { createDraft } from '@/db/repositories/event'
 import { entriesForChain } from '@/db/repositories/ledger'
@@ -529,5 +530,68 @@ describe('the organiser’s own list (UX-04)', () => {
 
     const [row] = await collectionsForOrganiser(app, nomsa.id)
     expect(row?.isClosed).toBe(true)
+  })
+})
+
+describe('editing the details (UX-09)', () => {
+  it('corrects the bank hint, and the join screen’s source says the new one', async () => {
+    const nomsa = await organiser({ verified: true })
+    const collectionId = await groupOf(nomsa.id)
+
+    const updated = await updateCollectionDetails(
+      app,
+      { id: collectionId, organiserId: nomsa.id },
+      {
+        title: 'The Ngcobo cousins',
+        purpose: 'For the family',
+        // The correction this exists for: one digit of the account members
+        // are told to pay into.
+        organiserBankHint: "Nomsa's Capitec, ending 4417",
+      },
+    )
+    expect(updated).toBe(true)
+
+    const row = await app.collection.findUniqueOrThrow({ where: { id: collectionId } })
+    expect(row.organiserBankHint).toBe("Nomsa's Capitec, ending 4417")
+  })
+
+  it('refuses somebody else’s collection, leaving it untouched', async () => {
+    const nomsa = await organiser({ verified: true })
+    const stranger = await organiser()
+    const collectionId = await groupOf(nomsa.id)
+
+    const updated = await updateCollectionDetails(
+      app,
+      { id: collectionId, organiserId: stranger.id },
+      { title: 'Hijacked', purpose: null, organiserBankHint: 'a stranger’s account' },
+    )
+    expect(updated).toBe(false)
+
+    const row = await app.collection.findUniqueOrThrow({ where: { id: collectionId } })
+    expect(row.title).toBe('The Ngcobo cousins')
+    expect(row.organiserBankHint).toBe("Nomsa's Capitec, ending 4471")
+  })
+
+  it('refuses once the record is closed — the seal means the edit too', async () => {
+    const nomsa = await organiser({ verified: true })
+    const collectionId = await groupOf(nomsa.id)
+
+    await confirmHandover(app, {
+      collectionId,
+      confirmedBy: 'organiser',
+      confirmedByName: 'Nomsa Mthembu',
+      confirmedByMemberId: null,
+      evidenceKey: null,
+    })
+
+    const updated = await updateCollectionDetails(
+      app,
+      { id: collectionId, organiserId: nomsa.id },
+      { title: 'Renamed after the fact', purpose: null, organiserBankHint: null },
+    )
+    expect(updated).toBe(false)
+
+    const row = await app.collection.findUniqueOrThrow({ where: { id: collectionId } })
+    expect(row.title).toBe('The Ngcobo cousins')
   })
 })

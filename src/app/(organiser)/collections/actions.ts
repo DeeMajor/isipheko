@@ -9,6 +9,7 @@ import {
   createCollection,
   openCollection,
   shareCollection,
+  updateCollectionDetails,
 } from '@/db/repositories/collection'
 import { issueHostToken, issueWitnessToken } from '@/db/repositories/handover'
 import { isArchetypeKey } from '@/domain/archetype'
@@ -63,6 +64,38 @@ export async function startCollection(formData: FormData): Promise<void> {
   await openCollection(prisma, { id: collection.id, organiserId })
 
   redirect(`/collections/${collection.id}`)
+}
+
+/**
+ * Editing the name, the purpose and the bank hint (UX-09).
+ *
+ * The hint is the string members are told to send money to, and until this
+ * existed a typo in it was permanent — the "pays the wrong account" failure
+ * (M2-05 §1) as an uncorrectable field. The occasion stays fixed, for the
+ * kind step's reason (UX-07); a closed record refuses, on the UPDATE.
+ */
+export async function saveCollectionDetails(formData: FormData): Promise<void> {
+  const organiserId = await requireOrganiser()
+  const id = text(formData, 'id')
+  const title = text(formData, 'title')
+  const purpose = text(formData, 'purpose')
+  const bankHint = text(formData, 'bankHint')
+
+  if (title === '') redirect(`/collections/${id}?details=incomplete`)
+
+  const updated = await updateCollectionDetails(
+    prisma,
+    { id, organiserId },
+    {
+      title,
+      purpose: purpose === '' ? null : purpose,
+      // Free text, in her words — never an account we hold, verify or pay
+      // into (rule 12), exactly as at creation.
+      organiserBankHint: bankHint === '' ? null : bankHint,
+    },
+  )
+
+  redirect(`/collections/${id}?details=${updated ? 'saved' : 'closed'}`)
 }
 
 export async function markArrived(formData: FormData): Promise<void> {
