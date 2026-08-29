@@ -230,7 +230,7 @@ describe('the review queue', () => {
       now: new Date('2026-08-18T09:00:00.000Z'),
     })
 
-    const queue = await reviewQueue(app)
+    const queue = (await reviewQueue(app)).rows
     const positions = queue.map((report) => report.id)
 
     expect(positions.indexOf(late.id)).toBeLessThan(positions.indexOf(fresh.id))
@@ -243,7 +243,7 @@ describe('the review queue', () => {
       aboutTyped: 'isipheko-payments.example/pay/1234',
     })
 
-    const entry = (await reviewQueue(app)).find((report) => report.id === filed.id)
+    const entry = (await reviewQueue(app)).rows.find((report) => report.id === filed.id)
 
     expect(entry?.eventTitle).toBeNull()
     expect(entry?.collectionTitle).toBeNull()
@@ -262,7 +262,7 @@ describe('the review queue', () => {
       aboutTyped: 'a message on WhatsApp',
     })
 
-    const entry = (await reviewQueue(app)).find((report) => report.id === filed.id)
+    const entry = (await reviewQueue(app)).rows.find((report) => report.id === filed.id)
 
     expect(entry?.reachable).toBe(true)
     expect(JSON.stringify(entry)).not.toContain(phone)
@@ -270,6 +270,84 @@ describe('the review queue', () => {
     // And is there where it is needed, because the SLA is unfulfillable without it.
     const detail = await reportById(app, { id: filed.id })
     expect(detail?.reporterPhoneE164).toBe(phone)
+  })
+
+  it('reaches every open report, however many there are', async () => {
+    /*
+     * M3-07b. `reviewQueue` took 100 and the screen said nothing about it, so a
+     * reviewer who scrolled to the bottom of a silently capped list believed
+     * they had seen everything — **the one-working-day SLA failing invisibly,
+     * on the screen built to guarantee it**. The reports that fell off were the
+     * newest ones, whose deadlines had not yet arrived and which therefore had
+     * the most time left to save.
+     *
+     * Found by two E2E tests failing against a local database that had
+     * accumulated 108 open reports. In production the cap is real and the
+     * failure mode is a person, not a test.
+     */
+    const filed = new Set<string>()
+
+    for (let index = 0; index < 120; index += 1) {
+      const report = await fileReport(app, {
+        ...BLANK_REPORT,
+        reason: 'something-else',
+        aboutTyped: `pagination fixture ${String(index)}`,
+        now: new Date('2026-08-18T09:00:00.000Z'),
+      })
+      filed.add(report.id)
+    }
+
+    const seen = new Set<string>()
+    let offset = 0
+    let total = 0
+
+    // Walk it the way the screen does — one page, then the next.
+    for (let guard = 0; guard < 20; guard += 1) {
+      const page = await reviewQueue(app, { offset })
+
+      total = page.total
+      for (const report of page.rows) seen.add(report.id)
+
+      offset = page.offset + page.limit
+      if (offset >= page.total) break
+    }
+
+    expect(total).toBeGreaterThanOrEqual(120)
+    for (const id of filed) {
+      expect(seen, 'a filed report was unreachable by paging').toContain(id)
+    }
+  })
+
+  it('says how many there are, not only how many fit', async () => {
+    // The count is of every open report, so a screen can state the whole rather
+    // than the page. Without it, "50 shown" is indistinguishable from "50 exist".
+    const page = await reviewQueue(app, { limit: 5 })
+
+    expect(page.rows.length).toBeLessThanOrEqual(5)
+    expect(page.total).toBeGreaterThan(page.rows.length)
+  })
+
+  it('pages on a total order, so no report lands on two pages or none', async () => {
+    /*
+     * `respondBy` alone ties: the SLA is measured in working days, so every
+     * report filed in the same window shares a deadline and ties are the common
+     * case rather than the edge. Two rows that compare equal can come back in
+     * either order from two queries, and under skip/take that is a report shown
+     * twice or not at all — which on this screen means one somebody never reads.
+     */
+    const first = await reviewQueue(app, { limit: 40, offset: 0 })
+    const second = await reviewQueue(app, { limit: 40, offset: 40 })
+
+    const overlap = first.rows.filter((row) =>
+      second.rows.some((other) => other.id === row.id),
+    )
+
+    expect(overlap).toHaveLength(0)
+
+    // And the same query twice gives the same page, which is what makes the
+    // boundary between them mean anything.
+    const again = await reviewQueue(app, { limit: 40, offset: 0 })
+    expect(again.rows.map((row) => row.id)).toEqual(first.rows.map((row) => row.id))
   })
 
   it('drops a report once it is decided', async () => {
@@ -281,7 +359,9 @@ describe('the review queue', () => {
 
     await triageReport(app, { id: filed.id, from: 'received', to: 'closed' })
 
-    expect((await reviewQueue(app)).map((report) => report.id)).not.toContain(filed.id)
+    expect((await reviewQueue(app)).rows.map((report) => report.id)).not.toContain(
+      filed.id,
+    )
   })
 })
 

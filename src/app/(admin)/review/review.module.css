@@ -196,3 +196,25 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+/*
+ * Paging (M3-07b). Plain links, because the reviewer's screen holds to the same
+ * posture as the contributor's: it works with JavaScript off.
+ */
+.pages {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pageLink {
+  color: var(--ink);
+  font-size: var(--text-metadata);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  /* 44px hit area on a link that is small on the page (M1-05). */
+  padding: var(--space-2) 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}

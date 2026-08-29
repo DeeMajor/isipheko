@@ -47,6 +47,31 @@ export const reviewCopy = {
     onTime: 'All within their window',
   },
 
+  /**
+   * Where this page sits in the whole queue (M3-07b).
+   *
+   * The list took a hundred and said nothing, so a reviewer who scrolled to the
+   * bottom believed they had seen everything — **the SLA failing invisibly on
+   * the screen built to guarantee it**, and the reports that fell off were the
+   * newest ones, whose deadlines had not yet arrived.
+   *
+   * Said whether or not there is more, because a list that only announces its
+   * limit when it has one still ends silently on the day it does not.
+   */
+  showing: (first: number, last: number, total: number) =>
+    total === 1
+      ? 'One report, and this is it.'
+      : first === 1 && last === total
+        ? `All ${String(total)} open reports are on this page.`
+        : `Showing ${String(first)} to ${String(last)} of ${String(total)} open reports.`,
+
+  pages: {
+    label: 'More reports',
+    previous: 'Earlier deadlines',
+    next: (n: number) =>
+      n === 1 ? 'The next one' : `The next ${String(n)}, by deadline`,
+  },
+
   /** What a person is looking at, in the reporter's terms rather than a code. */
   reasons: {
     'not-who-they-say': 'Not who they say they are',

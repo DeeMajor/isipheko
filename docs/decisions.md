@@ -3308,3 +3308,80 @@ entire public path is route handlers rendering static markup, `next/link` needs
 the runtime those files exist to avoid, and pointing one at a route handler is
 wrong besides. Disabled once in `eslint.config.mjs` with that reasoning, rather
 than as five per-file directives that would each read as an exception.
+
+---
+
+## M3-07b · Review queue pagination
+
+### 1. The SLA was failing invisibly on the screen built to guarantee it
+
+`reviewQueue` took 100, ordered by the deadline somebody was promised, and the
+screen said nothing about it. A reviewer who scrolled to the bottom of a
+silently capped list believed they had seen everything.
+
+**What fell off were the newest reports.** The order is by `respondBy` ascending,
+so the rows past the cut are the ones whose deadline has not yet arrived — the
+ones with the most time left to act on, and the ones a reviewer would most want
+to see. The failure mode is not "some reports are late". It is "some reports are
+never read, and nothing anywhere says so".
+
+Found by two E2E tests failing against a local database that had accumulated 108
+open reports. In production the cap is real and the failure mode is a person.
+
+### 2. Paginated, and the count is stated whether or not there is more
+
+`reviewQueue` returns `{ rows, total, offset, limit }` at fifty a page. The screen
+says *"Showing 1 to 50 of 214 open reports"*, or *"All 12 open reports are on this
+page"* when they fit.
+
+**Both sentences, not only the first.** A list that announces its limit only when
+it has one still ends silently on the day it does not, and the reviewer has no
+way to tell which day they are looking at. This is the done-criterion — *no list
+terminates without saying whether it is complete* — and it is a property of every
+render rather than of the long ones.
+
+A count here is a count of reports, not of contributions. It carries none of the
+strand's or the album's rules (M4-03 §6, and M3-07b's note in the plan): it is
+the number the SLA is measured against.
+
+Paging is a plain `?from=` and plain `<a>` links, so the reviewer's screen holds
+the same posture as the contributor's and works with JavaScript off.
+
+### 3. The sort had to become a total order, and this is not theoretical
+
+`respondBy` alone ties. The SLA is one working day, computed at insert, so every
+report filed in the same window shares a deadline — **ties are the common case
+here, not the edge.** Two rows that compare equal can come back in either order
+from two queries, and under `skip`/`take` that is a report appearing on both
+pages or on neither.
+
+`createdAt` then `id` last makes the order total. Proved by mutation: removing
+the `id` tiebreaker fails two integration tests, one of them the reachability
+walk. Without it the bug this task exists to fix comes back in a subtler form —
+a report that is not on any page rather than one past a cut.
+
+### 4. Two things the tests found that were not the task
+
+**The application role cannot delete a report.** The E2E fixture cleanup was
+written as `deleteMany` and answered `permission denied for table reports` — the
+reports migration issues `GRANT UPDATE` and `REVOKE DELETE, TRUNCATE`, because a
+report is a record of somebody's accusation and the product cannot make one
+vanish. The fixtures are **closed** instead, which is what a reviewer does, so
+they leave the queue the way real reports do.
+
+**The queue renders references, not free text.** The first version of the E2E
+looked for a marker in `aboutTyped` and never found it: a list read at a glance,
+over a shoulder, and screenshotted carries no detail (M3-07 §5). The marker is a
+reference now, which is what the list actually shows.
+
+### 5. The counts above the list and the list below it count different things
+
+`queueReport.waiting` counts `received`; `reviewQueue` returns `received` **and**
+`reviewing`. So the number at the top of the screen and the length of the list
+below it can legitimately differ, and always have.
+
+Left alone deliberately. *Waiting* means nobody has picked it up, which is the
+number the SLA is about; the list is everything not yet decided, which is the
+work. Making them agree would mean either dropping in-progress reports off the
+screen or counting them as waiting, and both are worse than two honest numbers.
+Recorded here because it looks like a bug on first reading and is not.

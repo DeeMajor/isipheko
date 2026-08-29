@@ -45,16 +45,32 @@ export const dynamic = 'force-dynamic'
 export default async function ReviewQueuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ problem?: string; done?: string }>
+  searchParams: Promise<{ problem?: string; done?: string; from?: string }>
 }) {
   const admin = await requireAdmin()
-  const { problem, done } = await searchParams
+  const { problem, done, from } = await searchParams
+
+  /*
+   * Where in the queue this page starts (M3-07b).
+   *
+   * A plain number in the query string and a plain `<a>` to move: the reviewer's
+   * screen holds to the same posture as the contributor's, so paging works with
+   * JavaScript off. An unparseable value is the first page rather than an error
+   * — there is nothing here somebody needs told about a bad number.
+   */
+  const asked = Number.parseInt(from ?? '', 10)
+  const offset = Number.isFinite(asked) && asked > 0 ? asked : 0
 
   const now = new Date()
-  const [queue, counts] = await Promise.all([
-    reviewQueue(prisma),
+  const [page, counts] = await Promise.all([
+    reviewQueue(prisma, { offset }),
     queueReport(prisma, { now }),
   ])
+
+  const queue = page.rows
+  const showing = { first: page.offset + 1, last: page.offset + queue.length }
+  const previous = Math.max(0, page.offset - page.limit)
+  const next = page.offset + page.limit
 
   await recordAdminAction({
     action: 'admin.queue.viewed',
@@ -132,6 +148,38 @@ export default async function ReviewQueuePage({
           })}
         </ol>
       )}
+
+      {/*
+        Where this page sits in the whole queue, said whether or not there is
+        more (M3-07b). The list used to stop at a hundred and say nothing, so a
+        reviewer who reached the bottom believed they had reached the end — and
+        the reports that fell off were the newest, with the most time left.
+
+        A count of reports is not a count of contributions and carries none of
+        the strand's or the album's rules. It is the number the SLA is measured
+        against.
+      */}
+      {queue.length === 0 ? null : (
+        <p className={styles.counts}>
+          {reviewCopy.showing(showing.first, showing.last, page.total)}
+        </p>
+      )}
+
+      {page.total > page.limit ? (
+        <nav className={styles.pages} aria-label={reviewCopy.pages.label}>
+          {page.offset > 0 ? (
+            <a className={styles.pageLink} href={`/review?from=${String(previous)}`}>
+              {reviewCopy.pages.previous}
+            </a>
+          ) : null}
+
+          {next < page.total ? (
+            <a className={styles.pageLink} href={`/review?from=${String(next)}`}>
+              {reviewCopy.pages.next(Math.min(page.limit, page.total - next))}
+            </a>
+          ) : null}
+        </nav>
+      ) : null}
     </main>
   )
 }

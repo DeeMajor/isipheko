@@ -209,13 +209,54 @@ const fromDbReason = (reason: string): ReportReason =>
  * where somebody is about to use it; a list is read at a glance, over a
  * shoulder, and screenshotted (docs/decisions.md M3-07 §5).
  */
+/** One page of the queue, and how much of it there is (M3-07b). */
+export interface ReviewPage {
+  readonly rows: readonly QueuedReport[]
+  /** Every open report, not only the ones on this page. */
+  readonly total: number
+  /** Zero-based, as asked for and after clamping. */
+  readonly offset: number
+  readonly limit: number
+}
+
+/** How many reports fit on one screen before it becomes a wall. */
+export const REVIEW_PAGE_SIZE = 50
+
+/**
+ * One page of open reports, oldest deadline first.
+ *
+ * **This took 100 and said nothing about it** (M3-07b). A reviewer who scrolled
+ * to the bottom of a silently capped list believed they had seen everything — so
+ * the one-working-day SLA failed invisibly, on the screen built to guarantee it,
+ * and the reports that fell off were the **newest**, whose deadlines had not yet
+ * arrived and which therefore had the most time left to save.
+ *
+ * Found by two E2E tests failing against a local database that had accumulated
+ * 108 open reports. In production the cap is real and the failure mode is a
+ * person rather than a test.
+ *
+ * **The sort is a total order and has to be.** `respondBy` alone ties — every
+ * report filed in the same hour shares a deadline, and the SLA is measured in
+ * working days, so ties are the common case rather than the edge. Two rows that
+ * compare equal can be returned in either order by two queries, which under
+ * `skip`/`take` means a report appearing on both pages or on neither. `id` last
+ * makes the order total, so the page boundary is stable.
+ */
 export async function reviewQueue(
   db: PrismaClient,
-  { limit = 100 }: { limit?: number } = {},
-): Promise<readonly QueuedReport[]> {
+  { limit = REVIEW_PAGE_SIZE, offset = 0 }: { limit?: number; offset?: number } = {},
+): Promise<ReviewPage> {
+  const open = { status: { in: ['received', 'reviewing'] satisfies ReportStatus[] } }
+
+  const total = await db.report.count({ where: open })
+  // A deleted or closed report between the count and the read would otherwise
+  // leave somebody on an empty page with no way back.
+  const start = Math.max(0, Math.min(offset, Math.max(0, total - 1)))
+
   const rows = await db.report.findMany({
-    where: { status: { in: ['received', 'reviewing'] } },
-    orderBy: [{ respondBy: 'asc' }, { createdAt: 'asc' }],
+    where: open,
+    orderBy: [{ respondBy: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    skip: start,
     take: limit,
     select: {
       id: true,
@@ -232,18 +273,23 @@ export async function reviewQueue(
     },
   })
 
-  return rows.map((row) => ({
-    id: row.id,
-    reference: `${row.refPrefix}-${row.refCode}`,
-    reason: fromDbReason(row.reason),
-    status: row.status,
-    respondBy: row.respondBy,
-    createdAt: row.createdAt,
-    eventTitle: row.event?.title ?? null,
-    collectionTitle: row.collection?.title ?? null,
-    aboutTyped: row.aboutTyped,
-    reachable: row.reporterPhoneE164 !== null,
-  }))
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      reference: `${row.refPrefix}-${row.refCode}`,
+      reason: fromDbReason(row.reason),
+      status: row.status,
+      respondBy: row.respondBy,
+      createdAt: row.createdAt,
+      eventTitle: row.event?.title ?? null,
+      collectionTitle: row.collection?.title ?? null,
+      aboutTyped: row.aboutTyped,
+      reachable: row.reporterPhoneE164 !== null,
+    })),
+    total,
+    offset: start,
+    limit,
+  }
 }
 
 export interface ReportDetail extends QueuedReport {

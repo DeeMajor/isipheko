@@ -248,6 +248,102 @@ test('a reviewer works the queue, and the page is unchanged afterwards', async (
   expect(await page.content()).toBe(before)
 })
 
+test('a reviewer can reach a report that does not fit on the first page', async ({
+  page,
+}) => {
+  /*
+   * M3-07b, and the done-criterion in one test: **a reviewer can reach every
+   * open report.**
+   *
+   * `reviewQueue` took a hundred and the screen said nothing about it, so
+   * somebody who scrolled to the bottom of a silently capped list believed they
+   * had seen everything. The SLA failed invisibly on the screen built to
+   * guarantee it, and what fell off were the newest reports — the ones whose
+   * deadline had not yet passed and which still had time to save.
+   *
+   * The report this test looks for is given a **later deadline than every other
+   * report in the database**, which puts it last in the queue by construction.
+   * If the list still ended silently, it would be unreachable.
+   */
+  test.slow()
+  await asFreshClient(page)
+
+  const prisma = prismaClient()
+  // The queue renders each report's reference, not its free text — a list read
+  // at a glance carries no detail (M3-07 §5). So the reference is the marker.
+  const marker = `RPT-${refCode()}`
+
+  try {
+    const open = await prisma.report.count({
+      where: { status: { in: ['received', 'reviewing'] } },
+    })
+
+    // Enough to guarantee a second page, whatever is already in there.
+    const filler = Math.max(0, 50 - open) + 5
+    const far = new Date('2027-12-31T09:00:00.000Z')
+
+    for (let index = 0; index < filler; index += 1) {
+      await prisma.report.create({
+        data: {
+          refPrefix: 'RPT',
+          refCode: refCode(),
+          reason: 'something_else',
+          aboutTyped: `queue filler ${String(index)}`,
+          respondBy: new Date('2027-12-30T09:00:00.000Z'),
+        },
+      })
+    }
+
+    await prisma.report.create({
+      data: {
+        refPrefix: 'RPT',
+        refCode: marker.slice(4),
+        reason: 'something_else',
+        aboutTyped: 'the last one in the queue',
+        // Latest deadline of all, so it sorts last.
+        respondBy: far,
+      },
+    })
+
+    await signInAs(page, ADMIN_NUMBERS[4] ?? '')
+    await page.goto('/review')
+
+    // The list says where it ends and whether that is the end.
+    await expect(page.getByText(/Showing 1 to \d+ of \d+ open reports/)).toBeVisible()
+
+    // Not on the first page, by construction.
+    await expect(page.getByText(marker)).toHaveCount(0)
+
+    // Plain links, so this works with JavaScript off like the rest of the
+    // product. Follow them until the last report is on screen.
+    for (let hop = 0; hop < 20; hop += 1) {
+      const next = page.getByRole('link', { name: /The next/ })
+      if ((await next.count()) === 0) break
+      await next.first().click()
+      await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible()
+      if ((await page.getByText(marker).count()) > 0) break
+    }
+
+    await expect(page.getByText(marker)).toBeVisible()
+  } finally {
+    /*
+     * Closed, never deleted. The application role holds UPDATE on `reports` and
+     * **`REVOKE DELETE, TRUNCATE`** (the reports migration) — a report is a
+     * record of somebody's accusation and the product cannot make one vanish.
+     * Closing is what takes a report out of the open queue, and it is what a
+     * reviewer does, so the fixtures leave the way real ones do.
+     *
+     * Found by writing `deleteMany` and getting `permission denied for table
+     * reports` — the grant working, on a test rather than on a person.
+     */
+    await prisma.report.updateMany({
+      where: { refPrefix: 'RPT' },
+      data: { status: 'closed', closedAt: new Date() },
+    })
+    await prisma.$disconnect()
+  }
+})
+
 test('the queue and the report screen have no accessibility violations', async ({
   page,
 }) => {
