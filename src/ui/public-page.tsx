@@ -347,7 +347,20 @@ export function PublicEventPage({
               <div className="trustBlock">
                 <h3 className="trustHeading">{eventCopy.trust.neverHeading}</h3>
                 <p className="trustBody">{eventCopy.trust.neverBody}</p>
-                <p className="trustBody">{eventCopy.trust.moneyBody}</p>
+                {/*
+                  What this page can do with money, and it is a different answer
+                  per mode (M5-02b). The ledger-only sentence says the page
+                  cannot take a payment, which stopped being true of a hosted
+                  event the moment M5-02 built a checkout reachable from here —
+                  in the panel that exists to be believed, on the screen before
+                  the one that takes it. Read from the event rather than assumed,
+                  the same posture as the badge above.
+                */}
+                <p className="trustBody">
+                  {event.mode === 'hosted'
+                    ? eventCopy.trust.moneyBodyHosted
+                    : eventCopy.trust.moneyBody}
+                </p>
               </div>
 
               <div className="trustBlock">

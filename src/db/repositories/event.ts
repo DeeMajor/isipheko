@@ -324,6 +324,15 @@ export interface PublicEvent {
   eventDate: Date | null
   organiserName: string | null
   /**
+   * How this event takes money (M5-02).
+   *
+   * The public page needs it because the trust panel's money sentence has a
+   * different answer per mode, and the ledger-only one — *"nothing on this page
+   * can take money from you yet"* — is false on a hosted event, on the panel a
+   * stranger reads to decide whether to trust the page at all (M5-02b).
+   */
+  mode: PaymentMode
+  /**
    * Null when the organiser is not verified. After M3-02 a published event
    * implies a verified organiser, so this is set on every page a stranger can
    * reach — but the page reads it rather than assuming it, because a page that
@@ -371,6 +380,7 @@ export async function publicEventBySlug(
       subtitle: true,
       place: true,
       eventDate: true,
+      mode: true,
       organiser: { select: { displayName: true, idVerifiedAt: true } },
       witnesses: {
         where: { status: 'accepted' },
@@ -407,6 +417,7 @@ export async function publicEventBySlug(
     subtitle: event.subtitle,
     place: event.place,
     eventDate: event.eventDate,
+    mode: event.mode,
     organiserName: event.organiser.displayName,
     organiserVerifiedAt: event.organiser.idVerifiedAt,
     witnesses: event.witnesses.map((witness) => witness.name),

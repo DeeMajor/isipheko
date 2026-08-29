@@ -194,8 +194,34 @@ export const eventCopy = {
      */
     neverBody:
       'Isipheko will never ask for your PIN, your OTP, your card number or your online banking password. Not by phone, not by WhatsApp, not on this page. Anyone who asks is not from Isipheko.',
+    /**
+     * **Ledger-only.** Nothing on this page takes a payment: the contributor
+     * pays the organiser from their own banking app and comes back to say so,
+     * so the sentence is the literal truth of what the page can do.
+     */
     moneyBody:
       'Nothing on this page can take money from you yet. When contributing opens, you will be told exactly where your money goes before you send it.',
+    /**
+     * **Hosted, and the reason this string is keyed at all** (M5-02b).
+     *
+     * M5-02 built a checkout reachable from this page. The sentence above then
+     * became false on a hosted event — in the panel that exists to be believed,
+     * on the screen before the one that takes the money, read by a stranger
+     * deciding whether this is a scam. `src/ui/public-page.tsx` had no mode to
+     * branch on and rendered it unconditionally.
+     *
+     * What replaces it says where the money actually goes, because that is what
+     * the sentence was promising to tell somebody later. It goes to the family's
+     * own account through a licensed payment service; **Isipheko never holds
+     * it**, which is the same fact `collectionCopy` states for a collection and
+     * the same one M5-03 §7 put on the dashboard.
+     *
+     * **No timetable is promised.** When it reaches the family is a settlement
+     * question nobody has answered (docs/remaining-work.md A1), and a page that
+     * says "within two days" would be inventing one.
+     */
+    moneyBodyHosted:
+      'You can contribute on this page. Your money goes to the family’s own bank account through a licensed payment service — Isipheko never holds it and cannot take it out. You will see exactly what you are sending before you send it.',
 
     wrongHeading: 'If something looks wrong',
     /**

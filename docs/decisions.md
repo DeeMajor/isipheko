@@ -2901,3 +2901,62 @@ Under the confirmed figure, `raisedNote` read *"41 people's money, confirmed by 
 It is now mode-keyed like the sentence above it — *"confirmed as each payment cleared"* — at both the singular and the plural, because those are separate strings and the singular is the one a small event reads. Asserted in `tests/unit/dashboard.test.tsx` beside the `intro` assertion.
 
 **`available` is still *"Settled"* and is still M5-08's.** That one is a label meaning the wrong fact; this one was a sentence naming the wrong actor. Worth separating, because the audit that found the first missed the second — a mode sweep that reads the prose and stops at the figures will keep missing this class.
+
+---
+
+## M5-02b · The trust panel's money line
+
+### 1. The panel had no mode to branch on, which is how it came to be false
+
+`src/ui/public-page.tsx` renders the trust panel and knew nothing about
+`events.mode`. `PublicEvent` did not carry it, `publicEventBySlug` did not select
+it, and there was no branch anywhere on that page. So when M5-02 built a hosted
+pay step reachable from the same page, *"Nothing on this page can take money from
+you yet"* became false on a hosted event and there was no seam at which anybody
+would have noticed.
+
+**This is the fourth string of the class and the first on a public page.** The
+three before it — `money.intro` (M5-03 §7), `money.raisedNote` (§10) and
+`money.available`, still outstanding — are all on the organiser's dashboard,
+where the reader is the person who set the page up and can check the claim
+against her own bank. This one is read by a stranger, in the panel that exists to
+be believed, one screen before the one that takes the money.
+
+`PublicEvent` now carries `mode`, from the same column the pay step reads.
+
+### 2. What the replacement says, and the two things it refuses to say
+
+It says where the money goes — the family's own bank account, through a licensed
+payment service — and that **Isipheko never holds it**. That is the promise the
+old sentence was deferring: *"you will be told exactly where your money goes"*.
+Saying it now rather than later is the whole fix.
+
+**No timetable.** When a settlement reaches the family is unanswered
+(docs/remaining-work.md A1, docs/paystack-analysis.md §1.3), and ZA settlement is
+two working days rather than the T+1 the API documentation describes. A page
+promising "within two days" would be inventing a number in front of the person
+with the least ability to check it. A test asserts the absence on both variants,
+because the pressure to reassure is exactly what put the original sentence there.
+
+**No custody claim, in either direction.** The hosted variant does not say we
+hold the money and does not say the organiser already has it — she does not, and
+that is the mistake M5-03 §7 fixed one screen over.
+
+### 3. The mutation check is a diff between the two renders
+
+`changes nothing else on the page between the two modes` renders both and asserts
+**exactly one chunk differs each way**. A branch on `mode` inside a page that
+previously had none is an invitation to hang more off it — a second sentence, a
+different badge, a hosted-only panel — and each of those is a divergence between
+what two contributors see on pages that are otherwise the same umcimbi.
+
+Proved by removing the branch: three tests fail, including that one.
+
+### 4. `neverBody` is untouched, and must stay untouched
+
+The prototype's version ends *"Money you send goes to a held Isipheko account for
+this ceremony, never to a personal account."* That was untrue when M1-08 refused
+it and it is **still untrue now that hosted mode exists** — funds sit with the
+payment service, allocated to the family, and never with us. A hosted checkout is
+the moment somebody will be tempted to restore it, because it finally sounds
+plausible. It is not.

@@ -35,6 +35,7 @@ const EVENT = {
   organiserVerifiedAt: new Date('2026-08-12T00:00:00.000Z'),
   witnesses: ['Thandi Ngcobo'],
   needs: [],
+  mode: 'ledger_only' as const,
 }
 
 /** The inlined stylesheet is shared and mentions every token; scans want the page. */
@@ -42,9 +43,9 @@ function withoutStyles(markup: string): string {
   return markup.replace(/<style[\s\S]*?<\/style>/g, '')
 }
 
-function eventPage(): string {
+function eventPage(mode: 'ledger_only' | 'hosted' = 'ledger_only'): string {
   return renderToStaticMarkup(
-    <PublicEventPage event={EVENT} archetype={ARCHETYPES.umngcwabo} />,
+    <PublicEventPage event={{ ...EVENT, mode }} archetype={ARCHETYPES.umngcwabo} />,
   )
 }
 
@@ -107,6 +108,62 @@ describe('the panel is on every page somebody is asked for something', () => {
     expect(collectionCopy.page.occasionBody('MTH-4K7B2X')).toContain(
       'Do not use a number on this page',
     )
+  })
+})
+
+describe('what the panel says this page can do with money', () => {
+  /*
+   * M5-02b. The panel said *"Nothing on this page can take money from you yet"*
+   * on every event, and M5-02 built a checkout reachable from that same page.
+   * This is the panel a stranger reads to decide whether the page is a scam,
+   * one screen before the one that takes the money — so being wrong here is
+   * worse than being wrong on the dashboard, where the reader is the person who
+   * set the page up.
+   */
+
+  it('says nothing can be taken, on a ledger-only event, where that is true', () => {
+    const markup = eventPage('ledger_only')
+
+    expect(markup).toContain('Nothing on this page can take money from you yet')
+  })
+
+  it('does not say it on a hosted event, where it is false', () => {
+    const markup = eventPage('hosted')
+
+    expect(markup).not.toContain('Nothing on this page can take money from you yet')
+    expect(markup).not.toContain('When contributing opens')
+  })
+
+  it('says where the money goes instead, and who does not hold it', () => {
+    const markup = eventPage('hosted')
+
+    expect(markup).toContain('the family’s own bank account')
+    expect(markup).toContain('Isipheko never holds it')
+  })
+
+  it('promises no timetable on either variant', () => {
+    // When a settlement reaches the family is unanswered (remaining-work A1).
+    // A page saying "within two days" would be inventing one, and it would be
+    // read by the person with the least ability to check it.
+    const WHEN = /\b(within|in)\s+(a\s+few|one|two|three|\d+)\s+(second|minute|hour|working\s+day|day)/i
+
+    for (const mode of ['ledger_only', 'hosted'] as const) {
+      expect(eventCopy.trust.moneyBody, mode).not.toMatch(WHEN)
+      expect(eventCopy.trust.moneyBodyHosted, mode).not.toMatch(WHEN)
+    }
+  })
+
+  it('changes nothing else on the page between the two modes', () => {
+    // The mutation check for this task's guard. If the branch is widened later
+    // — a second sentence, a different panel, a badge — this fails and says so.
+    const difference = (a: string, b: string) =>
+      a.split(/(?<=>)/).filter((chunk) => !b.includes(chunk))
+
+    const ledgerOnly = withoutStyles(eventPage('ledger_only'))
+    const hosted = withoutStyles(eventPage('hosted'))
+
+    expect(difference(ledgerOnly, hosted)).toHaveLength(1)
+    expect(difference(hosted, ledgerOnly)).toHaveLength(1)
   })
 })
 
