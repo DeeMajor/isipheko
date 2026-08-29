@@ -427,6 +427,50 @@ describe('the payout conditions', () => {
       expect(hosted).toContain('cleared')
     }
   })
+
+  it('does not call money "settled" when only half of that is true', () => {
+    /*
+     * M5-08, the third and last of M3-08's money strings. "Settled" is two
+     * facts — past the reversal window, and paid to your bank. On a ledger-only
+     * event they are the same fact. On a hosted event they come apart, nothing
+     * has been paid out to anybody, and the label is heard as the half that is
+     * false.
+     */
+    const ledgerOnly = renderToStaticMarkup(<MoneySection facts={moneyFacts()} />)
+    const hosted = renderToStaticMarkup(
+      <MoneySection facts={moneyFacts({ mode: 'hosted' })} />,
+    )
+
+    expect(ledgerOnly).toContain('Settled')
+    expect(ledgerOnly).toContain('past the window in which a payment can be reversed')
+
+    expect(hosted).not.toMatch(/[Ss]ettled/)
+    expect(hosted).toContain('Past the reversal window')
+    expect(hosted).toContain('nothing has been paid out to your bank yet')
+  })
+
+  it('claims no payout on a hosted event, because there is not one', () => {
+    /*
+     * The mutation check for this task's guard. *Paid to your bank* becomes
+     * true at M5-10 and not before — `payouts` is empty and M5-03 §5 says why
+     * it stays that way. Until then no figure or note may say the money has
+     * arrived anywhere.
+     *
+     * Scoped to the figures rather than the whole card, because the ledger-only
+     * `intro` says the money **is** already in her own account and that is the
+     * one place where it is true: she was paid directly. The figures are what
+     * she reads a number off.
+     */
+    const ARRIVED =
+      /(in|into|reached|paid to|arrived in) your (own )?(bank|account)|is in your account/i
+
+    for (const mode of ['ledger_only', 'hosted'] as const) {
+      const markup = renderToStaticMarkup(<MoneySection facts={moneyFacts({ mode })} />)
+      const figures = markup.slice(markup.indexOf('Confirmed on the record'))
+
+      expect(figures, mode).not.toMatch(ARRIVED)
+    }
+  })
 })
 
 describe('what the dashboard may not contain', () => {

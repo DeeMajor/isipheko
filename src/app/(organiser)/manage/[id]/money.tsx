@@ -135,6 +135,12 @@ function conditionText(
 export function MoneySection({ facts }: { facts: MoneyFacts }) {
   const { balance } = facts
   const clears = formatDayMonth(balance.clearsAt)
+  /*
+   * Every string in this section has a different answer per mode, and there are
+   * now four of them. Read once so that a fifth cannot be added against a
+   * different fact than the other four (M5-08).
+   */
+  const hosted = facts.mode === 'hosted'
 
   return (
     <>
@@ -146,9 +152,7 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
           on this screen is the failure M3-08 §1 exists to prevent.
         */}
         <p className={styles.body}>
-          {facts.mode === 'hosted'
-            ? dashboardCopy.money.introHosted
-            : dashboardCopy.money.intro}
+          {hosted ? dashboardCopy.money.introHosted : dashboardCopy.money.intro}
         </p>
 
         <div className={styles.figures}>
@@ -158,7 +162,7 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
             note={
               // Who confirmed it differs by mode, like the sentence above. On a
               // hosted event she confirmed nothing — the payment did.
-              facts.mode === 'hosted'
+              hosted
                 ? dashboardCopy.money.raisedNoteHosted(facts.confirmedCount)
                 : dashboardCopy.money.raisedNote(facts.confirmedCount)
             }
@@ -170,14 +174,28 @@ export function MoneySection({ facts }: { facts: MoneyFacts }) {
             note={
               balance.settling === 0n || clears === null
                 ? dashboardCopy.money.settlingNone
-                : dashboardCopy.money.settlingNote(formatMoney(balance.settling), clears)
+                : hosted
+                  ? dashboardCopy.money.settlingNoteHosted(
+                      formatMoney(balance.settling),
+                      clears,
+                    )
+                  : dashboardCopy.money.settlingNote(formatMoney(balance.settling), clears)
             }
           />
 
+          {/*
+            "Settled" is two facts on a hosted event — past the reversal window,
+            and paid to your bank — and only the first is ever true today
+            (M5-08). The label names the one that is.
+          */}
           <Figure
-            label={dashboardCopy.money.available}
+            label={hosted ? dashboardCopy.money.availableHosted : dashboardCopy.money.available}
             amount={formatMoney(balance.available)}
-            note={dashboardCopy.money.availableNote(formatMoney(balance.available))}
+            note={
+              hosted
+                ? dashboardCopy.money.availableNoteHosted(formatMoney(balance.available))
+                : dashboardCopy.money.availableNote(formatMoney(balance.available))
+            }
           />
         </div>
 

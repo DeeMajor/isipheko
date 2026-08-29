@@ -2960,3 +2960,60 @@ it and it is **still untrue now that hosted mode exists** — funds sit with the
 payment service, allocated to the family, and never with us. A hosted checkout is
 the moment somebody will be tempted to restore it, because it finally sounds
 plausible. It is not.
+
+---
+
+## M5-08 · The last untrue label on the money section
+
+### 1. "Settled" is two facts, and only one of them is ever true today
+
+On a ledger-only event *past the reversal window* and *the money is settled in
+your account* are the same fact, because the contributor paid her directly. On a
+hosted event they come apart: the money is with the payment service, nothing has
+been paid out, and **"Settled" is heard as the half that is false** — under a
+figure an organiser decides what to promise on.
+
+The hosted label names the fact that is true and nothing else: **Past the
+reversal window**, with a note saying where the money still is. It does not
+invent a second figure, a fee line or a date.
+
+**The second fact arrives with M5-10.** Settlement reconciliation is what first
+makes *paid to your bank* true of anything, because `payouts` is empty and M5-03
+§5 explains why it must stay that way until there is a payout row to explain a
+debit. Adding a *"paid out"* label now would be a label for a state nothing can
+produce.
+
+### 2. `settlingNote` had the same word and was not on anybody's list
+
+*"Everything older is settled."* Same ambiguity, one sentence lower, and it was
+not named in M5-03 §7, in `docs/paystack-analysis.md` §3.1, or in
+docs/remaining-work.md — all three of which name `available`. It says *"past that
+window"* on a hosted event now.
+
+**Four of the five strings in this block are keyed by mode.** They read one
+`hosted` flag rather than four copies of `facts.mode === 'hosted'`, so a fifth
+cannot quietly be added against a different fact than the other four.
+
+### 3. The guard is about arrival, not about a word
+
+`does not call money "settled"` is the direct assertion. The mutation check
+beside it is broader: **no figure or note on either variant may say the money has
+arrived anywhere.** That is the property, and "settled" was only one way to break
+it.
+
+It is scoped to the figures rather than the whole card, because the ledger-only
+`intro` says the money **is** already in her own account — the one place in this
+product where that is true, and the sentence M5-03 §7 keyed for exactly that
+reason.
+
+Both proved by mutation: unkeying the label fails one test; a hosted note reading
+*"can no longer be reversed and is in your own account"* fails both.
+
+### 4. Three strings, four passes, and this closes the dashboard
+
+`money.intro` (M5-03 §7), `money.raisedNote` (M5-03 §10) and `money.available`
+were all shipped as Mode A truths by M3-08 and all three were false the day
+M5-02 built hosted mode. Each was found separately, by a person reading, months
+apart. **Nothing on this screen is now known to be untrue in either mode** — and
+M5-13 is the scan that stops the next one, written next and deliberately after
+this.

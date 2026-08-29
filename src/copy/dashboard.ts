@@ -151,12 +151,10 @@ export const dashboardCopy = {
      * what to do with it. That is the failure M3-08 §1 was written about,
      * pointing the other way.
      *
-     * **The rest of this section is still Mode A's**, and one label in
-     * particular has not been fixed: `available` reads *"Settled"*, which on a
-     * hosted event sounds like *in your bank* and means *past the reversal
-     * window*. Two different facts. The full rewrite is M5-08; this is the one
-     * sentence that could not wait for it, because it is the one an organiser
-     * acts on.
+     * It was the one sentence that could not wait for M5-08, because it is the
+     * one an organiser acts on. **The rest of the section followed at M5-08**:
+     * `raisedNote`, `settlingNote` and `available` are all keyed now, and every
+     * mode-dependent string in this block reads the same `hosted` flag.
      */
     introHosted:
       'People pay on this page, so this money is with the payment service — not with Isipheko, and not yet in your bank account. What is below is the record of it: what has been confirmed, and what is new enough that a payment could still be reversed.',
@@ -190,10 +188,41 @@ export const dashboardCopy = {
     settlingNone: 'Nothing came in within the last 72 hours.',
     settlingNote: (amount: string, clears: string) =>
       `${amount} arrived in the last 72 hours and clears on ${clears}. Everything older is settled.`,
+    /** Keyed for the same reason `available` is: "settled" is the wrong word. */
+    settlingNoteHosted: (amount: string, clears: string) =>
+      `${amount} arrived in the last 72 hours and clears on ${clears}. Everything older is past that window.`,
 
+    /**
+     * **Ledger-only.** The contributor paid her directly, so a payment past the
+     * reversal window is money that is settled in her own account. One fact,
+     * one word for it.
+     */
     available: 'Settled',
     availableNote: (amount: string) =>
       `${amount} is past the window in which a payment can be reversed.`,
+
+    /**
+     * **Hosted, and the third and last of M3-08's money strings** (M5-08).
+     *
+     * *"Settled"* is two facts wearing one label. On a ledger-only event they
+     * are the same fact and the label is fine. On a hosted event **past the
+     * reversal window** and **paid to your bank** come apart, and "Settled" is
+     * heard as the second while meaning the first — under a figure an organiser
+     * decides what to promise on.
+     *
+     * **The honest hosted label names one fact, because only one is true.**
+     * Nothing moves money out on a hosted event: `payouts` is empty and M5-03 §5
+     * explains why it must stay that way until there is a payout row to explain
+     * a debit. So the note says where the money still is rather than implying it
+     * has arrived somewhere.
+     *
+     * **The second fact arrives with M5-10** — settlement reconciliation, which
+     * is what first makes *paid to your bank* true of anything. It is a label
+     * and a note added beside these, not a rewrite of them.
+     */
+    availableHosted: 'Past the reversal window',
+    availableNoteHosted: (amount: string) =>
+      `${amount} can no longer be reversed. It is still with the payment service — nothing has been paid out to your bank yet.`,
 
     /** No total, no target, no progress. The record is not a scoreboard. */
     inKindNote:
