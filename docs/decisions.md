@@ -3183,13 +3183,15 @@ the production schema refuses the published development keys by value (M1-02 §5
 form to PayFast's sandbox. M5-01 §4 is explicit: *"a gate that fails when the
 wifi does is a gate people learn to re-run rather than read."*
 
-**`pnpm format:check` is not a step, and that is a gap rather than a decision.**
-Twenty files, all from Milestone 4's album, photo and PDF work, are not
-Prettier-clean. Adding the step today would fail every run until somebody pays
-for a twenty-file reformat, and burying that reformat inside the commit that
-introduces CI is the twelve-task diff nobody reviews. The four files this session
-touched were formatted; the rest is named here and in docs/remaining-work.md so
-it is a known debt rather than an unexplained absence in a workflow file.
+**`pnpm format:check` was not a step, and that was a gap rather than a
+decision — closed immediately after.** Seventeen files, all from Milestone 4's
+album, photo and PDF work, were not Prettier-clean. Adding the step then would
+have failed every run until somebody paid for the reformat, and **a gate that is
+red on arrival teaches people to ignore gates** — which is the failure OPS-01
+exists to end, not to repeat.
+
+So it went in as two commits: the reformat on its own, verified to change no
+token that runs, and then the step. See OPS-01b below.
 
 ### 4. Verified by running all four locally, not by reading the YAML
 
@@ -3698,3 +3700,45 @@ type already guarantees it more strongly than a test could. What is asserted
 instead is that the entry describes a thing and that no key on it holds a number.
 
 `pnpm gate:size`: `/e/[slug]` 36.5KB against 150KB, up 0.5KB for the two fields.
+
+---
+
+## OPS-01b · `format:check` becomes a step, once it passes
+
+### 1. The debt was one commit, and it had to be its own
+
+Seventeen files — every one from Milestone 4's album, photo and PDF work — had
+never had Prettier run over them. Nothing failed, because `pnpm lint` is ESLint
+only and there was no CI to run the check. **The repository had a formatter, a
+script and a rule that nobody enforced**, which is precisely the shape OPS-01 was
+written about: an enforcement mechanism named in the tooling and connected to
+nothing.
+
+It could not go into the OPS-01 commit. A seventeen-file reformat buried inside
+the change that introduces the gate is the diff nobody reviews, and the reformat
+is exactly the kind of change that has to be reviewable as *only* a reformat.
+
+### 2. "Whitespace only" was verified, not asserted
+
+Prettier does more than move spaces, so the claim was checked rather than made.
+Every changed file was compared with **all whitespace stripped**, and the
+remaining differences are three kinds, all inert:
+
+- trailing commas, which arrive when a line is split;
+- a leading `|` dropped when a union type collapses onto one line;
+- redundant parentheses around a single-line JSX expression.
+
+No token that runs is different. typecheck, lint, 1176 unit tests and 375
+integration tests were green on both sides, and the E2E suite passed at 165.
+
+### 3. The step is proved to fail
+
+A gate nobody has seen fail is a gate nobody knows is connected — the same
+argument M5-12 §3 makes about the collections tripwire. `pnpm format:check` was
+run against a deliberately misformatted line appended to `src/copy/album.ts`:
+it named the file and exited 1, then passed again once the line was removed.
+
+**Prose stays out of it.** `.prettierignore` holds the authored documents —
+`docs/decisions.md`, the architecture, the implementation plan — because
+reflowing them produces a large diff that says nothing, on the files most read
+by a human (M1-01 §13, M5-01 §17). This step gates source, not prose.

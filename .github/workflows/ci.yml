@@ -20,10 +20,11 @@
 # real form to PayFast's sandbox. docs/decisions.md M5-01 §4: *"a gate that
 # fails when the wifi does is a gate people learn to re-run rather than read."*
 #
-# **`pnpm format:check` is not a CI step yet**, and that is a gap rather than a
-# decision. Twenty files from Milestone 4 are not Prettier-clean, so adding it
-# today would fail every run until somebody pays for a reformat. See
-# docs/decisions.md OPS-01 §3.
+# `pnpm format:check` **is** a step, as of the `style:` commit that made it
+# pass. It was left out at OPS-01 because seventeen Milestone 4 files were not
+# Prettier-clean and adding it would have failed every run — a gate that is red
+# on arrival teaches people to ignore gates. The reformat went in on its own
+# first, so this commit adds a step that passes.
 
 name: CI
 
@@ -46,7 +47,7 @@ env:
 
 jobs:
   check:
-    name: typecheck · lint · unit
+    name: typecheck · lint · format · unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +59,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # Prose documents are in .prettierignore — reflowing docs/decisions.md
+      # would produce a large diff saying nothing, on the file most read by a
+      # human (M1-01 §13, M5-01 §17).
+      - run: pnpm format:check
       - run: pnpm test
 
   integration:
