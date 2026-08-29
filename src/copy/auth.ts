@@ -50,6 +50,24 @@ export const authCopy = {
     title: 'You are signed in',
     body: 'Set up an umcimbi and share it when you are ready.',
     setUp: 'Set up your umcimbi',
+    startCollection: 'Start a collection',
+
+    /**
+     * The way back (UX-04). `/account` is where every later sign-in lands, and
+     * until these lists existed it offered nothing but "set up a new one" —
+     * the confirmation queue, the drafts and the collections were all
+     * reachable only from a bookmark. An organiser who signs in a week later
+     * arrives here to confirm payments; this is the path.
+     */
+    eventsTitle: 'Your imicimbi',
+    collectionsTitle: 'Your collections',
+    draftTag: 'Still being set up',
+    publishedTag: 'Published',
+    collectionOpenTag: 'Open',
+    collectionClosedTag: 'Handed over',
+    /** An action keeps its name: this is the setup flow, resumed. */
+    carryOn: 'Carry on setting it up',
+    open: 'Open it',
 
     signOut: 'Sign out',
     signOutEverywhere: 'Sign out on every device',

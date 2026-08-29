@@ -36,6 +36,19 @@ export const dashboardCopy = {
   viewNote: 'Your view as organiser',
 
   /**
+   * The way out to the page itself (UX-04). The dashboard is where an
+   * organiser lands from her account screen, and until these existed the
+   * public page and the share step were reachable from here only through a
+   * bead or a bookmark — an organiser who lost the WhatsApp message had no way
+   * to send her own link again.
+   */
+  links: {
+    publicPage: 'Open the public page',
+    shareAgain: 'Send the link again',
+    finishSetup: 'Carry on setting it up',
+  },
+
+  /**
    * What just happened, after a redirect. Inlined in the dashboard component
    * until M1-10 — a toast is as user-facing as anything on the page.
    */

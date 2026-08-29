@@ -603,7 +603,9 @@ export async function eventsForOrganiser(
 ): Promise<readonly { id: string; slug: string; title: string; isPublished: boolean }[]> {
   const events = await db.event.findMany({
     where: { organiserId },
-    orderBy: { createdAt: 'desc' },
+    // The id makes the order total (M3-07b §3): `created_at` is milliseconds
+    // and two rows created in one can come back either way round otherwise.
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     select: { id: true, slug: true, title: true, status: true },
   })
 

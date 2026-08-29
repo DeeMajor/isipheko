@@ -164,6 +164,23 @@ export default async function ManagePage({
           </p>
         )}
 
+        {/*
+          The way out (UX-04): the page itself, and the share step for sending
+          the link again. On a draft neither exists yet, so the one honest link
+          is back into the setup flow.
+        */}
+        <p className={styles.body}>
+          {draft.isPublished ? (
+            <>
+              <a href={`/e/${draft.slug}`}>{dashboardCopy.links.publicPage}</a>
+              {' · '}
+              <a href={`/create/${id}/share`}>{dashboardCopy.links.shareAgain}</a>
+            </>
+          ) : (
+            <a href={`/create/${id}/needs`}>{dashboardCopy.links.finishSetup}</a>
+          )}
+        </p>
+
         {saved === '1' ? <Toast>{payDetailsCopy.saved}</Toast> : null}
         {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
         {listed === '1' ? <Toast>{dashboardCopy.toasts.listUpdated}</Toast> : null}

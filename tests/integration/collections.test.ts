@@ -4,6 +4,7 @@ import type { PrismaClient } from '@/db/generated/client'
 import { organiserForPhone } from '@/db/repositories/auth'
 import {
   abandonCollection,
+  collectionsForOrganiser,
   claimAsGroup,
   collectionBySlug,
   collectionsForEvent,
@@ -492,5 +493,41 @@ describe('the host page', () => {
     expect(attached.map((collection) => collection.id)).not.toContain(draft.id)
     // Free text, and never an account we could pay into (rule 12).
     expect(attached[0]?.organiserBankHint).toBe("Nomsa's Capitec, ending 4471")
+  })
+})
+
+describe('the organiser’s own list (UX-04)', () => {
+  it('lists her collections, newest first, and nobody else’s', async () => {
+    const nomsa = await organiser({ verified: true })
+    const stranger = await organiser()
+
+    const first = await groupOf(nomsa.id, { title: 'The Ngcobo cousins' })
+    const second = await groupOf(nomsa.id, { title: 'The office collection' })
+    await groupOf(stranger.id, { title: 'Somebody else’s group' })
+
+    const mine = await collectionsForOrganiser(app, nomsa.id)
+
+    expect(mine.map((collection) => collection.title)).toEqual([
+      'The office collection',
+      'The Ngcobo cousins',
+    ])
+    expect(mine.map((collection) => collection.id)).toEqual([second, first])
+    expect(mine.every((collection) => !collection.isClosed)).toBe(true)
+  })
+
+  it('marks a handed-over collection closed, whoever closed it', async () => {
+    const nomsa = await organiser({ verified: true })
+    const collectionId = await groupOf(nomsa.id)
+
+    await confirmHandover(app, {
+      collectionId,
+      confirmedBy: 'organiser',
+      confirmedByName: 'Nomsa Mthembu',
+      confirmedByMemberId: null,
+      evidenceKey: null,
+    })
+
+    const [row] = await collectionsForOrganiser(app, nomsa.id)
+    expect(row?.isClosed).toBe(true)
   })
 })

@@ -386,3 +386,29 @@ test('the dashboard has no accessibility violations', async ({ page }) => {
 
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
+
+/**
+ * The way back (UX-04). `/account` used to list nothing, so the confirmation
+ * queue — the only screen where Mode A money is confirmed — was reachable
+ * solely from a bookmark. This is the ordinary return visit: sign in, find the
+ * umcimbi, open it, and from there reach the page itself.
+ */
+test('a returning organiser reaches her umcimbi from the account screen', async ({
+  page,
+}) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto('/account')
+
+  await expect(page.getByRole('heading', { name: 'Your imicimbi' })).toBeVisible()
+  await expect(page.getByText('Nokuthula Mthembu')).toBeVisible()
+  await page.getByRole('link', { name: 'Open it' }).click()
+
+  // The dashboard, with its queue — and the way out to the page itself.
+  await expect(page).toHaveURL(new RegExp(`/manage/${seeded.eventId}$`))
+  await expect(page.getByRole('heading', { name: 'Waiting for you' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open the public page' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Send the link again' })).toBeVisible()
+})

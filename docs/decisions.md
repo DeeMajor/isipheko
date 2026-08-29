@@ -3902,3 +3902,50 @@ means.
 Integration tests: a claim survives a re-save of its row; removing a claimed
 row keeps it and returns its label while the unclaimed row beside it goes;
 suggested rows survive a save that never showed them.
+
+---
+
+## UX-04 · The way back — `/account` lists, and `/manage` links out
+
+### 1. The core loop had no navigable path
+
+Nothing anywhere linked to `/manage/[id]`. The screen holding the two actions
+Mode A depends on — confirming payments and marking deliveries — existed only
+at a URL the organiser was never shown: setup ends at the share step, and
+`/account` offered "set up your umcimbi" and two sign-out buttons. An
+organiser signing in a week later to confirm payments had nowhere to go.
+`eventsForOrganiser` had existed in the repository since it was written and
+was rendered nowhere — the M3-08 §8 shape ("built, tested and unreachable"),
+on the screen the whole organiser side routes through. Collections were the
+same one step over: no list, no way back after a lost tab.
+
+### 2. What `/account` now is
+
+The landing screen lists her imicimbi and her collections, each with a state
+and one link: a draft resumes at its needs step (the setup flow walks forward
+from there), a published umcimbi opens on `/manage/[id]`, a collection opens
+on `/collections/[id]`. "Start a collection" joins "Set up your umcimbi",
+because the home page offers both and the signed-in screen offered one. The
+tags are facts, not summaries — the screen links, it does not report.
+
+Both listing queries order by `created_at` **and id** (M3-07b §3's total-order
+point): `created_at` is milliseconds and two rows created in one could come
+back either way round.
+
+### 3. `/manage/[id]` links out
+
+Under the title: *Open the public page* and *Send the link again* (the share
+step) on a published umcimbi — an organiser who lost the WhatsApp message had
+no way to re-send her own link — and *Carry on setting it up* on a draft,
+where neither exists yet.
+
+### 4. What this deliberately does not do
+
+No counts, no totals, no per-event summary on `/account` — the dashboards own
+those. And `/account`'s "placeholder M1-07 replaces" comment is gone: M1-07
+never replaced it (it built per-event screens instead), and the stub reading
+as temporary is part of how the gap survived four milestones.
+
+E2E walks the return visit: sign in, `/account`, find the umcimbi, open the
+dashboard, and see the way out to the page. Integration covers the collection
+list's scoping and ordering.

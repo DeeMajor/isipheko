@@ -582,6 +582,32 @@ export async function collectionForOrganiser(
   return collection === null ? null : toView(collection)
 }
 
+/**
+ * Every collection this organiser runs, for her account screen (UX-04).
+ *
+ * Before this, `/account` listed nothing: an organiser who lost the tab had no
+ * way back to her collection at all. Titles and a closed/open fact only — the
+ * screen links, it does not summarise.
+ */
+export async function collectionsForOrganiser(
+  db: PrismaClient,
+  organiserId: string,
+): Promise<readonly { id: string; title: string; isClosed: boolean }[]> {
+  const collections = await db.collection.findMany({
+    where: { organiserId },
+    // The id makes the order total (M3-07b §3): `created_at` is milliseconds
+    // and two rows created in one can come back either way round otherwise.
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    select: { id: true, title: true, handoverStatus: true },
+  })
+
+  return collections.map((collection) => ({
+    id: collection.id,
+    title: collection.title,
+    isClosed: collection.handoverStatus !== 'not_started',
+  }))
+}
+
 /** Every collection attached to one umcimbi, for the host's page. */
 export async function collectionsForEvent(
   db: PrismaClient,
