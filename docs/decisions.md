@@ -3949,3 +3949,48 @@ as temporary is part of how the gap survived four milestones.
 E2E walks the return visit: sign in, `/account`, find the umcimbi, open the
 dashboard, and see the way out to the page. Integration covers the collection
 list's scoping and ordering.
+
+---
+
+## UX-05 · The release the copy always promised
+
+### 1. "Ask the family to release it" pointed at nothing
+
+`needsCopy.tooLateBody` has said since M2-04: *"Ask the family to release it
+if you can no longer bring it."* No screen could. `withdrawClaim` existed in
+the repository — M2-03 §4 even describes it as "the organiser releasing
+something back to the board" — and had no caller. A claim that would never
+arrive either blocked the item for the seven-day lapse, or tempted the
+organiser into the one control she did have: **marking a tent arrived that
+was not**, which writes a false in-kind entry onto the append-only chain and
+can only be walked back with a reversal.
+
+### 2. Scoped, audited, and refused where it is not hers to give
+
+`releaseClaimForOrganiser` wraps `withdrawClaim` with the ownership check —
+the claim must sit on her own event, and a stranger's claim id answers
+`not-found`, indistinguishable from one that does not exist. A **delivered**
+claim is refused: the thing arrived and stays on the record (M2-03 §4's rule,
+surfacing here). A **group claim** is refused: the reservation belongs to a
+collection whose organiser is visible, and what gives the item back is
+abandoning the collection (M2-09 §3) — the host taking the tent from the
+cousins without their knowledge is not a control this screen should have.
+`OrganiserBoardRow` carries `isGroupClaim` so the button is not offered
+rather than offered and refused.
+
+`claim.released` joins the audit taxonomy: no ledger entry — nothing was
+ever confirmed — but taking a promise out of somebody's name is an act the
+"what happened to this event?" trail should show.
+
+### 3. Quiet on the row, explained in the group note
+
+The button sits beside "Mark as arrived" as the quiet variant, because the
+ordinary answer to a promise is that it arrives. When to use it lives in the
+promised group's note rather than per row. The toast echoes the contributor
+side's own words — *"Put back on the list. Somebody else can take it now."*
+is `needsCopy.undoneBody`'s sentence, because the same act should not have
+two vocabularies. `setupCopy.needs.claimed` (UX-03) now names the way
+through it deliberately withheld while the control did not exist.
+
+Integration covers release, scoping, the delivered refusal and the group
+refusal; E2E releases Musa's tent and watches it become a gap again.

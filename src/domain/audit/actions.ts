@@ -87,7 +87,16 @@ export type EventAction = 'event.published'
  * the ledger row does not carry and which is the question asked after the fact.
  */
 export type ConfirmAction =
-  'contribution.confirmed' | 'delivery.confirmed' | 'handover.confirmed'
+  | 'contribution.confirmed'
+  | 'delivery.confirmed'
+  | 'handover.confirmed'
+  /**
+   * The organiser giving a claim back to the board (UX-05). No ledger entry —
+   * nothing was ever confirmed — but it takes a promise out of somebody's
+   * name, which is exactly the kind of act the question "what happened to
+   * this event?" is asked about.
+   */
+  | 'claim.released'
 
 /**
  * Reports (M3-06) and what a person does about them.
@@ -171,6 +180,7 @@ export const AUDIT_ACTIONS: readonly AuditAction[] = [
   'contribution.confirmed',
   'delivery.confirmed',
   'handover.confirmed',
+  'claim.released',
   'report.filed',
   'report.triaged',
   'admin.queue.viewed',

@@ -272,6 +272,37 @@ export async function withdrawClaim(
 }
 
 /**
+ * The organiser releasing somebody's claim back to the board (UX-05).
+ *
+ * `needsCopy.tooLateBody` has told a contributor since M2-04 to *"ask the
+ * family to release it"* — and no screen could. The only ways out of a claim
+ * that would never arrive were the seven-day lapse, or marking a tent arrived
+ * that was not, which writes a false in-kind entry onto the append-only chain.
+ * This is the control the copy always promised.
+ *
+ * Scoped: the claim must sit on this organiser's own event — a claim id is
+ * not a permission. **A group claim is refused**: the reservation belongs to
+ * a collection whose organiser is visible (M2-09 §3), and what gives the item
+ * back is abandoning the collection, not the host taking it from the group.
+ */
+export async function releaseClaimForOrganiser(
+  db: PrismaClient,
+  { claimId, organiserId }: { claimId: string; organiserId: string },
+): Promise<ReleaseOutcome> {
+  const claim = await db.needClaim.findFirst({
+    where: { id: claimId, needItem: { event: { organiserId } } },
+    select: { collectionId: true },
+  })
+
+  if (claim === null) return { ok: false, reason: 'not-found' }
+  if (claim.collectionId !== null) return { ok: false, reason: 'not-releasable' }
+
+  // `withdrawClaim` re-reads inside its transaction, so a delivery landing
+  // between the check above and here is still refused there.
+  return withdrawClaim(db, claimId)
+}
+
+/**
  * The contributor taking back a claim they just made.
  *
  * Fifteen seconds, enforced here rather than by the button disappearing — a
@@ -701,6 +732,13 @@ export interface OrganiserBoardRow {
   readonly claimantName: string | null
   /** The claim id, which is what "mark as arrived" acts on. */
   readonly claimId: string | null
+  /**
+   * True when the claimant is a collection (M2-09, Part D2.5). A group claim
+   * is not the organiser's to release — the group's own organiser is visible
+   * and abandoning the collection is what gives the item back — so the
+   * release control (UX-05) is not offered on one.
+   */
+  readonly isGroupClaim: boolean
   readonly quantityRequired: number
   readonly quantityClaimed: number
   readonly remaining: number
@@ -761,6 +799,7 @@ export async function organiserBoard(
           status: true,
           quantity: true,
           claimantName: true,
+          collectionId: true,
           deliveredConfirmedAt: true,
         },
       },
@@ -787,13 +826,20 @@ export async function organiserBoard(
         ...base,
         claimantName: item.suggestedByName,
         claimId: null,
+        isGroupClaim: false,
         deliveredAt: null,
       })
       continue
     }
 
     if (base.remaining > 0) {
-      open.push({ ...base, claimantName: null, claimId: null, deliveredAt: null })
+      open.push({
+        ...base,
+        claimantName: null,
+        claimId: null,
+        isGroupClaim: false,
+        deliveredAt: null,
+      })
     }
 
     for (const claim of item.claims) {
@@ -801,6 +847,7 @@ export async function organiserBoard(
         ...base,
         claimantName: claim.claimantName,
         claimId: claim.id,
+        isGroupClaim: claim.collectionId !== null,
         deliveredAt: claim.deliveredConfirmedAt,
       }
 

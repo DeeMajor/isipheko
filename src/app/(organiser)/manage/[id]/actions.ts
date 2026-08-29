@@ -8,6 +8,7 @@ import {
   approveSuggestion,
   confirmDelivery,
   declineSuggestion,
+  releaseClaimForOrganiser,
 } from '@/db/repositories/needs'
 import { issueWitnessInvite } from '@/db/repositories/witness'
 import { requestAlbumPdf } from '@/lib/album-pdf'
@@ -112,6 +113,38 @@ export async function confirmArrival(formData: FormData): Promise<void> {
   }
 
   redirect(`/manage/${id}?${outcome.ok ? 'confirmed=1' : 'error=confirm'}`)
+}
+
+/**
+ * Releasing a claim back to the board (UX-05).
+ *
+ * The control `needsCopy.tooLateBody` promised — *"ask the family to release
+ * it"* — and no screen offered. Without it, a claim that would never arrive
+ * either blocked the item for seven days or tempted her into the wrong tap:
+ * marking a tent arrived that was not, which writes a false in-kind entry
+ * onto the append-only chain.
+ *
+ * No ledger entry — nothing was ever confirmed — but it is audited: taking a
+ * promise out of somebody's name is an act the trail should show.
+ */
+export async function releaseClaim(formData: FormData): Promise<void> {
+  const organiserId = await requireOrganiser()
+  const id = text(formData, 'id')
+  const claimId = text(formData, 'claim')
+
+  const outcome = await releaseClaimForOrganiser(prisma, { claimId, organiserId })
+
+  if (outcome.ok) {
+    await recordOrganiserAction({
+      action: 'claim.released',
+      organiserId,
+      target: { type: 'event', id },
+      fingerprint: await requestFingerprint(),
+      metadata: { claimId },
+    })
+  }
+
+  redirect(`/manage/${id}?${outcome.ok ? 'released=1' : 'error=release'}`)
 }
 
 /**

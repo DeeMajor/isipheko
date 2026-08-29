@@ -55,6 +55,8 @@ export const dashboardCopy = {
   toasts: {
     confirmed: 'Recorded on the ledger.',
     listUpdated: 'Your list has been updated.',
+    /** Echoes the contributor side's own words (`needsCopy.undoneBody`). */
+    released: 'Put back on the list. Somebody else can take it now.',
   },
 
   queue: {
@@ -112,7 +114,7 @@ export const dashboardCopy = {
     },
     promised: {
       title: 'Promised, not yet here',
-      note: 'Held in someone’s name. Mark them off as they arrive.',
+      note: 'Held in someone’s name. Mark them off as they arrive — or release one that is no longer coming, and it goes back on the list for somebody else.',
     },
     arrived: {
       title: 'Here already',
@@ -136,6 +138,12 @@ export const dashboardCopy = {
     suggestedBy: (who: string) => `Suggested by ${who}`,
 
     markArrived: 'Mark as arrived',
+    /**
+     * The control `needsCopy.tooLateBody` always promised (UX-05). Quiet,
+     * beside "Mark as arrived", because the ordinary answer to a promise is
+     * that it arrives; the group note above the rows says when to use it.
+     */
+    release: 'Release it back to the list',
     addToList: 'Add it to the list',
     leaveOff: 'Leave it off',
   },

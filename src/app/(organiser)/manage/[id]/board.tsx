@@ -2,7 +2,7 @@ import { dashboardCopy } from '@/copy/dashboard'
 import type { OrganiserBoard, OrganiserBoardRow } from '@/db/repositories/needs'
 import { Button, Card } from '@/ui/primitives'
 
-import { confirmArrival, decideSuggestion } from './actions'
+import { confirmArrival, decideSuggestion, releaseClaim } from './actions'
 
 import styles from './page.module.css'
 
@@ -64,11 +64,29 @@ function Row({
       )}
 
       {action === 'arrive' && row.claimId !== null ? (
-        <form action={confirmArrival}>
-          <input type="hidden" name="id" value={eventId} />
-          <input type="hidden" name="claim" value={row.claimId} />
-          <Button type="submit">{dashboardCopy.board.markArrived}</Button>
-        </form>
+        <div className={styles.decide}>
+          <form action={confirmArrival}>
+            <input type="hidden" name="id" value={eventId} />
+            <input type="hidden" name="claim" value={row.claimId} />
+            <Button type="submit">{dashboardCopy.board.markArrived}</Button>
+          </form>
+
+          {/*
+            The release (UX-05) — the control `needsCopy.tooLateBody` promised
+            and no screen offered. Not on a group claim: that reservation
+            belongs to a collection whose organiser is visible (M2-09 §3), and
+            abandoning the collection is what gives the item back.
+          */}
+          {row.isGroupClaim ? null : (
+            <form action={releaseClaim}>
+              <input type="hidden" name="id" value={eventId} />
+              <input type="hidden" name="claim" value={row.claimId} />
+              <Button type="submit" variant="quiet">
+                {dashboardCopy.board.release}
+              </Button>
+            </form>
+          )}
+        </div>
       ) : null}
 
       {action === 'suggestion' ? (

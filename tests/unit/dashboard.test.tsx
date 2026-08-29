@@ -77,6 +77,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   note: null,
   claimantName: null,
   claimId: null,
+  isGroupClaim: false,
   quantityRequired: 1,
   quantityClaimed: 0,
   remaining: 1,

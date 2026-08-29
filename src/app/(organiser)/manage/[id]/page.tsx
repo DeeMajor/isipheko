@@ -71,6 +71,7 @@ export default async function ManagePage({
   searchParams: Promise<{
     saved?: string
     confirmed?: string
+    released?: string
     error?: string
     invited?: string
     witness?: string
@@ -85,6 +86,7 @@ export default async function ManagePage({
   const {
     saved,
     confirmed,
+    released,
     error,
     invited,
     witness: witnessId,
@@ -183,6 +185,7 @@ export default async function ManagePage({
 
         {saved === '1' ? <Toast>{payDetailsCopy.saved}</Toast> : null}
         {confirmed === '1' ? <Toast>{dashboardCopy.toasts.confirmed}</Toast> : null}
+        {released === '1' ? <Toast>{dashboardCopy.toasts.released}</Toast> : null}
         {listed === '1' ? <Toast>{dashboardCopy.toasts.listUpdated}</Toast> : null}
         {error === undefined ? null : (
           <Toast tone="problem">That did not go through. Nothing was changed.</Toast>

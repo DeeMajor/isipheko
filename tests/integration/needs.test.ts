@@ -10,6 +10,7 @@ import {
   confirmDelivery,
   declineSuggestion,
   expireLapsedClaims,
+  releaseClaimForOrganiser,
   suggestItem,
   suggestionsForOrganiser,
   withdrawClaim,
@@ -463,5 +464,112 @@ describe('suggested items', () => {
         organiserId: stranger.id,
       }),
     ).toBe(false)
+  })
+})
+
+describe('the organiser releasing a claim (UX-05)', () => {
+  it('gives the item back and marks the claim withdrawn', async () => {
+    const { itemId } = await boardWith(1, 'Tent')
+
+    const claim = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Thandi Ngcobo',
+    })
+    if (!claim.ok) throw new Error('expected the claim to succeed')
+
+    const outcome = await releaseClaimForOrganiser(app, {
+      claimId: claim.claimId,
+      organiserId,
+    })
+
+    expect(outcome).toEqual({ ok: true, remaining: 1 })
+
+    const row = await app.needClaim.findUniqueOrThrow({ where: { id: claim.claimId } })
+    expect(row.status).toBe('withdrawn')
+
+    const item = await app.needItem.findUniqueOrThrow({ where: { id: itemId } })
+    expect(item.quantityClaimed).toBe(0)
+  })
+
+  it('answers not-found for a claim on somebody else’s event', async () => {
+    const { itemId } = await boardWith(1, 'Tent')
+    const claim = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Thandi Ngcobo',
+    })
+    if (!claim.ok) throw new Error('expected the claim to succeed')
+
+    const stranger = await organiserForPhone(
+      app,
+      `+2785${String(++phoneCounter + 9000).padStart(7, '0')}`,
+    )
+
+    // A claim id is not a permission. Indistinguishable from one that does
+    // not exist, and the claim stands untouched.
+    const outcome = await releaseClaimForOrganiser(app, {
+      claimId: claim.claimId,
+      organiserId: stranger.id,
+    })
+    expect(outcome).toEqual({ ok: false, reason: 'not-found' })
+
+    const row = await app.needClaim.findUniqueOrThrow({ where: { id: claim.claimId } })
+    expect(row.status).toBe('claimed')
+  })
+
+  it('refuses a delivered claim — the thing arrived and stays on the record', async () => {
+    const { itemId } = await boardWith(1, 'Tent')
+    const claim = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'Thandi Ngcobo',
+    })
+    if (!claim.ok) throw new Error('expected the claim to succeed')
+
+    const delivered = await confirmDelivery(app, {
+      claimId: claim.claimId,
+      organiserId,
+    })
+    expect(delivered.ok).toBe(true)
+
+    const outcome = await releaseClaimForOrganiser(app, {
+      claimId: claim.claimId,
+      organiserId,
+    })
+    expect(outcome).toEqual({ ok: false, reason: 'not-releasable' })
+  })
+
+  it('refuses a group claim — abandoning the collection is what gives it back', async () => {
+    const { itemId } = await boardWith(1, 'Tent')
+    const claim = await claimItem(app, {
+      needItemId: itemId,
+      quantity: 1,
+      claimantName: 'The Ngcobo cousins',
+    })
+    if (!claim.ok) throw new Error('expected the claim to succeed')
+
+    // A group claim, set the way M2-09 records one. The collection machinery
+    // is not the subject here; the refusal keys on the column.
+    const collection = await app.collection.create({
+      data: {
+        organiserId,
+        occasionArchetype: 'umngcwabo',
+        occasionArchetypeGroup: 'bereavement',
+        title: 'The Ngcobo cousins',
+        status: 'open',
+      },
+      select: { id: true },
+    })
+    await app.needClaim.update({
+      where: { id: claim.claimId },
+      data: { collectionId: collection.id },
+    })
+
+    const outcome = await releaseClaimForOrganiser(app, {
+      claimId: claim.claimId,
+      organiserId,
+    })
+    expect(outcome).toEqual({ ok: false, reason: 'not-releasable' })
   })
 })

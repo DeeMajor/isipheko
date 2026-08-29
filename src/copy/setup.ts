@@ -169,11 +169,12 @@ export const setupCopy = {
      * A removed row with a live claim stays (UX-03). Taking it off the list
      * would take somebody's promise off the record — the claim, with its
      * message and photograph, is deleted with the row and cannot be got back.
-     * Says what stands in the way and what was saved; promises no control that
-     * does not exist yet.
+     * The way through is UX-05's release, on the umcimbi screen, which only
+     * exists for a claim that has not arrived: something already brought stays
+     * on the record.
      */
     claimed: (label: string) =>
-      `${label} stays on the list — somebody has claimed it or already brought it, and taking it off would take their name off the record. Everything else you changed has been saved.`,
+      `${label} stays on the list — somebody has claimed it or already brought it, and taking it off would take their name off the record. Everything else you changed has been saved. A claim that is no longer coming can be released from your umcimbi screen; something already brought stays.`,
   },
 
   witnesses: {

@@ -412,3 +412,34 @@ test('a returning organiser reaches her umcimbi from the account screen', async 
   await expect(page.getByRole('link', { name: 'Open the public page' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Send the link again' })).toBeVisible()
 })
+
+/**
+ * The release (UX-05). `needsCopy.tooLateBody` has told contributors since
+ * M2-04 to "ask the family to release it" — and no screen could. The only
+ * exits from a claim that would never arrive were the seven-day lapse, or
+ * marking a tent arrived that was not, which writes a false in-kind entry
+ * onto the append-only chain.
+ */
+test('a claim that is no longer coming can be released back to the list', async ({
+  page,
+}) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+  await signIn(page, seeded.token)
+
+  await page.goto(`/manage/${seeded.eventId}`)
+
+  // Musa holds the tent, and the quiet action beside "Mark as arrived".
+  await expect(page.getByText('Promised by Musa Khumalo')).toBeVisible()
+  await page.getByRole('button', { name: 'Release it back to the list' }).click()
+
+  await expect(
+    page.getByText('Put back on the list. Somebody else can take it now.'),
+  ).toBeVisible()
+
+  // The tent is a gap again, held by nobody, and no false arrival was written.
+  await expect(page.getByText('Promised by Musa Khumalo')).not.toBeVisible()
+  const board = page.locator('section, div').filter({ hasText: 'Where things stand' })
+  expect(await board.count()).toBeGreaterThan(0)
+  await expect(page.getByText('Nobody has taken this yet').first()).toBeVisible()
+})
