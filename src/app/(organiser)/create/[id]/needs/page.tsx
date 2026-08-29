@@ -65,6 +65,13 @@ export default async function NeedsPage({
         </div>
       ) : null}
 
+      {/* A note without a thing was refused, out loud (UX-08). */}
+      {error === 'unlabelled' ? (
+        <div className={styles.form}>
+          <Toast tone="problem">{setupCopy.needs.unlabelled}</Toast>
+        </div>
+      ) : null}
+
       {/*
         A removed row with a live claim stayed (UX-03). Removing it would take
         somebody's promise off the record — the claim, its message and its

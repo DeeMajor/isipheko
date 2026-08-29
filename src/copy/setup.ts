@@ -189,6 +189,15 @@ export const setupCopy = {
     footNote: 'Nothing is public yet. You can add to this list any time.',
     empty: 'Add at least one thing to carry on.',
     /**
+     * A note with nothing it belongs to (UX-08). The row used to be filtered
+     * out with the blanks, silently — somebody who typed the note first and
+     * tapped "Add something else" lost it with no sign anything happened. A
+     * need item is its label, so the note still cannot be kept on its own;
+     * the refusal is explicit instead.
+     */
+    unlabelled:
+      'One row had a note and nothing it belongs to, so it has not been kept. Put the thing in the empty row below, then its note.',
+    /**
      * A removed row with a live claim stays (UX-03). Taking it off the list
      * would take somebody's promise off the record — the claim, with its
      * message and photograph, is deleted with the row and cannot be got back.
@@ -238,6 +247,15 @@ export const setupCopy = {
     submit: 'Continue',
     foot: 'They are asked, not added. Nothing goes out until they agree.',
     empty: 'Add someone to continue.',
+    /**
+     * A named person with a number that does not parse (UX-08). The row used
+     * to vanish silently on save. It still cannot be kept — a witness with no
+     * reachable number can never be asked — so the refusal names them and
+     * says what to do. The number itself is not echoed back: it was wrong,
+     * and repeating a wrong number teaches nothing the field cannot.
+     */
+    badPhone: (name: string) =>
+      `${name}'s number does not look like a South African cellphone number, so they have not been added yet. Check the number and add them again below.`,
 
     /** The organiser's own view of who has answered (M3-03). */
     statusInvited: 'Not answered yet',

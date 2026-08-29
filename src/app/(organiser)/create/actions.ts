@@ -158,15 +158,31 @@ export async function saveNeeds(formData: FormData): Promise<void> {
   const removing = Number.isInteger(removeIndex) && removeIndex >= 0
 
   const ids = formData.getAll('itemId').map(text)
-  const items = pairs(formData, 'label', 'note')
-    .map(([label, note], index) => ({
-      id: (ids[index] ?? '') === '' ? null : (ids[index] as string),
-      label,
-      note,
-    }))
-    .filter((item, index) => item.label !== '' && index !== removeIndex)
+  const rows = pairs(formData, 'label', 'note').map(([label, note], index) => ({
+    id: (ids[index] ?? '') === '' ? null : (ids[index] as string),
+    label,
+    note,
+  }))
+
+  /*
+   * A note with nothing it belongs to (UX-08). This used to be filtered out
+   * silently with the blank rows: somebody who typed the note first and
+   * tapped "Add something else" — which saves the screen — lost the note with
+   * no sign anything happened. It still cannot be kept (a need item is its
+   * label), so the refusal is explicit instead of silent.
+   */
+  const unlabelled = rows.some(
+    (row, index) => row.label === '' && row.note !== '' && index !== removeIndex,
+  )
+
+  const items = rows.filter((item, index) => item.label !== '' && index !== removeIndex)
 
   const outcome = await reconcileNeeds(prisma, id, items)
+
+  // After the save, so everything that could be kept was — and with a blank
+  // row ready, so putting it right is one edit rather than a hunt for a
+  // button.
+  if (unlabelled) redirect(`/create/${id}/needs?error=unlabelled&add=1`)
 
   // A removed row with a live claim stayed. Everything else was saved; the
   // screen names the row and says why it is still there.
@@ -193,7 +209,22 @@ export async function saveWitnesses(formData: FormData): Promise<void> {
   const removeIndex = Number(formData.get('remove') ?? -1)
   const removing = Number.isInteger(removeIndex) && removeIndex >= 0
 
-  const people = pairs(formData, 'name', 'phone')
+  const entries = pairs(formData, 'name', 'phone')
+
+  /*
+   * A named person whose number does not parse (UX-08). This row used to be
+   * filtered out silently: a witness with a typo'd number simply vanished on
+   * save, and with one witness typed the screen then said "Add someone to
+   * continue" over a form she had just filled in. The person still cannot be
+   * saved — a witness with no reachable number is a name that can never be
+   * asked — so the refusal is explicit and names them.
+   */
+  const dropped = entries.find(
+    ([name, phone], index) =>
+      name !== '' && index !== removeIndex && !normalisePhone(phone).ok,
+  )
+
+  const people = entries
     .filter(([name], index) => name !== '' && index !== removeIndex)
     .slice(0, MAX_WITNESSES)
     .map(([name, phone]) => {
@@ -203,6 +234,16 @@ export async function saveWitnesses(formData: FormData): Promise<void> {
     .filter((person) => person.phoneE164 !== '')
 
   await replaceWitnesses(prisma, id, people)
+
+  // After the save, so everyone whose row was complete is kept — and with a
+  // blank row ready for the retype. The name travels in the query so the
+  // message can say who; the number never does (rule 8: a value in a URL is a
+  // value in every log between here and the browser).
+  if (dropped !== undefined) {
+    redirect(
+      `/create/${id}/witnesses?error=phone&who=${encodeURIComponent(dropped[0])}&add=1`,
+    )
+  }
 
   if (removing) redirect(`/create/${id}/witnesses`)
   if (action === 'add') redirect(`/create/${id}/witnesses?add=1`)

@@ -37,12 +37,13 @@ export default async function WitnessesPage({
   searchParams: Promise<{
     add?: string
     error?: string
+    who?: string
     invited?: string
     witness?: string
   }>
 }) {
   const { id } = await params
-  const { add, error, invited, witness: witnessId } = await searchParams
+  const { add, error, who, invited, witness: witnessId } = await searchParams
   const { draft, archetype, organiserId } = await loadDraft(id)
 
   const saved = await witnessesForEvent(prisma, draft.id)
@@ -74,6 +75,16 @@ export default async function WitnessesPage({
       {error === 'empty' ? (
         <div className={styles.form}>
           <Toast tone="problem">{setupCopy.witnesses.empty}</Toast>
+        </div>
+      ) : null}
+
+      {/* A row with a name and an unusable number was refused, out loud, and
+          by name (UX-08) — it used to vanish silently on save. */}
+      {error === 'phone' ? (
+        <div className={styles.form}>
+          <Toast tone="problem">
+            {setupCopy.witnesses.badPhone(who ?? 'That person')}
+          </Toast>
         </div>
       ) : null}
 

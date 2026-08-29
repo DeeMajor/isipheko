@@ -4068,3 +4068,36 @@ step's *"you can add to this list any time"* is true (and safe since UX-03).
 E2E corrects a published funeral's title from the dashboard and reads it back
 on the public page. The new route joins the catch-all walk in
 `routes.spec.ts`, which failed until it did — the M1-09 §4 tripwire working.
+
+---
+
+## UX-08 · The setup flow's silent drops are refusals now
+
+Two rows could vanish on save with no sign anything happened:
+
+- **A witness with a typo'd number.** `saveWitnesses` filtered out any row
+  whose phone did not parse — so a named person disappeared, and with one
+  witness typed the screen answered *"Add someone to continue"* over a form
+  she had just filled in. Worse with two: the save proceeded with one witness
+  and said nothing at all.
+- **A note without a label.** Somebody who typed the note first and tapped
+  "Add something else" — which saves the screen — lost the note with the
+  blank rows.
+
+Neither row can be kept as it stands: a witness with no reachable number can
+never be asked, and a need item is its label. What changed is that the
+refusal is explicit. Both actions save everything that was complete first,
+then redirect with the refusal and `add=1`, so a blank row is waiting and
+putting it right is one edit. The witness message names the person; **the
+number does not travel in the query** — a value in a URL is a value in every
+log between here and the browser (rule 8), and the name is enough to say
+whose row it was. The note's content is likewise not carried; the message
+says plainly that it was not kept.
+
+Carrying the full typed row through the redirect was considered and refused:
+the setup steps are server actions whose only no-JS answer is a redirect
+(M1-06 §10), and the only place a redirect can carry state is the query
+string, which is exactly where a phone number must not go.
+
+E2E covers both: Thandi refused by name and added correctly on the retype;
+a homeless note refused out loud.

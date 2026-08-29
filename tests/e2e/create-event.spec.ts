@@ -426,3 +426,71 @@ test('has no axe violations across the six steps', async ({ page, request }) => 
   await expect(page.locator('[data-copy-source]')).toBeVisible()
   await scan("It's ready. Send it.")
 })
+
+/**
+ * The silent drops, made loud (UX-08).
+ *
+ * A witness with a typo'd number used to vanish on save — with one witness
+ * typed, the screen then said "Add someone to continue" over a form she had
+ * just filled in. A note typed before its label was filtered out with the
+ * blank rows. Neither can be kept as it stands; both refusals are now
+ * explicit, and the witness one names the person.
+ */
+test('a witness with an unusable number is refused by name, not dropped', async ({
+  page,
+  request,
+}) => {
+  await asFreshClient(page)
+  await signIn(page, request)
+
+  await page.goto('/create?kind=umngcwabo')
+  await page.getByRole('button', { name: 'Continue with funeral' }).click()
+  await page.getByLabel('Her name, or his name').fill('Nokuthula Mthembu')
+  await page.getByLabel('Your name').fill('Nomsa Mthembu')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: "What's needed" })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Who stands with you?' })).toBeVisible()
+  await page.getByLabel('Their name').fill('Thandi Ngcobo')
+  await page.getByLabel('Their number').fill('12345')
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  // Refused out loud, by name — not "Add someone to continue" over a filled
+  // form, and not the verify step with Thandi quietly missing.
+  await expect(
+    page.getByText(/Thandi Ngcobo.s number does not look like a South African/),
+  ).toBeVisible()
+
+  // A blank row is ready; putting it right is one edit.
+  await page.getByLabel('Their name').fill('Thandi Ngcobo')
+  await page.getByLabel('Their number').fill('0821234567')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'One check, then you can share it' }),
+  ).toBeVisible()
+})
+
+test('a note without a thing is refused out loud, not filtered away', async ({
+  page,
+  request,
+}) => {
+  await asFreshClient(page)
+  await signIn(page, request)
+
+  await page.goto('/create?kind=umngcwabo')
+  await page.getByRole('button', { name: 'Continue with funeral' }).click()
+  await page.getByLabel('Her name, or his name').fill('Nokuthula Mthembu')
+  await page.getByLabel('Your name').fill('Nomsa Mthembu')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: "What's needed" })).toBeVisible()
+
+  // A blank row, then a note typed into it with no thing beside it.
+  await page.getByRole('button', { name: 'Add something else' }).click()
+  await page.getByLabel('How much is needed').last().fill('Around R1 200 to hire')
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(
+    page.getByText('One row had a note and nothing it belongs to'),
+  ).toBeVisible()
+})
