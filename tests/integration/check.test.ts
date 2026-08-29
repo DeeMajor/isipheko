@@ -167,20 +167,26 @@ describe('the answer', () => {
     const event = await published()
     const result = await check(prisma, { kind: 'slug', slug: event.slug })
 
-    // The whole shape, so a field added later has to be considered rather than
-    // arriving by accident on an endpoint that takes no session.
-    expect(Object.keys(result ?? {}).sort()).toEqual([
-      'organiserName',
-      'reference',
-      'title',
-      'verifiedAt',
-    ])
+    // **The whole value, not just the shape.** A key list catches a field
+    // added later; this catches a field whose *contents* grew — an
+    // organiserName that started carrying a phone number, a title that
+    // acquired the place. Nothing can hide anywhere in the answer, because
+    // the answer is asserted entire.
+    expect(result).toEqual({
+      title: 'Nokuthula Mthembu',
+      organiserName: 'Nomsa Mthembu',
+      reference: event.reference,
+      verifiedAt: new Date('2026-08-12T00:00:00.000Z'),
+    })
 
+    // Kept as well, and they are not redundant: they name the four things the
+    // fixture deliberately plants, so a reader can see what this endpoint is
+    // being kept away from rather than inferring it from an absence.
     const rendered = JSON.stringify(result)
     expect(rendered).not.toContain('+2785')
     expect(rendered).not.toContain('Tent')
     expect(rendered).not.toContain('Thandi')
-    expect(rendered).not.toMatch(/R\s?\d/)
+    expect(rendered).not.toContain('R1 200')
   })
 })
 
