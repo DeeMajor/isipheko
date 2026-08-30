@@ -229,12 +229,12 @@ describe('who the bead opens to reveal', () => {
 
 describe('the honesty requirement', () => {
   it('says who holds the money, by name', () => {
-    // Part D2.6. The contributors are trusting her, not us, and copy that
-    // implied otherwise would be the one dishonest thing in the product.
+    // Part D2.6. The contributors are trusting the organiser, not us, and copy
+    // that implied otherwise would be the one dishonest thing in the product.
     const line = collectionCopy.holdsTheMoney('Nomsa Mthembu')
 
     expect(line).toContain('Nomsa Mthembu')
-    expect(line).toContain('her own account')
+    expect(line).toContain('their own account')
     expect(line.toLowerCase()).toContain('isipheko does not hold it')
   })
 

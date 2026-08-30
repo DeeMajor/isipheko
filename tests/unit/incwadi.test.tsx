@@ -120,7 +120,7 @@ describe('how it was confirmed', () => {
       render({ handoverStatus: 'organiser_evidenced', witnessName: null }),
     )
 
-    expect(text).toContain('Marked handed over by Nomsa Mthembu, on her own word.')
+    expect(text).toContain('Marked handed over by Nomsa Mthembu, on their own word.')
     expect(text).not.toContain('witnessed by')
   })
 

@@ -84,7 +84,7 @@ describe('who holds the money', () => {
     // Rule 16 and Part D2.6, verbatim from design/collection.html.
     expect(text).toContain('Nomsa Mthembu holds this money, not Isipheko.')
     expect(text).toContain(
-      'You are trusting her, the way you would if she collected it in an envelope.',
+      'You are trusting them, the way you would if they collected it in an envelope.',
     )
 
     // And it comes before the join button, because it is what somebody needs
@@ -141,7 +141,7 @@ describe('who holds the money', () => {
     const text = textOf(render())
 
     expect(text).toContain('Three things that an envelope on a desk does not')
-    expect(text).toContain('which she cannot quietly change')
+    expect(text).toContain('which the organiser cannot quietly change')
   })
 })
 
@@ -282,7 +282,7 @@ describe('joining', () => {
     const text = textOf(join('hand'))
 
     expect(text).toContain("Nomsa's Capitec, ending 4471")
-    expect(text).toContain('she is collecting it herself')
+    expect(text).toContain('they are collecting it personally')
     expect(text).toContain('Isipheko does not take it and cannot pass it on for you')
   })
 

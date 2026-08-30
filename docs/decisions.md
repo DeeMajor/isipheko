@@ -4324,3 +4324,35 @@ back to the collection. The guard is in the route as well as the markup
 (M2-05 §7's lesson — a markup-only guard is a guard nothing tests): a forged
 hand-step post against a collection with no hint re-renders the refusal and
 writes no member.
+
+---
+
+## UX-18 · The organiser wears no assumed pronoun
+
+The copy called every organiser "she" — in the witness invitation a real
+person's relatives read (*"has asked you to stand with her"*, beside the
+organiser's actual name), in the custody panel, the join flow, the incwadi's
+*"on her own word"*, and the trust panel's Q&A. The persona was a writing
+choice; on a page naming a real man it was the page being wrong about the
+person it exists to vouch for, permanently, in front of his family. **A bug,
+not a register question** — settled as one rather than waiting for F.3.
+
+Rewritten to the name where the name is available and to they/them where it
+is not. This deliberately diverges from `design/collection.html`'s verbatim
+custody sentences — the same posture as M3-08 §2's treatment of
+`design/dashboard.html`: the prototype is checked against what is true, not
+copied over it. The register survives; the assumption does not.
+
+Two survivals, both deliberate:
+
+- **The funeral details step keeps "Her name, or his name" / "About her, or
+  him"** — those are about the deceased, offered both ways on purpose, and
+  F.3's first-language review owns their final form.
+- **"burying their mother" is gone for a second reason**: `collectionCopy.
+  handover` is not archetype-keyed, so that sentence rendered on a *wedding*
+  collection's handover too — a register bug wider than gender. The line now
+  says the day is the family's to live through, which is true of every
+  occasion.
+
+Doc comments and decisions entries keep their "she" — they are the team
+talking about a persona, not the product talking about a person.

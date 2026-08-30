@@ -156,7 +156,7 @@ test('the page says who holds the money, before it asks for any', async ({
   ).toBeVisible()
   await expect(
     page.getByText(
-      'You are trusting her, the way you would if she collected it in an envelope.',
+      'You are trusting them, the way you would if they collected it in an envelope.',
     ),
   ).toBeVisible()
 

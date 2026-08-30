@@ -239,7 +239,7 @@ export const setupCopy = {
      * class of correction as M1-08 §5.
      */
     askQuote: (organiser: string, kicker: string, title: string) =>
-      `${organiser} is arranging ${kicker.toLowerCase()} for ${title}, and has asked you to stand with her as umkhaphi. Will you?`,
+      `${organiser} is arranging ${kicker.toLowerCase()} for ${title}, and has asked you to stand with them as umkhaphi. Will you?`,
     askBody:
       'You get a link for each of them to send however you already talk — WhatsApp, a message, or in person with the phone in your hand. Nothing goes out from us. This is what the link asks them:',
     askAfter:

@@ -139,7 +139,7 @@ test('an umkhaphi is asked, agrees, and appears on the page', async ({
 
   await expect(her.getByText('You have been asked')).toBeVisible()
   await expect(
-    her.getByText('has asked you to stand with her as umkhaphi. Will you?'),
+    her.getByText('has asked you to stand with them as umkhaphi. Will you?'),
   ).toBeVisible()
   await expect(her.getByText('nothing to sign up for')).toBeVisible()
   await expect(her.locator('input[type=password]')).toHaveCount(0)

@@ -223,7 +223,7 @@ test('the organiser can close it herself, and the record says whose word it was'
   await expect(page.getByText('worth less than a witness')).toBeVisible()
 
   await page.goto(`/c/${slug}/incwadi`)
-  await expect(page.getByText('on her own word')).toBeVisible()
+  await expect(page.getByText('on their own word')).toBeVisible()
   await expect(page.getByText('witnessed by')).toHaveCount(0)
 })
 

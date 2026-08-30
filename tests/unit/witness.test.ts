@@ -130,7 +130,7 @@ describe('the words', () => {
       setupCopy.witnesses.askQuote(organiser, kicker, title),
     )
     expect(witnessCopy.invite.question(organiser, kicker, title)).toContain(
-      'has asked you to stand with her as umkhaphi. Will you?',
+      'has asked you to stand with them as umkhaphi. Will you?',
     )
   })
 

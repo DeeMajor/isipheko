@@ -22,13 +22,13 @@ export const witnessCopy = {
     kicker: 'You have been asked',
     /** The design's sentence, and the only question on the page. */
     question: (organiser: string, kicker: string, title: string) =>
-      `${organiser} is arranging ${kicker.toLowerCase()} for ${title}, and has asked you to stand with her as umkhaphi. Will you?`,
+      `${organiser} is arranging ${kicker.toLowerCase()} for ${title}, and has asked you to stand with them as umkhaphi. Will you?`,
     /**
      * What it means, in the words the organiser was given. Nothing here asks
      * for money, an account, or anything else.
      */
     meaning:
-      'If you say yes, your name goes on the page beside hers, and money only moves when one of you agrees with her. Nothing else is asked of you.',
+      'If you say yes, your name goes on the page beside theirs, and money only moves when one of you agrees with them. Nothing else is asked of you.',
     weight:
       "Being asked to witness a family's umcimbi is not a small thing — it says they trust you with the family's business.",
     accept: 'Yes, I will stand with them',

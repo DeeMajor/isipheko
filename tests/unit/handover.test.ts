@@ -202,7 +202,7 @@ describe('what the incwadi says', () => {
     expect(copy.confirmedByWitness('Thandi Ngcobo')).toContain(
       'witnessed by Thandi Ngcobo',
     )
-    expect(copy.confirmedByOrganiser('Nomsa Mthembu')).toContain('on her own word')
+    expect(copy.confirmedByOrganiser('Nomsa Mthembu')).toContain('on their own word')
   })
 
   it('says plainly when nothing has been confirmed yet', () => {

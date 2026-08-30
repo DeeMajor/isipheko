@@ -50,7 +50,7 @@ export const collectionCopy = {
    * there is no reading of it that leaves us holding anything.
    */
   holdsTheMoney: (organiserName: string) =>
-    `${organiserName} is collecting this herself, into her own account. Isipheko does not hold it, does not move it, and cannot refund it. You are trusting her, the way you would if she asked you in person.`,
+    `${organiserName} is collecting this money personally, into their own account. Isipheko does not hold it, does not move it, and cannot refund it. You are trusting ${organiserName}, the way you would if they asked you in person.`,
 
   /** The same fact, for somebody reading the group's page rather than joining. */
   holdsTheMoneyShort: (organiserName: string) =>
@@ -98,7 +98,7 @@ export const collectionCopy = {
       'The family does not have to do anything here. Somebody who was there confirms it, and the record closes itself.',
 
     heading: 'Who confirms it',
-    lead: 'One of you who is standing there confirms it. Not the family — they are burying their mother and have nothing to do in here.',
+    lead: 'One of you who is standing there confirms it. Not the family — the day is theirs to live through, and they have nothing to do in here.',
     body: 'Pick whoever will be present when you hand it over. They tap once, on their own phone, and the record closes with their name against it.',
     /** Nothing moves. It only closes the record — no money passes through us. */
     foot: 'Nothing moves because of this tap. It only closes the record.',
@@ -185,7 +185,7 @@ export const collectionCopy = {
       `${item} was taken off the family's list by this group as one item.`,
     confirmedByWitness: (name: string) => `Handed over and witnessed by ${name}.`,
     confirmedByOrganiser: (organiser: string) =>
-      `Marked handed over by ${organiser}, on her own word.`,
+      `Marked handed over by ${organiser}, on their own word.`,
     acknowledged: 'The family confirmed it reached them.',
     notYet: 'Handover not yet confirmed.',
     quiet: 'Someone',
@@ -288,7 +288,7 @@ export const collectionCopy = {
 
     custodyTitle: (organiser: string) => `${organiser} holds this money, not Isipheko.`,
     custodyBody:
-      'It goes into her own account and she hands it over on the day. We check that she is who she says she is, and we keep the record of who gave. We do not hold the money and we cannot get it back for you. You are trusting her, the way you would if she collected it in an envelope.',
+      'It goes into their own account and they hand it over on the day. We check that they are who they say they are, and we keep the record of who gave. You are trusting them, the way you would if they collected it in an envelope. We do not hold the money and we cannot get it back for you.',
     custodyLink: 'What that means for you',
 
     /**
@@ -362,17 +362,17 @@ export const collectionCopy = {
 
     checkedHeading: 'Who Isipheko has checked',
     checkedBody: (organiser: string, when: string) =>
-      `${organiser}'s South African ID was verified against the Home Affairs record on ${when}. That is the only thing we can promise you about her.`,
+      `${organiser}'s South African ID was verified against the Home Affairs record on ${when}. That is the only thing we can promise you about ${organiser}.`,
 
     holdsHeading: 'Who holds the money',
     holdsBody: (organiser: string) =>
-      `She does. It sits in her personal account until the handover. Isipheko never receives it, never holds it, and cannot refund it. If ${organiser} does not hand it over, that is a matter between her and you — the same as any collection at work or at church. We say this plainly because you are about to give money on the strength of a link.`,
+      `The organiser does. It sits in their personal account until the handover. Isipheko never receives it, never holds it, and cannot refund it. If ${organiser} does not hand it over, that is a matter between the two of you — the same as any collection at work or at church. We say this plainly because you are about to give money on the strength of a link.`,
 
     weGiveHeading: 'What we do give you',
     weGiveBody: 'Three things that an envelope on a desk does not:',
     weGive: [
-      'A record of every name and amount, which she cannot quietly change.',
-      'A handover confirmed by one of you who is actually there, not by her alone.',
+      'A record of every name and amount, which the organiser cannot quietly change.',
+      'A handover confirmed by one of you who is actually there, not by the organiser alone.',
       'A printed incwadi the family keeps, with every name on it.',
     ],
 
@@ -407,13 +407,13 @@ export const collectionCopy = {
       'The group always sees the amount — the total has to add up for them. Turning this off keeps your name off the record the family is given.',
     handTitle: (organiser: string) => `Send it to ${organiser}`,
     handBody: (organiser: string) =>
-      `Pay ${organiser} the way you already would — she is collecting it herself. Isipheko does not take it and cannot pass it on for you.`,
+      `Pay ${organiser} the way you already would — they are collecting it personally. Isipheko does not take it and cannot pass it on for you.`,
     handMissing:
-      'The organiser has not said where to send it yet. Ask her before you send anything.',
+      'The organiser has not said where to send it yet. Ask them before you send anything.',
     submit: "I've sent it",
     doneTitle: 'You are on the list',
     doneBody: (organiser: string) =>
-      `${organiser} will mark it off when it reaches her. Your name goes on the record the family keeps, with everybody else's.`,
+      `${organiser} will mark it off when it reaches them. Your name goes on the record the family keeps, with everybody else's.`,
     errors: {
       amount: 'That amount is not one we can read. Try it like R250 or 250.',
       name: 'The group needs a name to put on the list.',
