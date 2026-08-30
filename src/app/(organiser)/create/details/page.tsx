@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { archetypeSetupCopy, setupCopy } from '@/copy/setup'
+import { prisma } from '@/db/client'
 import { ARCHETYPES, ARCHETYPE_KEYS, type ArchetypeKey } from '@/domain/archetype'
 import { currentSession } from '@/lib/session'
 import { Button, Field } from '@/ui/primitives'
@@ -34,13 +35,26 @@ export default async function DetailsPage({
 }: {
   searchParams: Promise<{ kind?: string; error?: string }>
 }) {
-  if ((await currentSession()) === null) redirect('/sign-in')
+  const session = await currentSession()
+  if (session === null) redirect('/sign-in')
 
   const { kind, error } = await searchParams
   if (!ARCHETYPE_KEYS.includes(kind as ArchetypeKey)) redirect('/create')
 
   const archetype = ARCHETYPES[kind as ArchetypeKey]
   const copy = archetypeSetupCopy[archetype.key]
+
+  // Prefilled for a returning organiser (UX-15): her name is on record from
+  // the last umcimbi, and asking her to retype it on every new one made the
+  // field read as a question the product already knew the answer to. Still
+  // editable — it is her name, and the edit screen corrects it too (UX-07).
+  const organiserName =
+    (
+      await prisma.organiser.findUnique({
+        where: { id: session.organiserId },
+        select: { displayName: true },
+      })
+    )?.displayName ?? ''
 
   return (
     <SetupShell step="details" archetype={archetype} crumb={copy.zulu}>
@@ -75,6 +89,7 @@ export default async function DetailsPage({
           label={setupCopy.details.organiserNameLabel}
           help={setupCopy.details.organiserNameHelp}
           placeholder={setupCopy.details.organiserNamePlaceholder}
+          defaultValue={organiserName}
           autoComplete="name"
           required
         />

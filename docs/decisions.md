@@ -4276,3 +4276,14 @@ person holding two SMSes deserves to know which one is real. *"Use a
 different number"* stays, under its honest name.
 
 E2E sends, resends, proves the old code refused and the new one signs in.
+
+---
+
+## UX-15 · Her name is prefilled on the details step
+
+A returning organiser retyped her own name on every new umcimbi:
+`display_name` has been on her record since her first setup (M1-06 §2 is why
+it arrives there and not at sign-in), and the field never read it. Prefilled
+now, still editable — it is her name, and UX-07's edit screen corrects it
+after the fact too. A first-time organiser sees the empty field exactly as
+before.
