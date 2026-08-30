@@ -132,7 +132,7 @@ export function CollectionJoinPage({
                   <p className="claimHelp">{copy.amountHelp}</p>
 
                   <button type="submit" className="buttonPrimary">
-                    Continue
+                    {copy.continue}
                   </button>
                 </form>
               ) : null}
@@ -189,7 +189,7 @@ export function CollectionJoinPage({
                   <p className="claimHelp">{copy.quietlyHelp}</p>
 
                   <button type="submit" className="buttonPrimary">
-                    Continue
+                    {copy.continue}
                   </button>
                 </form>
               ) : null}
@@ -228,7 +228,7 @@ export function CollectionJoinPage({
                   <p className="intro">{copy.doneBody(organiserName)}</p>
                   <form method="get" action={`/c/${slug}`} className="claimForm">
                     <button type="submit" className="buttonQuiet">
-                      Back to the collection
+                      {copy.back}
                     </button>
                   </form>
                 </>

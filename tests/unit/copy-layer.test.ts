@@ -83,22 +83,32 @@ describe('the archetype words moved to the copy layer', () => {
 
 describe('nothing user-facing is inlined in a component', () => {
   /*
-   * A deliberately narrow scan: JSX text and `title=` / `label=` attributes
-   * holding a sentence. It cannot catch every inlined string and does not try —
-   * what it catches is the shape all sixteen had, which is a capitalised phrase
-   * sitting where a copy reference belongs.
+   * A deliberately narrow scan: JSX text and `title=` / `label=` / `help=`
+   * attributes holding a sentence. It cannot catch every inlined string and
+   * does not try — what it catches is the shape all the found ones had, which
+   * is a capitalised phrase sitting where a copy reference belongs.
+   *
+   * Widened at UX-16, because narrowness had a bill: `help=` was not in the
+   * attribute list and the JSX pattern only matched a sentence on one line —
+   * so a multi-line paragraph ("Mark somebody off once their money has
+   * actually reached you…") sat inlined on the collection screens for three
+   * milestones, one directory over from the scan that existed to catch it.
+   * `src/ui` joined the walk for the same reason: the join flow's buttons
+   * lived there, outside every scanned directory.
    */
-  const SENTENCE_ATTRIBUTE = /\s(?:title|label|placeholder|aria-label)="[A-Z][^"]{3,}"/
-  const JSX_SENTENCE = />[A-Z][a-z]+(?: [a-z']+){2,}[.?!]?</
+  const SENTENCE_ATTRIBUTE =
+    /\s(?:title|label|placeholder|aria-label|help)="[A-Z][^"]{3,}"/
+  const JSX_SENTENCE = />\s*[A-Z][a-z]+(?: [a-z’']+){2,}[.?!]?\s*</
 
   const SCREENS = [
     ...sourcesUnder('src/app/(organiser)'),
     ...sourcesUnder('src/app/(auth)'),
     ...sourcesUnder('src/app/(admin)'),
+    ...sourcesUnder('src/ui'),
   ]
 
   it('covers the screens it claims to', () => {
-    expect(SCREENS.length).toBeGreaterThanOrEqual(12)
+    expect(SCREENS.length).toBeGreaterThanOrEqual(30)
   })
 
   it('has no sentence in a title, label or placeholder attribute', () => {

@@ -4287,3 +4287,25 @@ it arrives there and not at sign-in), and the field never read it. Prefilled
 now, still editable — it is her name, and UX-07's edit screen corrects it
 after the fact too. A first-time organiser sees the empty field exactly as
 before.
+
+---
+
+## UX-16 · The rule-11 sweep, and the scan widened to catch what it missed
+
+M1-10's scan was narrow on purpose and the narrowness had a bill. Three
+shapes escaped it: `help=` was not in the attribute list, the JSX pattern
+only matched a sentence sitting on one line, and `src/ui` was not walked at
+all. So the collection screens kept a whole paragraph inlined ("Mark somebody
+off once their money has actually reached you…"), the new-collection screen
+kept three help strings and its intro, the join flow's buttons lived in
+`src/ui` outside every scanned directory, members' rows rendered the **raw
+status enum** (`confirmed`, `withdrawn`) as user-facing text, and the
+witnesses step's "Who you have asked" heading had been inlined since M3-03.
+
+All of it moved into `collectionCopy` and `setupCopy` — including the status
+words, which render as *Arrived* / *Withdrew* now instead of column values —
+and the scan widened: `help` in the attributes, whitespace-tolerant JSX
+matching, `src/ui` in the walk. The widened scan caught the witnesses heading
+by itself, which is the ratio M1-10 already measured (two found by reading,
+fourteen by the scan): **the scan finds what reading does not, exactly as far
+as it reaches.**

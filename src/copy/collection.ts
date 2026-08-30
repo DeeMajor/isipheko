@@ -140,6 +140,9 @@ export const collectionCopy = {
     witnessDoneBody:
       'Your name is on it, beside the day. Nothing moved because of this tap and nothing else is needed from you.',
 
+    /** The organiser's button that mints the family's optional link (UX-16). */
+    hostAsk: 'Get a link for the family',
+
     hostHeading: 'Did it reach you?',
     hostBody: (group: string) =>
       `${group} say they have handed this over. If it reached you, you can say so in one tap — and if you would rather not, nothing depends on it.`,
@@ -204,11 +207,16 @@ export const collectionCopy = {
    */
   setup: {
     title: 'Start a collection',
+    /** The line under the title (UX-16) — inlined until now. */
+    intro: 'For when a group of you want to give together and hand over one thing.',
     cardTitle: 'What you are putting together',
     incomplete: 'It needs a name and an occasion before it can start.',
+    start: 'Start it',
 
     occasionLabel: 'The occasion',
+    occasionHelp: 'A collection always names one — it drives the words and the tone.',
     nameLabel: 'What the group is called',
+    nameHelp: 'e.g. The Ngcobo cousins, or the office collection.',
     forWhomLabel: 'Who it is for',
     /**
      * Free text, and it must stay free text: the moment this is an account we
@@ -216,6 +224,8 @@ export const collectionCopy = {
      * goes with it.
      */
     bankHintLabel: 'Where people should send it',
+    bankHintHelp:
+      'In your words — e.g. “Nomsa’s Capitec, ending 4471”. Isipheko never holds this money, so this is only so the group knows where to pay you.',
   },
 
   manage: {
@@ -238,6 +248,18 @@ export const collectionCopy = {
     /** The seal's own rule, met at the edit rather than after it. */
     detailsClosed:
       'The record is closed and cannot be edited by anyone, including you. Nothing you typed just now was saved.',
+
+    /** The mark-off list (UX-16) — all of it inlined until now. */
+    joinedIntro:
+      'Mark somebody off once their money has actually reached you. Only what you have marked counts toward what the family is told the group handed over.',
+    itArrived: 'It arrived',
+    stillToMark: (waiting: number) =>
+      waiting === 1 ? 'One still to mark off.' : `${String(waiting)} still to mark off.`,
+    /** The status words a member's row wears once it is not a button. */
+    memberStatus: {
+      confirmed: 'Arrived',
+      withdrawn: 'Withdrew',
+    } as Record<string, string>,
 
     /** What just happened, after a redirect. */
     markedArrived: 'Marked as arrived.',
@@ -369,6 +391,10 @@ export const collectionCopy = {
   /** Joining, which is the contribution flow's shape and none of its money. */
   join: {
     title: 'Join this collection',
+    /** The two step buttons and the way back (UX-16) — inlined in the join
+     *  page until now, which kept them out of the translation unit. */
+    continue: 'Continue',
+    back: 'Back to the collection',
     amountLabel: 'How much are you putting in',
     amountHelp: 'Whatever you can. It shows on the list the group keeps.',
     amountPlaceholder: 'R1 234,56',

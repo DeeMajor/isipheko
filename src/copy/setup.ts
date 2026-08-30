@@ -257,7 +257,9 @@ export const setupCopy = {
     badPhone: (name: string) =>
       `${name}'s number does not look like a South African cellphone number, so they have not been added yet. Check the number and add them again below.`,
 
-    /** The organiser's own view of who has answered (M3-03). */
+    /** The organiser's own view of who has answered (M3-03). The heading was
+     *  inlined in the step until UX-16's widened scan caught it. */
+    askedHeading: 'Who you have asked',
     statusInvited: 'Not answered yet',
     statusAccepted: 'Said yes',
     statusDeclined: 'Said no',

@@ -45,9 +45,7 @@ export default async function NewCollectionPage({
   return (
     <main className={styles.page}>
       <h1 className={styles.title}>{collectionCopy.setup.title}</h1>
-      <p className={styles.body}>
-        For when a group of you want to give together and hand over one thing.
-      </p>
+      <p className={styles.body}>{collectionCopy.setup.intro}</p>
 
       {error === undefined ? null : (
         <Toast tone="problem">{collectionCopy.setup.incomplete}</Toast>
@@ -59,7 +57,7 @@ export default async function NewCollectionPage({
             id="archetype"
             name="archetype"
             label={collectionCopy.setup.occasionLabel}
-            help="A collection always names one — it drives the words and the tone."
+            help={collectionCopy.setup.occasionHelp}
             defaultValue={chosen}
             options={ARCHETYPE_KEYS.map((key) => ({
               value: key,
@@ -71,7 +69,7 @@ export default async function NewCollectionPage({
             id="title"
             name="title"
             label={collectionCopy.setup.nameLabel}
-            help="e.g. The Ngcobo cousins, or the office collection."
+            help={collectionCopy.setup.nameHelp}
             required
           />
 
@@ -86,10 +84,10 @@ export default async function NewCollectionPage({
             id="bankHint"
             name="bankHint"
             label={collectionCopy.setup.bankHintLabel}
-            help="In your words — e.g. “Nomsa's Capitec, ending 4471”. Isipheko never holds this money, so this is only so the group knows where to pay you."
+            help={collectionCopy.setup.bankHintHelp}
           />
 
-          <Button type="submit">Start it</Button>
+          <Button type="submit">{collectionCopy.setup.start}</Button>
         </form>
 
         <p className={styles.body}>{collectionCopy.holdsTheMoneyShort('You')}</p>

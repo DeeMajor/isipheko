@@ -239,13 +239,10 @@ export default async function CollectionPage({
         titleAs="h2"
         className={styles.card}
       >
-        <p className={styles.body}>
-          Mark somebody off once their money has actually reached you. Only what you have
-          marked counts toward what the family is told the group handed over.
-        </p>
+        <p className={styles.body}>{collectionCopy.manage.joinedIntro}</p>
 
         {members.length === 0 ? (
-          <p className={styles.body}>Nobody yet.</p>
+          <p className={styles.body}>{collectionCopy.manage.nobodyJoined}</p>
         ) : (
           <ul className={styles.members}>
             {members.map((member) => (
@@ -262,11 +259,13 @@ export default async function CollectionPage({
                     <input type="hidden" name="id" value={id} />
                     <input type="hidden" name="member" value={member.id} />
                     <Button type="submit" variant="secondary">
-                      It arrived
+                      {collectionCopy.manage.itArrived}
                     </Button>
                   </form>
                 ) : (
-                  <span className={styles.memberStatus}>{member.status}</span>
+                  <span className={styles.memberStatus}>
+                    {collectionCopy.manage.memberStatus[member.status] ?? ''}
+                  </span>
                 )}
               </li>
             ))}
@@ -274,7 +273,9 @@ export default async function CollectionPage({
         )}
 
         {waiting.length === 0 ? null : (
-          <p className={styles.body}>{`${String(waiting.length)} still to mark off.`}</p>
+          <p className={styles.body}>
+            {collectionCopy.manage.stillToMark(waiting.length)}
+          </p>
         )}
       </Card>
 
@@ -407,7 +408,7 @@ export default async function CollectionPage({
               <form action={askHost}>
                 <input type="hidden" name="id" value={id} />
                 <Button type="submit" variant="secondary">
-                  Get a link for the family
+                  {collectionCopy.handover.hostAsk}
                 </Button>
               </form>
             ) : (

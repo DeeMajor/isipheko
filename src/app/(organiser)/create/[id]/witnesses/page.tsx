@@ -177,7 +177,7 @@ export default async function WitnessesPage({
       {saved.length === 0 ? null : (
         <section className={styles.panel} aria-labelledby="asked-heading">
           <h2 className={styles.panelTitle} id="asked-heading">
-            Who you have asked
+            {setupCopy.witnesses.askedHeading}
           </h2>
 
           <div className={styles.stack}>
