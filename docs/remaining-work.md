@@ -222,7 +222,7 @@ Architecture §8.2 has three payout rows with no templates. M2-08 declined to wr
 
 ## Part C — The carryovers
 
-Eight tasks that earlier milestones deferred by name. Four are ready. Four need a person, a decision, or a public URL.
+Eight tasks that earlier milestones deferred by name — four ready, four needing a person, a decision, or a public URL — plus two added by the UX audit of 30 August 2026 (M2-09b, M2-09c, at the end of this part).
 
 **M3-07b · Review queue pagination** — **READY**
 *Deps:* M3-07 (built)
@@ -290,6 +290,20 @@ Four small things, found together, all of the same family: `src/copy/` is the tr
 Expose a development server publicly, complete a payment in PayFast's sandbox, and let PayFast post a real Instant Transaction Notification to `/api/payments/payfast`. The outgoing signature direction is confirmed against their server by `pnpm check:payfast`; the incoming direction is **reasoned, not observed** — nobody has checked whether our incoming parameter string matches what their server signed. **Not a task an agent can close.**
 
 **Worth saying, because it changes the priority:** if the chosen vendor is not PayFast, this task verifies an adapter nothing will use. It is cheap and it closes a criterion honestly, but it should not sit ahead of anything on the launch path.
+
+**M2-09b · Group in-kind claiming has no screen** — **READY, and deserves a session of its own** *(added 30 August 2026, from the UX audit)*
+*Deps:* M2-09, M2-10 (both built)
+
+`claimAsGroup` — eight cousins claiming the tent as a unit, Part D2.5's *"how families actually operate"* and the differentiator that separates an attached collection from a group pot — is built, tested, and **called from no screen**. The collection organiser's page offers no way to take an item off the host's list, so the *"claimed by us"* card on the collection page, the incwadi's *"what the group took off the family's list"* line, and the group claim's own no-expiry rule (M2-09 §3) are all machinery with no door. The M3-08 §8 shape, on the feature the product's positioning leans on.
+
+Deliberately **not** built as a tail-end audit fix: which items are offered (the host's open items, resolved through `collections.event_id`), what the group sees before committing (a claim is all-or-remainder, M2-09), and what the release path is when plans change are one coherent design, and UX-05 already decided the host cannot release a group's claim — so the release half below is this task's sibling, not an afterthought.
+*Done:* an attached collection's organiser can claim an open item from the host's board as the group; the claim carries the collection id and does not expire; the collection page and incwadi say so; abandonment (M2-09c) releases it.
+
+**M2-09c · Abandoning a collection** — **READY, same session as M2-09b** *(added 30 August 2026, from the UX audit)*
+*Deps:* M2-09
+
+`abandonCollection` and `withdrawMember` have no callers. A collection that fizzles has no end: it sits open forever, a mistaken join sits on the roster forever (*"Not marked off yet"*, indefinitely), and — once M2-09b exists — an abandoned group claim would hold the host's tent with nothing to release it, because a group claim never expires and M2-09 §3 names abandonment as the only thing that gives the item back. The copy consequences are real: what an abandoned collection's public page says, and to whom, has not been designed, which is why this is a session and not a commit.
+*Done:* an organiser can close a collection that will not hand over; members can be removed before money is marked; an abandoned group claim releases the item; the page says what happened in words somebody has reviewed.
 
 ---
 

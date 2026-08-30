@@ -4390,3 +4390,46 @@ must not come out of a shared cache.
 E2E walks the whole pipe for the first time: a stranger suggests Firewood, an
 onlooker cannot see it, the organiser reads *"Suggested by Bongani Zulu"* and
 adds it, and the world can then claim it.
+
+---
+
+## UX audit closure · Two deferrals named, and one promise recorded against its gap
+
+The 30 August 2026 UX audit ran UX-01 through UX-19 (see those entries).
+Three things it deliberately did not build, recorded here so the choices are
+decisions rather than omissions:
+
+### 1. Group claims and abandonment are tasks, not tail-end fixes
+
+`claimAsGroup`, `abandonCollection` and `withdrawMember` have no callers —
+Part D2.5's flagship ("eight cousins claim the tent") is machinery with no
+door, and a collection that fizzles has no end. Both are now **M2-09b** and
+**M2-09c** in docs/remaining-work.md Part C, one session together: which
+items a group is offered, what it commits to, and what abandonment says on a
+public page are one design, and doing it as an audit tail-end would have been
+exactly the improvised widening M2-11 §5 refused for the handover photo.
+UX-05 already took one decision that shapes it: the host cannot release a
+group's claim — abandonment is the release path, which is why the two tasks
+are siblings.
+
+### 2. The full-record promise has no surface, and the two are now recorded together
+
+`contributeCopy.who.visibilityFoot` — *"The family always sees the full
+record, whatever you choose here"* — is a Part D anchor line, and **no screen
+delivers it**. After confirmation, the organiser's strand shows *"Someone"*
+for an anonymous giver and no amounts anywhere; the name-and-amount pairing
+exists only in the confirmation queue's moment and is gone once she taps. A
+contributor choosing *"Quietly — neither"* is relying on the family still
+knowing it was them, and today the family does not, except from their own
+bank statement.
+
+Not improvised, deliberately: a screen showing every name against every
+amount — including the names of people who chose "quietly" toward the public
+— is a real privacy design (who may see it, whether it is exportable, what a
+shared organiser phone means), and an audit commit is the wrong place to take
+those decisions. **Until it exists, the sentence is a promise the product
+keeps only partially**, and whoever designs the surface should start from
+this entry and that string. It stays in the copy because the family *can*
+see the full record at confirm time and the contributor's expectation is the
+right one to design toward — but the gap is real and it is now written down
+beside the promise.
