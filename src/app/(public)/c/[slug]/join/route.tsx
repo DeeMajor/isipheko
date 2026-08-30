@@ -144,6 +144,18 @@ export async function POST(
     const collection = await collectionPageBySlug(prisma, slug)
     if (collection === null) return new Response(null, { status: 404 })
 
+    /*
+     * No destination, no "I've sent it" (UX-17). The markup no longer offers
+     * the button when the organiser has not said where to send money, and
+     * this is the guard behind it — checked here as well so a forged post
+     * cannot put a payment claim on the roster that had nowhere to be true
+     * (the M2-05 §7 lesson: the markup alone is a guard nothing tests).
+     * The re-render is the hand step, which says what is missing.
+     */
+    if (collection.organiserBankHint === null || collection.organiserBankHint === '') {
+      return render(request, { slug, step: 'hand', carried })
+    }
+
     const amount = parseMoney(carried.amount ?? '')
     const phone = normalisePhone(carried.phone ?? '')
 

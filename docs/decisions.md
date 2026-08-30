@@ -4309,3 +4309,18 @@ matching, `src/ui` in the walk. The widened scan caught the witnesses heading
 by itself, which is the ratio M1-10 already measured (two found by reading,
 fourteen by the scan): **the scan finds what reading does not, exactly as far
 as it reaches.**
+
+---
+
+## UX-17 · No "I've sent it" over a blank destination
+
+The join flow's hand step refused to point anywhere when the organiser had
+not said where to send money (M2-10 §6) — and then rendered *"I've sent it"*
+under the refusal anyway. A member could put a payment claim on the roster
+that had nowhere to be true.
+
+The button is gone from that state; what renders is the refusal and the way
+back to the collection. The guard is in the route as well as the markup
+(M2-05 §7's lesson — a markup-only guard is a guard nothing tests): a forged
+hand-step post against a collection with no hint re-renders the refusal and
+writes no member.

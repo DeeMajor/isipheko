@@ -302,6 +302,14 @@ describe('joining', () => {
     // A blank where a payment destination belongs is how somebody pays the
     // wrong person (M2-05 §1, same reasoning).
     expect(textOf(markup)).toContain('has not said where to send it yet')
+
+    /*
+     * And no "I've sent it" under the refusal (UX-17). The button used to
+     * render anyway, so a member could put a payment claim on the roster that
+     * had nowhere to be true. The way out is back to the collection.
+     */
+    expect(textOf(markup)).not.toContain(collectionCopy.join.submit)
+    expect(textOf(markup)).toContain(collectionCopy.join.back)
   })
 
   it('keeps the group able to see the amount even when the name is withheld', () => {

@@ -195,18 +195,36 @@ export function CollectionJoinPage({
               ) : null}
 
               {step === 'hand' ? (
-                <form method="post" action={`/c/${slug}/join`} className="claimForm">
-                  <Hidden carried={carried} />
-                  <input type="hidden" name="step" value="hand" />
-
-                  <h2 className="heading">{copy.handTitle(organiserName)}</h2>
-                  <p className="intro">{copy.handBody(organiserName)}</p>
-
-                  {bankHint === null || bankHint === '' ? (
+                bankHint === null || bankHint === '' ? (
+                  <>
+                    {/*
+                      Nowhere to send it, so no "I've sent it" (UX-17). The
+                      button used to render under the refusal, and a member
+                      could claim to have sent money the screen had just said
+                      it could not point anywhere — a roster row about a
+                      payment that had no destination. The same posture as the
+                      pay step's `noNumberBody` (M2-05 §1): a blank where a
+                      payment destination belongs is how somebody pays the
+                      wrong person, and a claim over that blank is worse.
+                    */}
+                    <h2 className="heading">{copy.handTitle(organiserName)}</h2>
                     <div className="conflict" role="alert">
                       <p className="claimedBody">{copy.handMissing}</p>
                     </div>
-                  ) : (
+                    <form method="get" action={`/c/${slug}`} className="claimForm">
+                      <button type="submit" className="buttonQuiet">
+                        {copy.back}
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <form method="post" action={`/c/${slug}/join`} className="claimForm">
+                    <Hidden carried={carried} />
+                    <input type="hidden" name="step" value="hand" />
+
+                    <h2 className="heading">{copy.handTitle(organiserName)}</h2>
+                    <p className="intro">{copy.handBody(organiserName)}</p>
+
                     <div className="custody">
                       {/* Her words, free text, and never an account we could
                           pay into — the moment it is one, rule 12 is gone. */}
@@ -214,12 +232,12 @@ export function CollectionJoinPage({
                         {bankHint}
                       </p>
                     </div>
-                  )}
 
-                  <button type="submit" className="buttonPrimary">
-                    {copy.submit}
-                  </button>
-                </form>
+                    <button type="submit" className="buttonPrimary">
+                      {copy.submit}
+                    </button>
+                  </form>
+                )
               ) : null}
 
               {step === 'done' ? (
