@@ -4356,3 +4356,37 @@ Two survivals, both deliberate:
 
 Doc comments and decisions entries keep their "she" — they are the team
 talking about a persona, not the product talking about a person.
+
+---
+
+## UX-19 · The contributor can finally suggest something
+
+### 1. Half a pipe, twice over
+
+`suggestItem` was built and tested in M2-04 with no screen anywhere. M3-08
+found the **organiser's** half unreachable — "a contributor could tell a
+family they had forgotten something and no organiser could ever see it" — and
+built the board group that answers suggestions, without noticing the
+contributor's half was just as unreachable. So the group M3-08 shipped could
+never populate through the product: dead UI answering a question nobody could
+ask. The audit found it by grepping for `suggestItem`'s callers, which is the
+same way M3-08 found its half.
+
+### 2. The form, in the board's own posture
+
+"Is something missing?" sits under the needs board on the public page: a
+label, a name, `method="post"` to `/api/suggest`, no script needed. The route
+holds `/api/claim`'s posture — no session (the link is the capability), the
+same-site check, the claim path's per-address limit — and answers a draft's
+slug with the same 404 as everything else (M1-07 §7). The privacy fact is
+said **before** the name is typed and again after: only the family sees it,
+and nothing is on the list until they agree — which is M2-03 §7's rule
+reaching the person it protects.
+
+The confirmation renders server-side off `?suggested=1`, which also flips the
+response to `no-store` like a claim outcome does: one person's confirmation
+must not come out of a shared cache.
+
+E2E walks the whole pipe for the first time: a stranger suggests Firewood, an
+onlooker cannot see it, the organiser reads *"Suggested by Bongani Zulu"* and
+adds it, and the world can then claim it.

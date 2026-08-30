@@ -150,6 +150,14 @@ export async function GET(
   const origin = request.nextUrl.origin
   const identity = cardIdentity(archetype, event, origin)
   const openBead = request.nextUrl.searchParams.get('bead') ?? ''
+  // What happened to a suggestion, if one was just made (UX-19).
+  const suggestedParam = request.nextUrl.searchParams.get('suggested') ?? ''
+  const suggested =
+    suggestedParam === '1'
+      ? ('done' as const)
+      : suggestedParam === 'empty'
+        ? ('empty' as const)
+        : undefined
   const now = new Date()
 
   // The undo offer is the cookie's, not the URL's. Somebody who copies the
@@ -177,6 +185,7 @@ export async function GET(
       canUndo={canUndo}
       beads={beads}
       openBeadId={openBead === '' ? undefined : openBead}
+      suggested={suggested}
       now={now}
       card={{
         imageUrl: identity.url,
@@ -188,5 +197,7 @@ export async function GET(
     />,
   )
 
-  return html(request, markup, { personal: outcome !== undefined || claimId !== null })
+  return html(request, markup, {
+    personal: outcome !== undefined || claimId !== null || suggested !== undefined,
+  })
 }

@@ -18,7 +18,7 @@ import { formatEventDate } from '@/lib/event-card'
 import { PUBLIC_PAGE_CSS } from './public-page-css'
 import { formatReference } from '@/domain/reference'
 
-import { BoardNotice, NeedsBoard, type BoardOutcome } from './needs-board'
+import { BoardNotice, NeedsBoard, SuggestForm, type BoardOutcome } from './needs-board'
 import { LedgerStrand } from './strand'
 import { STRAND_CSS } from './strand-css'
 import { accentStyle } from './theme'
@@ -61,6 +61,8 @@ export interface PublicPageProps {
    * rendered without it is a page WhatsApp shows as a bare URL.
    */
   readonly card?: PageCard | undefined
+  /** What just happened to a suggestion, from `?suggested=` (UX-19). */
+  readonly suggested?: 'done' | 'empty' | undefined
 }
 
 export interface PageCard {
@@ -81,6 +83,7 @@ export function PublicEventPage({
   openBeadId,
   now,
   card,
+  suggested,
 }: PublicPageProps) {
   const copy = archetypeEventCopy[event.archetype]
   const when = [formatEventDate(event.eventDate), event.place]
@@ -249,6 +252,10 @@ export function PublicEventPage({
                 outcome={outcome}
                 canUndo={canUndo}
               />
+
+              {/* The contributor's half of suggestions (UX-19): built in
+                  M2-04, answered by M3-08, askable only now. */}
+              <SuggestForm slug={event.slug} suggested={suggested} />
             </section>
 
             <section className="section" id="strand" aria-labelledby="strand-heading">

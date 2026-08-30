@@ -519,3 +519,78 @@ test('a pay number nobody could pay is refused, and a saved one is read back', a
     page.getByText('Contributors will be told to pay 083 555 1234'),
   ).toBeVisible()
 })
+
+/**
+ * The suggestion pipe, end to end at last (UX-19).
+ *
+ * `suggestItem` was built and tested in M2-04 with no screen anywhere. M3-08
+ * found the organiser's half unreachable and built the board group that
+ * answers suggestions — and the contributor's half stayed unbuilt, so the
+ * group could never populate through the product. This walks the whole pipe:
+ * a stranger asks, the family answers, the list grows.
+ */
+test('a contributor suggests something, and the family puts it on the list', async ({
+  browser,
+  page,
+}) => {
+  await asFreshClient(page)
+  const seeded = await seedEvent()
+
+  const prisma = prismaClient()
+  let slug = ''
+  try {
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: seeded.eventId },
+      select: { slug: true },
+    })
+    slug = event.slug
+  } finally {
+    await prisma.$disconnect()
+  }
+
+  // A stranger, no session, on the public page.
+  const visitorContext = await browser.newContext({
+    javaScriptEnabled: false,
+    extraHTTPHeaders: {
+      'cf-connecting-ip': `198.51.${String(Math.floor(Math.random() * 254) + 1)}.${String(Math.floor(Math.random() * 254) + 1)}`,
+    },
+  })
+  const visitor = await visitorContext.newPage()
+  await visitor.goto(`/e/${slug}`)
+
+  await expect(visitor.getByText('Is something missing?')).toBeVisible()
+  await visitor.getByLabel('What is missing').fill('Firewood')
+  await visitor.getByLabel('Your name', { exact: true }).last().fill('Bongani Zulu')
+  await visitor.getByRole('button', { name: 'Suggest it' }).click()
+
+  // Told the truth about what happens next: nothing, until the family says.
+  await expect(visitor.getByText('The family has it')).toBeVisible()
+  await expect(visitor.getByText('not on the list until they say so')).toBeVisible()
+
+  // Invisible to the next stranger.
+  const onlooker = await browser.newPage()
+  await onlooker.goto(`/e/${slug}`)
+  await expect(onlooker.getByText('Firewood')).not.toBeVisible()
+  await onlooker.close()
+
+  // The organiser sees it, with the name, and puts it on the list.
+  await signIn(page, seeded.token)
+  await page.goto(`/manage/${seeded.eventId}`)
+  await expect(page.getByText('Suggested by Bongani Zulu')).toBeVisible()
+
+  const firewood = page
+    .locator('li')
+    .filter({ hasText: 'Firewood' })
+    .filter({ hasText: 'Bongani Zulu' })
+  await firewood.getByRole('button', { name: 'Add it to the list' }).click()
+  await expect(page.getByText('Your list has been updated.')).toBeVisible()
+
+  // And now the world can see it and claim it.
+  await visitor.goto(`/e/${slug}`)
+  await expect(visitor.getByText('Firewood', { exact: true })).toBeVisible()
+  await expect(
+    visitor.getByRole('button', { name: "I'll bring the firewood" }),
+  ).toBeVisible()
+
+  await visitorContext.close()
+})

@@ -112,4 +112,35 @@ export const needsCopy = {
   },
   photoRejectedNext:
     'To put a photo on it, tap Undo while the seconds are still counting and claim again with a different one.',
+
+  /**
+   * The contributor's half of suggestions (UX-19).
+   *
+   * `suggestItem` was built and tested in M2-04 with no screen anywhere;
+   * M3-08 built the organiser's answer to it and left the contributor's ask
+   * still unbuilt — half a pipe, twice over. The board group "Someone
+   * suggested this" could never populate through the product until this form.
+   *
+   * The privacy fact is said before the name is asked, like the claim form's
+   * `nameHelp` (M2-06): a suggestion is invisible to everybody but the family
+   * until they answer, and somebody should know that before typing.
+   */
+  suggest: {
+    heading: 'Is something missing?',
+    intro:
+      'If the family has forgotten something the day will need, you can say so. Only they see it, and it is not on the list until they agree.',
+    labelLabel: 'What is missing',
+    labelPlaceholder: 'e.g. Ice',
+    nameLabel: 'Your name',
+    nameHelp: 'So the family knows who thought of it. It is not shown to anybody else.',
+    submit: 'Suggest it',
+
+    doneTitle: 'The family has it',
+    doneBody:
+      'It is not on the list until they say so, and nobody else sees it until then. Nothing more is needed from you.',
+
+    errors: {
+      empty: 'Say what is missing and who you are, and send it again.',
+    },
+  },
 } as const

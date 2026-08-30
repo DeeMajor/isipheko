@@ -275,6 +275,84 @@ function ClaimForm({ slug, item }: { slug: string; item: BoardItem }) {
   )
 }
 
+/**
+ * "Is something missing?" — the contributor's half of suggestions (UX-19).
+ *
+ * `suggestItem` was built in M2-04 with no screen; M3-08 built the
+ * organiser's answer and the group it feeds could still never populate,
+ * because nothing let a contributor ask. One form, same posture as claiming:
+ * `method="post"` to a route handler, works with no script, and the privacy
+ * fact — only the family sees it, nothing is on the list until they agree —
+ * is said before the name is asked.
+ */
+export function SuggestForm({
+  slug,
+  suggested,
+}: {
+  slug: string
+  suggested?: 'done' | 'empty' | undefined
+}) {
+  const copy = needsCopy.suggest
+
+  return (
+    <div className="need">
+      <p className="needLabel">{copy.heading}</p>
+      <p className="claimHelp">{copy.intro}</p>
+
+      {suggested === 'done' ? (
+        <div className="claimed" role="status">
+          <p className="claimedTitle">{copy.doneTitle}</p>
+          <p className="claimedBody">{copy.doneBody}</p>
+        </div>
+      ) : (
+        <>
+          {suggested === 'empty' ? (
+            <div className="conflict" role="alert">
+              <p className="claimedBody">{copy.errors.empty}</p>
+            </div>
+          ) : null}
+
+          <form method="post" action="/api/suggest" className="claimForm">
+            <input type="hidden" name="slug" value={slug} />
+
+            <label className="claimLabel" htmlFor="suggest-label">
+              {copy.labelLabel}
+            </label>
+            <input
+              className="claimInput"
+              id="suggest-label"
+              name="label"
+              type="text"
+              placeholder={copy.labelPlaceholder}
+              required
+            />
+
+            <label className="claimLabel" htmlFor="suggest-name">
+              {copy.nameLabel}
+            </label>
+            <input
+              className="claimInput"
+              id="suggest-name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              aria-describedby="suggest-name-help"
+              required
+            />
+            <p className="claimHelp" id="suggest-name-help">
+              {copy.nameHelp}
+            </p>
+
+            <button type="submit" className="buttonQuiet">
+              {copy.submit}
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** Shown above the board when something went wrong that is not about one item. */
 export function BoardNotice({ outcome }: { outcome: BoardOutcome | undefined }) {
   if (outcome === undefined) return null
