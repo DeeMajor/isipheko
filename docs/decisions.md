@@ -4433,3 +4433,111 @@ this entry and that string. It stays in the copy because the family *can*
 see the full record at confirm time and the contributor's expectation is the
 right one to design toward — but the gap is real and it is now written down
 beside the promise.
+
+## UX-20 · The front page dresses like the rest of the product
+
+The front page was six paragraphs on bare paper — none of the visual language
+the reference screens established. It reads now like a screen from the same
+product. Decisions taken beyond "make it nicer":
+
+### 1. The wordmark bar comes from the reference screens, not a new idea
+
+Every reference screen opens with the letterspaced ISIPHEKO bar; the front
+page now does too, via `Chrome`, so the catch-all 404 inherits it in the same
+edit. The h1 is no longer the word "Isipheko" — that is the topbar's job, as
+on the event page where the h1 is the person's name. The h1 is the custom:
+*"People have always arrived with something."* — promoted from the footer
+refrain, which shrinks to the derivation so the sentence appears once.
+
+### 2. The bead glyphs are the Ledger Strand's iconography, decorative only
+
+The two "what it is" cards open with inline SVGs in the strand's own
+vocabulary — solid bead for money, ringed bead with a centre bar for a thing
+brought, and a short mixed cord for the record. `aria-hidden`, no counts, no
+amounts (asserted in the unit test), drawn in `currentColor` ink because the
+page has no ceremony and therefore no accent. This is the product showing its
+record instead of describing it, and it paid for itself in copy: the intro
+and card bodies lost roughly a third of their words with every load-bearing
+sentence kept (the meat litany, both custody answers, the phone-and-code
+note — all still pinned by tests).
+
+### 3. Home-only CSS is its own string, not a widening of the shared one
+
+`HOME_PAGE_CSS` is appended after `PUBLIC_PAGE_CSS` in this page's inline
+style only. Adding `.topbar`/`.card`/`.cardGlyph` to the shared string would
+ship them to the event page, which pays for every byte under rule 9 and uses
+none of them.
+
+### 4. The buttons were never full width, and now they are
+
+`.buttonPrimary`/`.buttonSecondary` set `width: 100%` — on the front page
+they are anchors, which as inline elements ignore it, so the two CTAs
+rendered shrink-wrapped. The card-scoped rule sets `display: flex`, making
+the hit target the full card width the shared rule always intended. Scoped
+to `.card` rather than fixed globally: the shared string is used by screens
+this session did not regression-test.
+
+### Known flake, not from this change
+
+`photo-stripping.test.ts › caps the long edge and keeps the shape` runs at
+~5.0s against a 5000ms timeout and tips over when the full suite competes
+for cores — it passes alone, on this diff and on the clean tree alike. Left
+untouched here; bumping a timeout in an unrelated test is its own decision.
+
+### 5. Second pass: the door opens on ink (Direction B, chosen from three)
+
+The card facelift above was judged not enough. Three directions were mocked
+at full fidelity — A: a vertical cord running the page with beads marking
+each section; B: an ink plate, paper type reversed out like the cover of the
+incwadi, a paper cord closing it; C: a centred programme sheet with bead
+fleurons and no cards — and B was chosen.
+
+Decisions the plate takes:
+
+- **The plate is literal `--ink`, never an accent.** A front door that took
+  an archetype's colour would be wearing somebody's wedding. This is rule 2's
+  spirit one shade deeper: not just no accent declared, but a surface that
+  must stay ink even if one ever were.
+- **The quieter voices on ink are paper at reduced opacity** (kicker .72,
+  intro .85), not invented greys — the palette stays the six tokens.
+- **The 404 keeps the plain paper topbar, not the plate.** It answers a bad
+  address and should not open like a cover.
+- **The headline clamps** (34px → 42px by viewport) so the plate holds at
+  320px without orphaning the last word.
+
+The three mockups and the comparison sheet are session artifacts, not
+checked in; this entry is the record of the choice and the reasons.
+
+### 6. Third pass: the starts lead, the argument folds
+
+"Two ways to start" now sits directly under the plate, and the two
+explanation cards fold to their headings with native `<details>`. Decisions:
+
+- **`<details>`, not script.** The fold costs zero JavaScript (rule 9), works
+  with JavaScript disabled like the claim forms do, and a summary is a real
+  disclosure control to a screen reader. The +/− marker is CSS, replacing the
+  browser triangle.
+- **Ships closed, asserted in the unit test** — a `<details open>` is a
+  paragraph with extra steps.
+- **The safety section does not fold.** "Were you sent a link?" serves the
+  visitor who already distrusts a page; anti-scam guidance hidden behind a
+  tap would protect only the people who already knew to look for it. Same
+  reasoning for the custody sentences on the start cards: rule 16 says
+  plainly, and plainly means visible.
+
+### 7. The collection is now the front door's main route — Part D2.7's ordering reversed
+
+Decided 6 September 2026, explicitly, with the original reasoning on the
+table: Part D2.7 put the umcimbi first so the product would not read as an
+undifferentiated group-pot app. The reversal leads with "Rally a group" —
+first card, solid primary button — because collections are how people arrive,
+and the door now meets the visitor it actually gets.
+
+What the reversal does **not** change: the ceremony remains the centre of
+the product past this door; the collection card's custody copy is untouched
+(rules 12, 13 and 16 all still hold); and D2.7's positioning concern is now
+carried by the plate above — a door that opens like the cover of the incwadi
+does not read as a stokvel app, whichever card comes first.
+
+The unit test that pinned umcimbi-first now pins collection-first, with this
+entry cited beside it.

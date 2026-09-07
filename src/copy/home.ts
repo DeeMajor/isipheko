@@ -42,18 +42,24 @@ export const homeCopy = {
    * this page should still know that bringing a thing counts the same as
    * sending an amount, because that is what separates this from a donation page.
    */
-  lead: 'From ukupheka, to cook.',
+  lead: 'From ukupheka, to cook',
+
+  /**
+   * The headline is the custom, not the product. The claim-so-nobody-doubles
+   * point that used to end this paragraph now lives in `bring.body`, said once.
+   */
+  headline: 'People have always arrived with something.',
   intro:
-    'When a family holds an umcimbi — a wedding, a funeral, an unveiling, a welcome for a child — people arrive with something. Money, or a tent, or the chairs, or the meat. Isipheko keeps the record of who stood with them, and lets people say what they are bringing so that nobody arrives with a second one.',
+    'When a family holds an umcimbi — a wedding, a funeral, an unveiling, a welcome for a child — people arrive with something. Money, or a tent, or the chairs, or the meat. Isipheko keeps the record of who stood with them.',
 
   bring: {
     heading: 'Money or the thing itself',
-    body: 'Somebody can send an amount, or claim something off the family’s list and bring it. Both go on the same record and count the same. The family says what is needed; nobody has to guess, and nobody chooses for the person giving.',
+    body: 'Send an amount, or claim something off the family’s list and bring it. Both go on the same record and count the same — and nobody arrives with a second one.',
   },
 
   record: {
     heading: 'A record nobody can quietly change',
-    body: 'Every contribution is written once and never edited. A correction is a new line saying what was wrong, not a rubbing-out — so what the record says today is what it will say in five years, to the family and to everyone who gave.',
+    body: 'Every contribution is written once and never edited. A correction is a new line saying what was wrong — so what the record says today is what it will say in five years.',
   },
 
   /** Both roles, and the difference between them is about money. */
@@ -62,21 +68,22 @@ export const homeCopy = {
 
     event: {
       title: 'Set up your umcimbi',
-      body: 'For the family holding it. You say what the day needs, ask one or two people to stand with you, and share one link. Contributions reach your own bank account — Isipheko never holds them.',
+      body: 'For the family holding it. You say what the day needs and share one link. Contributions reach your own bank account — Isipheko never holds them.',
       action: 'Set up your umcimbi',
     },
 
     /**
-     * Second and quieter, deliberately (Part D2.7): collections are how people
-     * arrive and the ceremony is why they stay, and a group-pot app that also
-     * does ceremonies is undifferentiated.
+     * First and primary since UX-20 §7 — a deliberate reversal of Part D2.7's
+     * ordering: collections are how people arrive, and the front door now
+     * leads with the route most first-time visitors are here for. The
+     * ceremony remains the centre of the product past this door.
      *
      * The custody sentence is not softened. She holds the money; we never touch
      * it and neither does the host (rules 12 and 16).
      */
     collection: {
       title: 'Rally a group',
-      body: 'For a guest bringing cousins, colleagues or a congregation together to give as one. You collect it into your own account and hand it over yourself. Isipheko never receives it, never holds it, and cannot pass it on for you — the people giving are trusting you, and the page says so.',
+      body: 'For a guest bringing cousins, colleagues or a congregation together to give as one. You collect it into your own account and hand it over yourself — Isipheko never receives it, never holds it, and cannot pass it on for you. The people giving are trusting you, and the page says so.',
       action: 'Start a collection',
     },
 
@@ -99,7 +106,7 @@ export const homeCopy = {
    */
   check: {
     heading: 'Were you sent a link?',
-    body: 'If somebody sent you an umcimbi and you want to know whether it is real before you give anything, you can check it here. Do not use a number on the page itself — if the page were fake, the number would be too.',
+    body: 'You can check that an umcimbi is real before you give anything. Do not use a number on the page itself — if the page were fake, the number would be too.',
     action: 'isipheko.co.za/check',
     reportLead: 'If you think a page is not what it says it is, tell us:',
     reportAction: 'isipheko.co.za/report',
@@ -126,5 +133,5 @@ export const homeCopy = {
     homeAction: 'Go to the front page',
   },
 
-  footer: 'Isipheko · from ukupheka, to cook. People have always arrived with something.',
+  footer: 'Isipheko · from ukupheka, to cook.',
 } as const

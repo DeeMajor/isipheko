@@ -42,14 +42,18 @@ describe('what the front page has to say', () => {
     expect(markup).toContain('Money, or a tent, or the chairs, or the meat')
   })
 
-  it('offers both ways to start, with the umcimbi first', () => {
+  it('offers both ways to start, with the collection first', () => {
+    // A deliberate reversal of Part D2.7's umcimbi-first ordering, decided
+    // 6 September 2026 — see docs/decisions.md UX-20 §7. Collections are how
+    // people arrive, and the door now leads with them; the ceremony remains
+    // the centre of everything past it.
     const markup = home()
 
     const event = markup.indexOf(homeCopy.start.event.action)
     const collection = markup.indexOf(homeCopy.start.collection.action)
 
-    expect(event).toBeGreaterThan(-1)
-    expect(collection).toBeGreaterThan(event)
+    expect(collection).toBeGreaterThan(-1)
+    expect(event).toBeGreaterThan(collection)
   })
 
   it('says who holds the money, and gives the two different answers', () => {
@@ -82,6 +86,38 @@ describe('what the front page has to say', () => {
     // The difference between a step somebody expected and a phone-number field
     // that appears out of nowhere.
     expect(home()).toContain('phone number and a code')
+  })
+
+  it('opens with the wordmark bar, and keeps the bead glyphs decorative', () => {
+    /*
+     * The letterspaced ISIPHEKO bar every reference screen opens with — the one
+     * piece of brand on a page that belongs to no ceremony. The bead glyphs are
+     * the Ledger Strand's iconography (solid = money, ringed with a bar = a
+     * thing brought), not information: no counts, no amounts, and hidden from
+     * screen readers, because the sentence beside each says it in words.
+     */
+    const markup = home()
+
+    expect(markup).toContain('class="wordmark"')
+    expect(markup).toMatch(/class="cardGlyph" aria-hidden="true"/)
+    expect(markup).not.toMatch(/<svg[^>]*>[^<]*\d/)
+  })
+
+  it('leads with the two starts, and folds the explanations behind them', () => {
+    /*
+     * The page's job is the two ways to start; the argument for the product is
+     * there for whoever asks for it. Native <details> so the fold costs no
+     * script (rule 9) and still works with JavaScript disabled — and it ships
+     * closed, which is the decision: a details that renders open is a
+     * paragraph with extra steps.
+     */
+    const markup = home()
+
+    expect(markup.match(/<details class="card fold">/g)).toHaveLength(2)
+    expect(markup).not.toContain('<details open')
+    expect(markup.indexOf(homeCopy.start.event.action)).toBeLessThan(
+      markup.indexOf(homeCopy.bring.heading),
+    )
   })
 })
 
